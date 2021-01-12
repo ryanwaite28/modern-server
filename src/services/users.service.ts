@@ -13,6 +13,7 @@ import {
   capitalize,
   allowedImages,
   languagesList,
+  validateDisplayName,
   validateUsername,
   validateGender,
   generateJWT,
@@ -39,7 +40,7 @@ import {
   send_email
 } from '../email-client';
 import {
-  delete_image,
+  delete_cloudinary_image,
   store_image
 } from '../cloudinary-manager';
 import {
@@ -62,6 +63,8 @@ import { get_clique_member_requests_count } from '../repos/clique-members.repo';
 import { Cliques, CliqueInterests, CliqueMembers } from '../models/clique.model';
 import { Resources, ResourceInterests } from '../models/resource.model';
 import { SiteFeedbacks, Users } from '../models/user.model';
+import { Photos } from '../models/photo.model';
+import { Posts, PostPhotos } from '../models/post.model';
 
 
 export class UsersService {
@@ -84,6 +87,7 @@ export class UsersService {
 
   static async check_session(request: Request, response: Response) {
     try {
+      console.log(`check_session request received`);
       const auth = AuthorizeJWT(request, false);
       return response.status(HttpStatusCode.OK).json(auth);
     } catch (e) {
@@ -191,13 +195,8 @@ export class UsersService {
           where: { 
             ...partialWhereClause,
             [Op.or]: [
-              { firstname: where(fn('LOWER', col('firstname')), 'LIKE', '%' + q + '%'), },
-              { lastname: where(fn('LOWER', col('lastname')), 'LIKE', '%' + q + '%'), },
-              { entrepreneur_interests: where(fn('LOWER', col('entrepreneur_interests')), 'LIKE', '%' + q + '%'), },
-              { investor_interests: where(fn('LOWER', col('investor_interests')), 'LIKE', '%' + q + '%'), },
-              { partner_interests: where(fn('LOWER', col('partner_interests')), 'LIKE', '%' + q + '%'), },
-              { author_expertise: where(fn('LOWER', col('author_expertise')), 'LIKE', '%' + q + '%'), },
-              { coach_expertise: where(fn('LOWER', col('coach_expertise')), 'LIKE', '%' + q + '%'), },
+              { displayname: where(fn('LOWER', col('displayname')), 'LIKE', '%' + q + '%'), },
+              { username: where(fn('LOWER', col('username')), 'LIKE', '%' + q + '%'), },
             ]
           },
           attributes: user_attrs_med,
@@ -261,22 +260,6 @@ export class UsersService {
   }
 
   static async get_user_feed(request: Request, response: Response) {
-    // find authors that have your entrepreneurial interests
-    // find coaches that have your entrepreneurial interests
-    // find partners that have your entrepreneurial interests
-    // find investors that have your entrepreneurial interests
-    // find resources that have your entrepreneurial interests
-    // find entrepreneurs that have your entrepreneurial interests
-    // find entrepreneurs that have your partner interests
-    // find entrepreneurs that have your investor interests
-  
-    // find businesses that have your partner interests
-    // find businesses that have your investor interests
-    // find business plans that have your partner interests
-    // find business plans that have your investor interests
-    // find partners that have your business plan(s) interests
-    // find investors that have your business plan(s) interests
-
     const min_id = parseInt(request.params.min_id, 10);
     const you: IUser = response.locals.you;
     const feed_type = String(request.query.feed_type || '');
@@ -286,13 +269,9 @@ export class UsersService {
       });
     }
 
-    const entrepreneur_interests = you.entrepreneur_interests.split(',').filter(industry => !!industry);
-    const partner_interests = you.partner_interests.split(',').filter(industry => !!industry);
-    const investor_interests = you.investor_interests.split(',').filter(industry => !!industry);
+    const you_tags = you.tags.split(',').filter(tag => !!tag);
 
-    const entrepreneur_interests_like_list_curry = (prop: string) => entrepreneur_interests.map(industry => ({ [prop]: { [Op.like]: '%' + industry + '%' } }));
-    const partner_interests_like_list_curry = (prop: string) => partner_interests.map(industry => ({ [prop]: { [Op.like]: '%' + industry + '%' } }));
-    const investor_interests_like_list_curry = (prop: string) => investor_interests.map(industry => ({ [prop]: { [Op.like]: '%' + industry + '%' } }));
+    const you_tags_like_list_curry = (prop: string) => you_tags.map(tag => ({ [prop]: { [Op.like]: '%' + tag + '%' } }));
 
     const limit_str = request.query.limit || '';
     const limitIsValid = (/[0-9]+/).test(<string> limit_str);
@@ -300,21 +279,51 @@ export class UsersService {
       ? parseInt(request.params.limit, 10)
       : 10;
 
-    const partialWhere: any = min_id
-      ? { [Op.and]: [{ id: { [Op.lt]: min_id } }, { id: { [Op.ne]: you.id  }}] }
-      : { id: { [Op.ne]: you.id } };
+    const partialWhere: any = (prop: string) => min_id
+      ? { [Op.and]: [{ id: { [Op.lt]: min_id } }, { [prop]: { [Op.ne]: you.id  }}] }
+      : { [prop]: { [Op.ne]: you.id } };
     let results;
 
+    const useTagsOr = you_tags.length
+      ? you_tags_like_list_curry('tags')
+      : {};
+
+    console.log({
+      useTagsOr,
+      w: { ...partialWhere('id'), ...useTagsOr },
+      w2: { ...partialWhere('owner_id'), ...useTagsOr },
+    });
+
     switch (feed_type) {
-      // case 'authors-entrepreneur': {
-      //   results = await Users.findAll({
-      //     where: { ...partialWhere, is_author: true, [Op.or]: entrepreneur_interests_like_list_curry('author_expertise') },
-      //     attributes: user_attrs_med,
-      //     limit,
-      //     order: [['id', 'DESC']]
-      //   });
-      //   break;
-      // }
+      case 'new-users': {
+        results = await Users.findAll({
+          where: { ...partialWhere('id'), ...useTagsOr },
+          attributes: user_attrs_med,
+          limit,
+          order: [['id', 'DESC']]
+        });
+        break;
+      }
+      case 'new-posts': {
+        results = await Posts.findAll({
+          where: { ...partialWhere('owner_id'), ...useTagsOr },
+          limit,
+          include: [{
+            model: Users,
+            as: 'owner',
+            attributes: user_attrs_slim
+          }, {
+            model: PostPhotos,
+            as: 'photos',
+            include: [{
+              model: Photos,
+              as: 'photo',
+            }]
+          }],
+          order: [['id', 'DESC']]
+        });
+        break;
+      }
     }
 
     return response.status(HttpStatusCode.OK).json({
@@ -525,11 +534,8 @@ export class UsersService {
     const session_id: string = (<any> request).session.id;
 
     const {
-      firstname,
-      lastname,
-      // username,
-      phone,
-      // type,
+      username,
+      displayname,
       email,
       password,
       confirmPassword,
@@ -545,11 +551,10 @@ export class UsersService {
     const required_fields: [
       string, string, (arg: any) => boolean, string
     ][] = [
-      ['firstname', 'First name', validateName, 'must be letters only and at least 2 characters long'],
-      ['lastname', 'Last name', validateName, 'must be letters only and at least 2 characters long'],
-      // ['username', 'Username', validateUsername, 'must be: at least 2 characters, alphanumeric, dashes, underscores, periods'],
       // ['gender', 'Gender', validateGender, 'must be a 0, 1 or 2'],
       // ['type', 'Type', validateAccountType, 'please choose an account type'],
+      ['username', 'Username', validateUsername, 'must be: at least 2 characters, alphanumeric, dashes, underscores, periods'],
+      ['displayname', 'DisplayName', validateDisplayName, 'must be: at least 2 characters, alphanumeric, dashes, underscores, periods, spaces'],
       ['email', 'Email', validateEmail, 'is in bad format'],
       ['password', 'Password', validatePassword, 'Password must be: at least 7 characters, upper and/or lower case alphanumeric'],
       ['confirmPassword', 'Confirm Password', validatePassword, 'Password must be: at least 7 characters, upper and/or lower case alphanumeric'],
@@ -585,24 +590,23 @@ export class UsersService {
       });
     }
 
-    // const check_username = await UserRepo.get_user_by_email(username);
-    // if (check_username) {
-    //   return response.status(HttpStatusCode.FORBIDDEN).json({
-    //     error: true,
-    //     message: 'Username already in use'
-    //   });
-    // }
+    const check_username = await UserRepo.get_user_by_email(username);
+    if (check_username) {
+      return response.status(HttpStatusCode.FORBIDDEN).json({
+        error: true,
+        message: 'Username already in use'
+      });
+    }
   
     /* Data Is Valid */
   
     const createInfo = {
-      // username,
-      // type,
-      phone,
-      email: email.toLowerCase(),
-      firstname: capitalize(firstname),
-      lastname: capitalize(lastname),
+      // firstname: capitalize(firstname),
+      // lastname: capitalize(lastname),
       // gender: parseInt(gender, 10),
+      username,
+      displayname,
+      email: email.toLowerCase(),
       password: bcrypt.hashSync(password)
     };
     const new_user_model = await UserRepo.create_user(createInfo);
@@ -611,48 +615,52 @@ export class UsersService {
 
     // create JWT
     const jwt = TokensService.newJwtToken(request, new_user, true);
-  
-    /** Email Sign up and verify */
-    const new_email_verf_model = await EmailVerfRepo.create_email_verification({
-      user_id: new_user.id,
-      email: new_user.email
-    });
-    const new_email_verf: PlainObject = new_email_verf_model.get({ plain: true });
 
-    const host: string = request.get('origin')!;
-    const verify_link = (<string> host).endsWith('/')
-      ? (host + 'verify-email/' + new_email_verf.verification_code)
-      : (host + '/verify-email/' + new_email_verf.verification_code);
-    const email_subject = `${process.env.APP_NAME} - Signed Up!`;
-    const userName = `${new_user.firstname} ${new_user.lastname}`;
-    const email_html = SignedUp_EMAIL({
-      ...new_user,
-      name: userName,
-      verify_link,
-      appName: process.env.APP_NAME
-    });
-
-    // don't "await" for email response.
-    const send_email_params = {
-      to: new_user.email,
-      name: userName,
-      subject: email_subject,
-      html: email_html
-    };
-    send_email(send_email_params)
-      .then((email_results) => {
-        console.log({ email_results: email_results });
-      })
-      .catch((error) => {
-        console.log({ email_error: error });
-      });
-  
-    return response.status(HttpStatusCode.OK).json({
+    response.status(HttpStatusCode.OK).json({
       online: true,
       you: new_user,
       message: 'Signed Up!',
       token: jwt,
     });
+  
+    try {
+      /** Email Sign up and verify */
+      const new_email_verf_model = await EmailVerfRepo.create_email_verification({
+        user_id: new_user.id,
+        email: new_user.email
+      });
+      const new_email_verf: PlainObject = new_email_verf_model.get({ plain: true });
+
+      const host: string = request.get('origin')!;
+      const verify_link = (<string> host).endsWith('/')
+        ? (host + 'verify-email/' + new_email_verf.verification_code)
+        : (host + '/verify-email/' + new_email_verf.verification_code);
+      const email_subject = `${process.env.APP_NAME} - Signed Up!`;
+      const userName = `${new_user.firstname} ${new_user.lastname}`;
+      const email_html = SignedUp_EMAIL({
+        ...new_user,
+        name: userName,
+        verify_link,
+        appName: process.env.APP_NAME
+      });
+
+      // don't "await" for email response.
+      const send_email_params = {
+        to: new_user.email,
+        name: userName,
+        subject: email_subject,
+        html: email_html
+      };
+      send_email(send_email_params)
+        .then((email_results) => {
+          console.log(`sign up email sent successfully to:`, email);
+        })
+        .catch((error) => {
+          console.log({ email_error: error });
+        });
+    } catch (e) {
+      console.log(`could not sent sign up email:`, e, { new_user });
+    }
   }
 
   static async sign_in(request: Request, response: Response) {
@@ -1177,7 +1185,7 @@ export class UsersService {
 
         const whereClause = { id: you.id };
         const updates = await UserRepo.update_user(updatesObj, whereClause);
-        delete_image(you.icon_id);
+        delete_cloudinary_image(you.icon_id);
     
         Object.assign(you, updatesObj);
         const user = { ...you };
@@ -1252,7 +1260,7 @@ export class UsersService {
 
         const whereClause = { id: you.id };
         const updates = await UserRepo.update_user(updatesObj, whereClause);
-        delete_image(you.wallpaper_id);
+        delete_cloudinary_image(you.wallpaper_id);
     
         Object.assign(you, updatesObj);
         const user = { ...you };

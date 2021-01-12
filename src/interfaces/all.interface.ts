@@ -36,6 +36,7 @@ export interface IUser extends ICommon {
   middlename:                  string;
   lastname:                    string;
   username:                    string;
+  displayname:                 string;
   email:                       string;
   paypal:                      string;
   password?:                   string;
@@ -63,15 +64,6 @@ export interface IUser extends ICommon {
   online:                      boolean;
   premium:                     boolean;
   certified:                   boolean;
-  entrepreneur_interests:      string;
-  investor_interest:           boolean;
-  investor_interests:          string;
-  partner_interest:            boolean;
-  partner_interests:           string;
-  is_author:                   boolean;
-  author_expertise:            string;
-  is_coach:                    boolean;
-  coach_expertise:             string;
   email_verified:              boolean;
   phone_verified:              boolean;
   can_message:                 boolean;
@@ -136,6 +128,16 @@ export interface IVideo extends ICommon {
   video_id:            string;
   is_explicit:         boolean;
   is_private:          boolean;
+}
+
+export interface IRecipe extends ICommon {
+  creator_id:          number;
+  title:               string;
+  description:         string;
+  tags:                string;
+  image_link:          string;
+  image_id:            string;
+  visibility:          string;
 }
 
 export interface IAudio extends ICommon {

@@ -22,7 +22,7 @@ import {
   IRequest
 } from '../interfaces/all.interface';
 import {
-  delete_image,
+  delete_cloudinary_image,
   store_image
 } from '../cloudinary-manager';
 

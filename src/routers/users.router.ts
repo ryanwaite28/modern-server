@@ -21,6 +21,7 @@ import { ConversationExists, IsConversationOwner, IsNotConversationOwner } from 
 import { ResourceExists } from '../guards/resource.guard';
 import { CliqueExists, IsCliqueCreator, IsNotCliqueCreator } from '../guards/clique.guard';
 import { UserAuthorized, UserIdsAreDifferent, UserIdsAreDifferentWithModel } from '../guards/user.guard';
+import { RecipesService } from '../services/recipes.service';
 
 // Router
 export const UserRouter: Router = Router();
@@ -106,6 +107,10 @@ UserRouter.get('/:user_id/get-followings/:follow_id', FollowsService.get_user_fo
 UserRouter.get('/:user_id/get-posts/all', PostsService.get_user_posts_all);
 UserRouter.get('/:user_id/get-posts', PostsService.get_user_posts);
 UserRouter.get('/:user_id/get-posts/:post_id', PostsService.get_user_posts);
+
+UserRouter.get('/:user_id/get-recipes/all', RecipesService.get_user_recipes_all);
+UserRouter.get('/:user_id/get-recipes', RecipesService.get_user_recipes);
+UserRouter.get('/:user_id/get-recipes/:recipe_id', RecipesService.get_user_recipes);
 
 UserRouter.get('/:user_id/get-resources/all', ResourcesService.get_user_resources_all);
 UserRouter.get('/:user_id/get-resources', ResourcesService.get_user_resources);

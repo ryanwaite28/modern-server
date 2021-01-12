@@ -8,6 +8,7 @@ import {
 import {
   MyModelStaticGeneric,
   IMyModel,
+  MyModelStatic,
 } from '../model-types';
 
 import {
@@ -19,8 +20,9 @@ import { Videos } from './video.model';
 import { Notices } from './notice.model';
 import { Posts } from './post.model';
 import { Links } from './link.model';
+import { Recipes } from './recipe.model';
 
-export const SharedPhotos = <MyModelStaticGeneric<IMyModel>> sequelize.define('shared_photos', {
+export const SharedPhotos = <MyModelStatic> sequelize.define('shared_photos', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   photo_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Photos, key: 'id' } },
@@ -29,7 +31,7 @@ export const SharedPhotos = <MyModelStaticGeneric<IMyModel>> sequelize.define('s
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const SharedVideos = <MyModelStaticGeneric<IMyModel>> sequelize.define('shared_videos', {
+export const SharedVideos = <MyModelStatic> sequelize.define('shared_videos', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   video_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Videos, key: 'id' } },
@@ -38,7 +40,7 @@ export const SharedVideos = <MyModelStaticGeneric<IMyModel>> sequelize.define('s
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const SharedAudios = <MyModelStaticGeneric<IMyModel>> sequelize.define('shared_audios', {
+export const SharedAudios = <MyModelStatic> sequelize.define('shared_audios', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   audio_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Audios, key: 'id' } },
@@ -47,7 +49,7 @@ export const SharedAudios = <MyModelStaticGeneric<IMyModel>> sequelize.define('s
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const SharedLinks = <MyModelStaticGeneric<IMyModel>> sequelize.define('shared_links', {
+export const SharedLinks = <MyModelStatic> sequelize.define('shared_links', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   link_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Links, key: 'id' } },
@@ -56,7 +58,7 @@ export const SharedLinks = <MyModelStaticGeneric<IMyModel>> sequelize.define('sh
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const SharedPosts = <MyModelStaticGeneric<IMyModel>> sequelize.define('shared_posts', {
+export const SharedPosts = <MyModelStatic> sequelize.define('shared_posts', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   post_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Posts, key: 'id' } },
@@ -65,10 +67,19 @@ export const SharedPosts = <MyModelStaticGeneric<IMyModel>> sequelize.define('sh
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const SharedNotices = <MyModelStaticGeneric<IMyModel>> sequelize.define('shared_notices', {
+export const SharedNotices = <MyModelStatic> sequelize.define('shared_notices', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   notice_id:           { type: Sequelize.INTEGER, allowNull: false, references: { model: Notices, key: 'id' } },
+  body:                { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
+  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+export const SharedRecipes = <MyModelStatic> sequelize.define('shared_recipes', {
+  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  recipe_id:           { type: Sequelize.INTEGER, allowNull: false, references: { model: Recipes, key: 'id' } },
   body:                { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }

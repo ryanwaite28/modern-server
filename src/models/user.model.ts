@@ -18,13 +18,18 @@ import {
 export const Users = <MyModelStaticGeneric<IUserModel>> sequelize.define('users', {
   id:                                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   gender:                              { type: Sequelize.INTEGER, allowNull: true }, // Unknown/Other or 0, Male or 1, Female or 2
-  firstname:                           { type: Sequelize.STRING, allowNull: false },
-  lastname:                            { type: Sequelize.STRING, allowNull: false },
-  username:                            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  
+  firstname:                           { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  middlename:                          { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  lastname:                            { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+
+  username:                            { type: Sequelize.STRING, allowNull: false },
+  displayname:                         { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   email:                               { type: Sequelize.STRING, allowNull: false },
+  password:                            { type: Sequelize.STRING, allowNull: false },
+
   paypal:                              { type: Sequelize.STRING, allowNull: true },
   phone:                               { type: Sequelize.STRING, allowNull: true },
-  password:                            { type: Sequelize.STRING, allowNull: false },
   headline:                            { type: Sequelize.STRING(75), allowNull: false, defaultValue: '' },
   bio:                                 { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
   tags:                                { type: Sequelize.STRING, allowNull: false, defaultValue: '' },

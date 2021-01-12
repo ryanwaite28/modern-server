@@ -19,6 +19,19 @@ import {
 } from "./conversations.model";
 import { Messagings, Messages } from "./messages.model";
 import { Photos } from "./photo.model";
+import { Resources, ResourceInterests } from "./resource.model";
+import { SavedPosts } from "./saves.model";
+import { Users, Notifications, Follows } from "./user.model";
+import { Videos } from "./video.model";
+import {
+  RecipeCommentReactions,
+  RecipeCommentReplies,
+  RecipeCommentReplyReactions,
+  RecipeComments,
+  RecipeIngredients,
+  RecipeReactions,
+  Recipes
+} from './recipe.model';
 import {
   Posts,
   PostComments,
@@ -37,10 +50,6 @@ import {
   PostCommentReplyAudios,
   PostCommentReplyReactions
 } from './post.model';
-import { Resources, ResourceInterests } from "./resource.model";
-import { SavedPosts } from "./saves.model";
-import { Users, Notifications, Follows } from "./user.model";
-import { Videos } from "./video.model";
 
 /** Relationships */
 
@@ -111,7 +120,13 @@ ConversationMessageSeens.belongsTo(Users, { as: 'user', foreignKey: 'user_id', t
 ConversationMessages.hasMany(ConversationMessageSeens, { as: 'viewers', foreignKey: 'message_id', sourceKey: 'id' });
 ConversationMessageSeens.belongsTo(ConversationMessages, { as: 'message', foreignKey: 'message_id', targetKey: 'id' });
 
+Users.hasMany(Recipes, { as: 'user_recipes', foreignKey: 'creator_id', sourceKey: 'id' });
+Users.hasMany(Recipes, { as: 'user_helping', foreignKey: 'helper_id', sourceKey: 'id' });
+Recipes.belongsTo(Users, { as: 'creator', foreignKey: 'creator_id', targetKey: 'id' });
+Recipes.belongsTo(Users, { as: 'helper', foreignKey: 'helper_id', targetKey: 'id' });
 
+Recipes.hasMany(RecipeIngredients, { as: 'ingredients', foreignKey: 'recipe_id', sourceKey: 'id' });
+RecipeIngredients.belongsTo(Recipes, { as: 'recipe', foreignKey: 'recipe_id', targetKey: 'id' });
 
 Users.hasMany(Posts, { as: 'posts', foreignKey: 'owner_id', sourceKey: 'id' });
 Posts.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
@@ -127,6 +142,18 @@ Users.hasMany(PostCommentReactions, { as: 'comment_reactions', foreignKey: 'owne
 PostCommentReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
 Users.hasMany(PostCommentReplyReactions, { as: 'reply_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
 PostCommentReplyReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
+
+Users.hasMany(RecipeComments, { as: 'recipe_comments', foreignKey: 'owner_id', sourceKey: 'id' });
+RecipeComments.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
+Users.hasMany(RecipeCommentReplies, { as: 'recipe_comment_replies', foreignKey: 'owner_id', sourceKey: 'id' });
+RecipeCommentReplies.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
+
+Users.hasMany(RecipeReactions, { as: 'recipe_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
+RecipeReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
+Users.hasMany(RecipeCommentReactions, { as: 'recipe_comment_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
+RecipeCommentReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
+Users.hasMany(RecipeCommentReplyReactions, { as: 'recipe_comment_reply_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
+RecipeCommentReplyReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
 
 Posts.hasMany(PostViewers, { as: 'viewers', foreignKey: 'post_id', sourceKey: 'id' });
 PostViewers.belongsTo(Posts, { as: 'post', foreignKey: 'post_id', targetKey: 'id' });
@@ -194,7 +221,7 @@ PostCommentReplyReactions.belongsTo(PostCommentReplies, { as: 'reply', foreignKe
 /** Init Database */
 
 export const db_init = () => {
-  sequelize.sync({ force: false })
+  return sequelize.sync({ force: false })
     .then(() => {
       console.log('Database Initialized! ENV: ' + DB_ENV);
     })

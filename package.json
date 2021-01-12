@@ -10,7 +10,9 @@
     "cw": "tsc -w",
     "tcw": "tsc -w",
     "start-dev": "npm run tsc && nodemon dist/app.js",
+    "start-server": "nodemon dist/app.js",
     "sd": "npm run tsc && nodemon dist/app.js",
+    "ss": "nodemon dist/app.js",
     "start": "npm run start-dev"
   },
   "keywords": [

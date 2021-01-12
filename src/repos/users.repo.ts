@@ -15,10 +15,11 @@ export async function get_user_by_where(
 
 export async function create_user(
   params: {
-    firstname: string;
-    lastname: string;
-    gender?: number;
-    // username: string;
+    // firstname: string;
+    // lastname: string;
+    // gender?: number;
+    username: string;
+    displayname: string;
     email: string;
     password: string;
   }

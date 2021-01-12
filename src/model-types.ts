@@ -20,6 +20,7 @@ import {
   IVideo,
   IResource,
   IClique,
+  IRecipe
 } from './interfaces/all.interface';
 
 /**
@@ -45,6 +46,7 @@ export interface Model extends Model<>, null {}
 
 export interface IUserModel extends Model<IUser>, IUser {}
 export interface ICliqueModel extends Model<IClique>, IClique {}
+export interface IRecipeModel extends Model<IRecipe>, IRecipe {}
 export interface IResourceModel extends Model<IResource>, IResource {}
 export interface IPhotoModel extends Model<IPhoto>, IPhoto {}
 export interface IVideoModel extends Model<IVideo>, IVideo {}

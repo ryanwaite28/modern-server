@@ -40,7 +40,7 @@ import {
   send_email
 } from '../email-client';
 import {
-  delete_image,
+  delete_cloudinary_image,
   store_image
 } from '../cloudinary-manager';
 

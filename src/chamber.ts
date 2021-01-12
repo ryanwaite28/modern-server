@@ -543,6 +543,7 @@ export const user_attrs_slim = [
   'firstname',
   'lastname',
   'username',
+  'displayname',
   'public',
   'can_message',
   'can_converse',
@@ -555,16 +556,10 @@ export const user_attrs_slim = [
   'created_at',
   'updated_at',
   'deleted_at',
-  'entrepreneur_interests',
-  'partner_interest',
-  'partner_interests',
-  'investor_interest',
-  'investor_interests',
-  'is_author',
-  'author_expertise',
-  'is_coach',
-  'coach_expertise',
 ];
+
+// https://stackoverflow.com/questions/6903823/regex-for-youtube-id/6904504
+export const youtube_regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
 
 export const user_attrs_med = [
   ...user_attrs_slim,
@@ -914,61 +909,71 @@ export function AuthorizeJWT(
   message: string;
   you?: IUser;
 } {
-  /* First, check Authorization header */
-  const auth = request.get('Authorization');
-  if (!auth) {
-    return {
-      error: true,
-      status: HttpStatusCode.UNAUTHORIZED,
-      message: `Request not authorized: missing Authorization header`
-    };
-  }
-  const isNotBearerFormat = !(/Bearer\s[^]/).test(auth);
-  if (isNotBearerFormat) {
-    return {
-      error: true,
-      status: HttpStatusCode.UNAUTHORIZED,
-      message: `Request not authorized: Authorization header must be Bearer format`
-    };
-  }
-
-  /* Check token validity */
-  const token = auth.split(' ')[1];
-  let you;
   try {
-    you = decodeJWT(token) || null;
-  } catch (e) {
-    console.log(e);
-    you = null;
-  }
-  if (!you) {
-    return {
-      error: true,
-      status: HttpStatusCode.UNAUTHORIZED,
-      message: `Request not authorized: invalid token`
-    };
-  }
-
-  /* Check if user id match the `you_id` path param IF checkUrlIdMatch = true */
-  if (checkUrlYouIdMatch) {
-    const user_id: number = parseInt(request.params.you_id, 10);
-    const notYou: boolean = user_id !== (<IUser> you).id;
-    if (notYou) {
+    /* First, check Authorization header */
+    const auth = request.get('Authorization');
+    console.log(`authorizing user request:`, auth);
+    if (!auth) {
       return {
         error: true,
         status: HttpStatusCode.UNAUTHORIZED,
-        message: `Request not authorized: You are not permitted to complete this action`
+        message: `Request not authorized: missing Authorization header`
       };
     }
-  }
+    const isNotBearerFormat = !(/Bearer\s[^]/).test(auth);
+    if (isNotBearerFormat) {
+      return {
+        error: true,
+        status: HttpStatusCode.UNAUTHORIZED,
+        message: `Request not authorized: Authorization header must be Bearer format`
+      };
+    }
 
-  /* Request is okay */
-  return {
-    error: false,
-    status: HttpStatusCode.OK,
-    message: `user authorized`,
-    you: (<IUser> you),
-  };
+    /* Check token validity */
+    const token = auth.split(' ')[1];
+    let you;
+    try {
+      you = decodeJWT(token) || null;
+    } catch (e) {
+      console.log(e);
+      you = null;
+    }
+    if (!you) {
+      return {
+        error: true,
+        status: HttpStatusCode.UNAUTHORIZED,
+        message: `Request not authorized: invalid token`
+      };
+    }
+
+    /* Check if user id match the `you_id` path param IF checkUrlIdMatch = true */
+    if (checkUrlYouIdMatch) {
+      const user_id: number = parseInt(request.params.you_id, 10);
+      const notYou: boolean = user_id !== (<IUser> you).id;
+      if (notYou) {
+        return {
+          error: true,
+          status: HttpStatusCode.UNAUTHORIZED,
+          message: `Request not authorized: You are not permitted to complete this action`
+        };
+      }
+    }
+
+    /* Request is okay */
+    return {
+      error: false,
+      status: HttpStatusCode.OK,
+      message: `user authorized`,
+      you: (<IUser> you),
+    };
+  } catch (error) {
+    console.log(`auth jwt error:`, error);
+    return {
+      error: true,
+      status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+      message: `Request auth failed...`
+    };
+  }
 }
 
 export const dev_origins = [

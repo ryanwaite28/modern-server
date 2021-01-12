@@ -71,6 +71,7 @@ export class InfoService {
 
   static async get_business_news(request: Request, response: Response) {
     /**
+     * https://docs.microsoft.com/en-us/rest/api/cognitiveservices-bingsearch/bing-news-api-v7-reference#categories-by-market
      * https://rapidapi.com/microsoft-azure-org-microsoft-cognitive-services/api/bing-news-search1?endpoint=apiendpoint_0aa346dd-16d6-40d4-930c-235f4b4fb9e6
      */
 
@@ -107,7 +108,7 @@ export class InfoService {
     const unirest = require("unirest");
     const req = unirest("GET", "https://bing-news-search1.p.rapidapi.com/news");
     req.query({
-      "category": "Business",
+      "category": "Entertainment",
       "safeSearch": "Off",
       "textFormat": "Raw"
     });

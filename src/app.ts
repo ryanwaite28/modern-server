@@ -7,6 +7,7 @@ import express from 'express';
 import * as path from 'path';
 
 import socket_io from 'socket.io';
+import { ExpressPeerServer } from 'peer';
 
 import * as http from 'http';
 
@@ -49,6 +50,11 @@ app.use(client_sessions({
 const server: http.Server = http.createServer(app);
 const io: socket_io.Server = socket_io(server);
 
+const peerServer = ExpressPeerServer(server, {
+  // debug: true,
+  path: '/hotspot-peer'
+});
+
 io.on('connection', (socket: socket_io.Socket) => {
   console.log('new socket:');
   // console.log('socket handshake:', socket.handshake);
@@ -58,7 +64,11 @@ io.on('connection', (socket: socket_io.Socket) => {
   /** Global IO events */
 
   if (originIsAllowed) {
-    console.log(`socket connection is valid`);
+    console.log(`socket origin is valid`);
+    // socket.on('auth', (jwt) => {
+      
+    // });
+
     socket.on(EVENT_TYPES.MESSAGE_TYPING, (data) => {
       io.emit(`${EVENT_TYPES.MESSAGE_TYPING}:from-${data.from_id}-to-${data.to_id}`, data);
     });
@@ -102,7 +112,9 @@ app.use(expressStaticPublicPath);
 
 /** init database */
 
-db_init();
+db_init().then(() => {
+  console.log(`app db ready.`);
+});
 
 /** Start Server */
 

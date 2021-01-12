@@ -37,7 +37,7 @@ export interface IStoreImage {
   };
 }
 
-export function delete_image(public_id: string) {
+export function delete_cloudinary_image (public_id: string) {
   return new Promise((resolve, reject) => {
     console.log('deleting cloud image with public_id:', public_id);
     cloudinary.uploader.destroy(public_id, (error: any, result: any) => {
@@ -55,6 +55,8 @@ export function delete_image(public_id: string) {
     });
   });
 }
+
+// export const delete_cloudinary_image = delete_cloudinary_image;
 
 export function store_image(file: any, public_id?: string): Promise<IStoreImage> {
   return new Promise(async (resolve, reject) => {
