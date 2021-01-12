@@ -1,0 +1,46 @@
+export async function get_user_by_email_or_username(
+  query: string
+) {
+  try {
+    const user_model = await Users.findOne({
+      where: { 
+        [Op.or]: [
+          { email: query },
+          { username: query }
+        ]
+      },
+    });
+    return user_model;
+  } catch (e) {
+    console.log({
+      errorMessage: `get_user_by_email_or_username error - `,
+      e,
+      query
+    });
+    throw e;
+  }
+}
+
+if (phone) {
+        const phoneIsDifferent = you.phone !== phone;
+        if (phoneIsDifferent) {
+          const phoneNumberIsOutOfRange = !(/^[0-9]{10,12}$/).test(phone);
+          if (phoneNumberIsOutOfRange) {
+            return response.status(HttpStatusCode.BAD_REQUEST).json({
+              error: true,
+              message: `Phone number is out of range; must be between 10-12 digits`
+            });
+          }
+          const check_phone = await UserRepo.get_user_by_phone(phone);
+          if (check_phone) {
+            return response.status(HttpStatusCode.BAD_REQUEST).json({
+              error: true,
+              message: `Phone number is already in use...`
+            });
+          } else {
+            updatesObj.phone = phone;
+            updatesObj.phone_verified = false;
+            phone_changed = true;
+          }
+        }
+      }
