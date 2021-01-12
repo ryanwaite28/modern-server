@@ -78,7 +78,6 @@ export class UsersService {
   }
 
   static async sign_out(request: Request, response: Response) {
-    (<IRequest> request).session.reset();
     return response.status(HttpStatusCode.OK).json({
       online: false,
       successful: true
@@ -87,9 +86,8 @@ export class UsersService {
 
   static async check_session(request: Request, response: Response) {
     try {
-      console.log(`check_session request received`);
       const auth = AuthorizeJWT(request, false);
-      return response.status(HttpStatusCode.OK).json(auth);
+      response.status(HttpStatusCode.OK).json(auth);
     } catch (e) {
       console.log('error: ', e);
       return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
@@ -153,20 +151,28 @@ export class UsersService {
   }
 
   static async get_unseen_counts(request: Request, response: Response) {
-    const you: IUser = response.locals.you; 
-    const unseen_messages = await get_user_unread_personal_messages_count(you.id);
-    const unseen_conversations = await get_user_unread_conversations_messages_count(you.id);
-    const unseen_notifications = await get_user_unseen_notifications_count(you.id, you.notifications_last_opened);
-    const unseen_clique_member_requests = await get_clique_member_requests_count(you.id);
+    try {
+      const you: IUser = response.locals.you; 
+      const unseen_messages = await get_user_unread_personal_messages_count(you.id);
+      const unseen_conversations = await get_user_unread_conversations_messages_count(you.id);
+      const unseen_notifications = await get_user_unseen_notifications_count(you.id, you.notifications_last_opened);
+      const unseen_clique_member_requests = await get_clique_member_requests_count(you.id);
 
-    return response.status(HttpStatusCode.OK).json({
-      data: {
-        unseen_messages,
-        unseen_conversations,
-        unseen_notifications,
-        unseen_clique_member_requests,
-      }
-    });
+
+      response.status(HttpStatusCode.OK).json({
+        data: {
+          unseen_messages,
+          unseen_conversations,
+          unseen_notifications,
+          unseen_clique_member_requests,
+        }
+      });
+    } catch (e) {
+      console.log(`get_unseen_counts error:`, e);
+      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+        error: e
+      });
+    }
   }
 
   static async get_search_results(request: Request, response: Response) {
@@ -531,8 +537,6 @@ export class UsersService {
   }
 
   static async sign_up(request: Request, response: Response) {
-    const session_id: string = (<any> request).session.id;
-
     const {
       username,
       displayname,

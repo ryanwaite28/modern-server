@@ -64,55 +64,62 @@ import { ConversationMembers, Conversations, ConversationLastOpeneds, Conversati
 
 export class ConversationsService {
   static async get_user_conversations_all(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
+    try {
+      const you_id = parseInt(request.params.you_id, 10);
 
-    // get all the conversations that the user is a part of
-    const conversations_member_models = await ConversationMembers.findAll({
-      where: { user_id: you_id },
-      include: [{
-        model: Conversations,
-        as: 'conversation',
+      // get all the conversations that the user is a part of
+      const conversations_member_models = await ConversationMembers.findAll({
+        where: { user_id: you_id },
         include: [{
-          model: ConversationMembers,
-          as: 'members',
-          attributes: []
+          model: Conversations,
+          as: 'conversation',
+          include: [{
+            model: ConversationMembers,
+            as: 'members',
+            attributes: []
+          }],
+          attributes: {
+            include: [
+              [cast(fn('COUNT', col('conversation_members.conversation_id')), 'integer') ,'members_count']
+            ]
+          }
         }],
-        attributes: {
-          include: [
-            [cast(fn('COUNT', col('conversation_members.conversation_id')), 'integer') ,'members_count']
-          ]
-        }
-      }],
-      order: [['id', 'DESC']],
-      group: ['conversation_members.id', 'conversation.id']
-    });
+        order: [['id', 'DESC']],
+        group: ['conversation_members.id', 'conversation.id']
+      });
 
-    const newList: any = [];
-    // for each conversation, find when user last opened it
-    for (const conversation_member of conversations_member_models) {
-      const conversationMemberObj: PlainObject = conversation_member.toJSON();
-      const conversation_id = conversationMemberObj.conversation_id;
-      // when a user is added to a conversation, a record for last opened is also created; assume there is a record
-      const last_opened_model = await ConversationLastOpeneds.findOne({
-        where: { conversation_id, user_id: you_id }
+      const newList: any = [];
+      // for each conversation, find when user last opened it
+      for (const conversation_member of conversations_member_models) {
+        const conversationMemberObj: PlainObject = conversation_member.toJSON();
+        const conversation_id = conversationMemberObj.conversation_id;
+        // when a user is added to a conversation, a record for last opened is also created; assume there is a record
+        const last_opened_model = await ConversationLastOpeneds.findOne({
+          where: { conversation_id, user_id: you_id }
+        });
+        const last_opened = last_opened_model!.get('last_opened');
+        // conversationMemberObj.last_opened = last_opened;
+        conversationMemberObj.conversation.last_opened = last_opened;
+        // find how many messages are in the conversation since the user last opened it
+        const unseen_messages_count = await ConversationMessages.count({
+          where: { conversation_id, created_at: { [Op.gt]: last_opened }, user_id: { [Op.not]: you_id } }
+        });
+        // conversationMemberObj.unseen_messages_count = unseen_messages_count;
+        conversationMemberObj.conversation.unseen_messages_count = unseen_messages_count;
+        newList.push(conversationMemberObj.conversation);
+      }
+
+      // sort by last opened
+
+      return response.status(HttpStatusCode.OK).json({
+        data: newList
       });
-      const last_opened = last_opened_model!.get('last_opened');
-      // conversationMemberObj.last_opened = last_opened;
-      conversationMemberObj.conversation.last_opened = last_opened;
-      // find how many messages are in the conversation since the user last opened it
-      const unseen_messages_count = await ConversationMessages.count({
-        where: { conversation_id, created_at: { [Op.gt]: last_opened }, user_id: { [Op.not]: you_id } }
+    } catch (e) {
+      console.log(`get_user_conversations_all error:`, e);
+      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+        error: e
       });
-      // conversationMemberObj.unseen_messages_count = unseen_messages_count;
-      conversationMemberObj.conversation.unseen_messages_count = unseen_messages_count;
-      newList.push(conversationMemberObj.conversation);
     }
-
-    // sort by last opened
-
-    return response.status(HttpStatusCode.OK).json({
-      data: newList
-    });
   }
 
   static async get_user_conversations(request: Request, response: Response) {

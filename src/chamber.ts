@@ -912,7 +912,6 @@ export function AuthorizeJWT(
   try {
     /* First, check Authorization header */
     const auth = request.get('Authorization');
-    console.log(`authorizing user request:`, auth);
     if (!auth) {
       return {
         error: true,

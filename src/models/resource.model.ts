@@ -27,6 +27,8 @@ export const Resources = <MyModelStaticGeneric<IResourceModel>> sequelize.define
   tags:                { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   title:               { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   resource:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  industry:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  link:                { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   icon_link:           { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   icon_id:             { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   description:         { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },

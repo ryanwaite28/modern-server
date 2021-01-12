@@ -11,7 +11,6 @@ import { ExpressPeerServer } from 'peer';
 
 import * as http from 'http';
 
-import client_sessions from 'client-sessions';
 // @ts-ignore
 import express_device from 'express-device';
 
@@ -36,16 +35,6 @@ app.use(express_fileupload({ safeFileNames: true, preserveExtension: true }));
 app.use(express_device.capture());
 app.use(body_parser.json());
 app.use(body_parser.urlencoded({ extended: false }));
-app.use(client_sessions({
-  cookieName: 'session',
-  secret: process.env.APP_SECRET!,
-  duration: 7 * 60 * 60 * 1000,
-  activeDuration: 2 * 5 * 60 * 1000,
-  cookie: {
-	  httpOnly: false,
-	  secure: false,
-  }
-}));
 
 const server: http.Server = http.createServer(app);
 const io: socket_io.Server = socket_io(server);
@@ -54,6 +43,7 @@ const peerServer = ExpressPeerServer(server, {
   // debug: true,
   path: '/hotspot-peer'
 });
+app.use('/peerjs', peerServer);
 
 io.on('connection', (socket: socket_io.Socket) => {
   console.log('new socket:');
@@ -64,24 +54,24 @@ io.on('connection', (socket: socket_io.Socket) => {
   /** Global IO events */
 
   if (originIsAllowed) {
-    console.log(`socket origin is valid`);
+    console.log(`socket origin is valid; listening to socket events...`);
     // socket.on('auth', (jwt) => {
       
     // });
 
-    socket.on(EVENT_TYPES.MESSAGE_TYPING, (data) => {
+    socket.on(EVENT_TYPES.MESSAGE_TYPING, (data: any) => {
       io.emit(`${EVENT_TYPES.MESSAGE_TYPING}:from-${data.from_id}-to-${data.to_id}`, data);
     });
   
-    socket.on(EVENT_TYPES.MESSAGE_TYPING_STOPPED, (data) => {
+    socket.on(EVENT_TYPES.MESSAGE_TYPING_STOPPED, (data: any) => {
       io.emit(`${EVENT_TYPES.MESSAGE_TYPING_STOPPED}:from-${data.from_id}-to-${data.to_id}`, data);
     });
   
-    socket.on(EVENT_TYPES.CONVERSATION_MESSAGE_TYPING, (data) => {
+    socket.on(EVENT_TYPES.CONVERSATION_MESSAGE_TYPING, (data: any) => {
       io.emit(`${EVENT_TYPES.CONVERSATION_MESSAGE_TYPING}:conversation-${data.conversation_id}`, data);
     });
   
-    socket.on(EVENT_TYPES.CONVERSATION_MESSAGE_TYPING_STOPPED, (data) => {
+    socket.on(EVENT_TYPES.CONVERSATION_MESSAGE_TYPING_STOPPED, (data: any) => {
       io.emit(`${EVENT_TYPES.CONVERSATION_MESSAGE_TYPING_STOPPED}:conversation-${data.conversation_id}`, data);
     });
   } else {
