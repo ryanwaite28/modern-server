@@ -44,3 +44,218 @@ if (phone) {
           }
         }
       }
+
+
+
+
+// new app
+
+import { Router } from 'express';
+
+import { UsersRouter } from './routers/users.router';
+import { _modelsRouter } from './routers/_models.router';
+
+export const _appRouter: Router = Router();
+
+/** Mount Routers */
+
+_app.use('/users', UsersRouter);
+
+
+
+
+
+
+
+// new model.ts 
+
+import * as Sequelize from 'sequelize';
+
+import {
+  common_options,
+  sequelizeInst as sequelize
+} from '../../_common/models/_def.model';
+
+import {
+  MyModelStatic,
+  MyModelStaticGeneric,
+  IMyModel,
+} from '../../_common/models/common.model-types';
+
+import { Audios } from '../../_common/models/audio.model';
+import { Photos } from '../../_common/models/photo.model';
+import { Users } from '../../_common/models/user.model';
+import { Videos } from '../../_common/models/video.model';
+
+export const null = <MyModelStatic> sequelize.define('app_nnull', {
+  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+
+
+  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+
+
+
+
+
+
+// new router
+import { Router } from 'express';
+
+export const UsersRouter: Router = Router();
+
+
+
+
+
+
+
+// new guard
+import { NextFunction, Request, Response } from 'express';
+import { get_modell_by_id } from '../repos/modells.repo';
+import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
+import { IMyModel } from '../../_common/models/common.model-types';
+
+
+export async function ModellExists(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const modell_id = parseInt(request.params.modell_id, 10);
+  const modell_model = await get_modell_by_id(modell_id);
+  if (!modell_model) {
+    return response.status(HttpStatusCode.NOT_FOUND).json({
+      message: `Modell not found`
+    });
+  }
+  response.locals.modell_model = modell_model;
+  return next();
+}
+
+export async function IsModellOwner(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const modell_model = <IMyModel> response.locals.modell_model;
+  const isOwner: boolean = response.locals.you.id === modell_model.get('owner_id');
+  if (!isOwner) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `Not modell owner`
+    });
+  }
+  return next();
+}
+
+export async function IsNotModellOwner(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const modell_model = <IMyModel> response.locals.modell_model;
+  const isOwner: boolean = response.locals.you.id === modell_model.get('owner_id');
+  if (isOwner) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `Is modell owner`
+    });
+  }
+  return next();
+}
+
+
+
+
+
+// new repo 
+
+import { user_attrs_slim } from '../../_common/common.chamber';
+import { IStoreImage } from '../../../cloudinary-manager';
+import { PlainObject } from '../../_common/interfaces/common.interface';
+import { Photos } from '../../_common/models/photo.model';
+import { Videos } from '../../_common/models/video.model';
+import { Audios } from '../../_common/models/audio.model';
+import { Users } from '../../_common/models/user.model';
+
+
+
+export async function get_modell_by_id(id: number, slim: boolean = false) {
+  const modell = !slim 
+  ? await Modells.findByPk(id)
+  : await Modells.findOne({
+      where: { id },
+      include: []
+    });
+  return modell;
+}
+
+export async function create_modell(createObj: {
+
+}) {
+  const new_modell_model = await Modells.create(<any> {
+    
+  });
+
+
+
+  const post = await get_modell_by_id(new_modell_model.get('id'));
+  return post;
+}
+
+export async function update_modell(id: number, updateObj: {
+  
+}) {
+  const updates = await Modells.update(<any> {
+    
+  }, { where: { id } });
+  return updates;
+}
+
+export async function delete_modell(id: number) {
+  const deletes = await Modells.destroy({ where: { id } });
+  return deletes;
+}
+
+
+
+
+
+
+
+
+// new service
+
+import {
+  Request,
+  Response,
+} from 'express';
+import {
+  HttpStatusCode
+} from '../../_common/enums/http-codes.enum';
+import { 
+  populate_common_notification_obj,
+  user_attrs_slim
+} from '../../_common/common.chamber';
+import {
+  PlainObject,
+  IUser,
+  IRequest
+} from '../../_common/interfaces/common.interface';
+
+import * as UserRepo from '../../_common/repos/users.repo';
+import * as FollowsRepo from '../../_common/repos/follows.repo';
+import * as CommonRepo from '../../_common/repos/_common.repo';
+import { create_notification } from '../../_common/repos/notifications.repo';
+import { Follows, Users } from '../../_common/models/user.model';
+import { COMMON_EVENT_TYPES } from '../../_common/enums/common.enum';
+import { SocketsService } from '../../_common/services/sockets.service';
+
+export class NullService {
+  
+  static async method(request: Request, response: Response) {
+
+  }
+
+}

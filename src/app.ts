@@ -3,26 +3,22 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
-
 import * as path from 'path';
-
 import socket_io from 'socket.io';
 import { ExpressPeerServer } from 'peer';
-
 import * as http from 'http';
 
 // @ts-ignore
 import express_device from 'express-device';
-
 import express_fileupload from 'express-fileupload';
-
 import * as body_parser from 'body-parser';
 
+import { v1 as uuidv1 } from 'uuid';
 import { installExpressApp } from './template-engine';
-import { IRequest } from './interfaces/all.interface';
-import { MainRouter } from './routers/_main.router';
-import { EVENT_TYPES, whitelist_domains } from './chamber';
-import { db_init } from './models/_init.model';
+import { IRequest } from './apps/_common/interfaces/common.interface';
+import { db_init } from './apps/_common/models/_init.model';
+import { SocketsService } from './apps/_common/services/sockets.service';
+import { AppsRouter } from './apps/apps.router';
 
 /** Setup */
 
@@ -38,48 +34,11 @@ app.use(body_parser.urlencoded({ extended: false }));
 
 const server: http.Server = http.createServer(app);
 const io: socket_io.Server = socket_io(server);
+io.engine.generateId = (req) => {
+  return uuidv1(); // must be unique across all Socket.IO servers
+};
 
-const peerServer = ExpressPeerServer(server, {
-  // debug: true,
-  path: '/hotspot-peer'
-});
-app.use('/peerjs', peerServer);
-
-io.on('connection', (socket: socket_io.Socket) => {
-  console.log('new socket:');
-  // console.log('socket handshake:', socket.handshake);
-
-  const originIsAllowed = whitelist_domains.includes(socket.handshake.headers.origin);
-
-  /** Global IO events */
-
-  if (originIsAllowed) {
-    console.log(`socket origin is valid; listening to socket events...`);
-    // socket.on('auth', (jwt) => {
-      
-    // });
-
-    socket.on(EVENT_TYPES.MESSAGE_TYPING, (data: any) => {
-      io.emit(`${EVENT_TYPES.MESSAGE_TYPING}:from-${data.from_id}-to-${data.to_id}`, data);
-    });
-  
-    socket.on(EVENT_TYPES.MESSAGE_TYPING_STOPPED, (data: any) => {
-      io.emit(`${EVENT_TYPES.MESSAGE_TYPING_STOPPED}:from-${data.from_id}-to-${data.to_id}`, data);
-    });
-  
-    socket.on(EVENT_TYPES.CONVERSATION_MESSAGE_TYPING, (data: any) => {
-      io.emit(`${EVENT_TYPES.CONVERSATION_MESSAGE_TYPING}:conversation-${data.conversation_id}`, data);
-    });
-  
-    socket.on(EVENT_TYPES.CONVERSATION_MESSAGE_TYPING_STOPPED, (data: any) => {
-      io.emit(`${EVENT_TYPES.CONVERSATION_MESSAGE_TYPING_STOPPED}:conversation-${data.conversation_id}`, data);
-    });
-  } else {
-    console.log(`origin "${socket.handshake.headers.origin}" is not allowed`);
-  }
-
-  /** end */
-});
+SocketsService.handle_io_connections(io);
 
 app.use((
   request: express.Request, 
@@ -87,12 +46,21 @@ app.use((
   next: express.NextFunction
 ) => {
   (<IRequest> request).io = io;
+  (<IRequest> request).socketsService = SocketsService;
   next();
 });
 
-/** Mount Sub-Routers to Main Application */
+const peerServer = ExpressPeerServer(server, {
+  // debug: true,
+  path: '/modern-peer'
+});
+app.use('/peerjs', peerServer);
 
-app.use('/main', MainRouter);
+
+
+/** Mount Sub-Routers to Master Application Instance */
+
+app.use('/apps', AppsRouter);
 
 /** Static file declaration */
 
@@ -101,12 +69,11 @@ const expressStaticPublicPath = express.static(publicPath);
 app.use(expressStaticPublicPath);
 
 /** init database */
-
+console.log(`Connecting to database...\n\n`);
 db_init().then(() => {
-  console.log(`app db ready.`);
+  console.log(`app db ready; starting app.`);
+
+  /** Start Server */
+  server.listen(PORT);
+  console.log(`Listening on port ${PORT}...`);
 });
-
-/** Start Server */
-
-server.listen(PORT);
-console.log(`Listening on port ${PORT}...`);

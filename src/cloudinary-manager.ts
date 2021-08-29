@@ -1,6 +1,6 @@
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
-import { uniqueValue } from './chamber';
+import { uniqueValue } from './apps/_common/common.chamber';
 
 export interface IUploadFile {
   error: boolean;

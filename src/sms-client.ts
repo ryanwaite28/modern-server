@@ -1,5 +1,5 @@
 import Nexmo from 'nexmo';
-import { PlainObject } from './interfaces/all.interface';
+import { PlainObject } from './apps/_common/interfaces/common.interface';
 
 export function send_sms(params: {
   phone_number: string,
