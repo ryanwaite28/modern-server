@@ -13,7 +13,8 @@
     "start-server": "nodemon dist/app.js",
     "sd": "npm run tsc && nodemon dist/app.js",
     "ss": "nodemon dist/app.js",
-    "start": "npm run tsc && node dist/app.js"
+    "build": "npm run tsc",
+    "start": "node dist/app.js"
   },
   "keywords": [
     "Node",
