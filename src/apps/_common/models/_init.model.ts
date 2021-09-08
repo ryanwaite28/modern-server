@@ -198,7 +198,12 @@ PostCommentReplyReactions.belongsTo(PostCommentReplies, { as: 'reply', foreignKe
 
 /** Init Database */
 
-export const db_init = () => {
+export const db_init = async () => {
+  console.log({
+    DB_ENV,
+    sequelize,
+    process_env: process.env,
+  });
   return sequelize.sync({ force: false })
     .then(() => {
       console.log('\n\nDatabase Initialized! ENV: ' + DB_ENV);

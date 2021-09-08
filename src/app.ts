@@ -71,11 +71,17 @@ const expressStaticPublicPath = express.static(publicPath);
 app.use(expressStaticPublicPath);
 
 /** init database */
+console.log(`PORT = ${PORT}...\n\n`);
 console.log(`Connecting to database...\n\n`);
-db_init().then(() => {
-  console.log(`app db ready; starting app.`);
-
-  /** Start Server */
-  server.listen(PORT);
-  console.log(`Listening on port ${PORT}...\n\n`);
-});
+try {
+  db_init().then(() => {
+    console.log(`app db ready; starting app.`);
+  
+    /** Start Server */
+    server.listen(PORT);
+    console.log(`Listening on port ${PORT}...\n\n`);
+  });  
+} catch (error) {
+  console.log(error);
+  throw error;
+}
