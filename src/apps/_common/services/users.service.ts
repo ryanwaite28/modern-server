@@ -349,7 +349,7 @@ export class UsersService {
       middlename: request.body.middlename && capitalize(request.body.middlename),
       lastname: capitalize(lastname),
       // gender: parseInt(gender, 10),
-      username,
+      username: username.toLowerCase(),
       displayname,
       email: email.toLowerCase(),
       password: bcrypt.hashSync(password)

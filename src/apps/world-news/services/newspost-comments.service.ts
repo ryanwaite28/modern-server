@@ -214,7 +214,7 @@ export class NewsPostCommentsService {
         message: `Comment body is required`
       });
     }
-    const comment_model = await NewsPostCommentsRepo.create_comment({ body, newspost_id, owner_id: you.id });
+    const comment_model = await NewsPostCommentsRepo.create_newspost_comment({ body, newspost_id, owner_id: you.id });
     return response.status(HttpStatusCode.OK).json({
       message: `Comment created successfully`,
       data: comment_model
@@ -230,8 +230,8 @@ export class NewsPostCommentsService {
         message: `Comment body is required`
       });
     }
-    const updates = await NewsPostCommentsRepo.update_comment({ body }, comment_id);
-    const comment = await NewsPostCommentsRepo.get_comment_by_id(comment_id);
+    const updates = await NewsPostCommentsRepo.update_newspost_comment({ body }, comment_id);
+    const comment = await NewsPostCommentsRepo.get_newspost_comment_by_id(comment_id);
     return response.status(HttpStatusCode.OK).json({
       message: `Comment updated successfully`,
       updates: updates,
@@ -241,7 +241,7 @@ export class NewsPostCommentsService {
 
   static async delete_comment(request: Request, response: Response) {
     const comment_id = parseInt(request.params.comment_id, 10);
-    const deletes = await NewsPostCommentsRepo.delete_comment(comment_id);
+    const deletes = await NewsPostCommentsRepo.delete_newspost_comment(comment_id);
     return response.status(HttpStatusCode.OK).json({
       message: `Comment deleted successfully`,
       deletes

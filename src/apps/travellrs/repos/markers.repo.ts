@@ -27,21 +27,21 @@ export async function get_marker_by_id(id: number, slim: boolean = false) {
         as: 'photos',
         include: [{
           model: Photos,
-          as: 'photo',
+          as: 'photo_marker',
         }]
       }, {
         model: MarkerVideos,
         as: 'videos',
         include: [{
           model: Videos,
-          as: 'video',
+          as: 'video_marker',
         }]
       }, {
         model: MarkerAudios,
         as: 'audios',
         include: [{
           model: Audios,
-          as: 'audio',
+          as: 'audio_marker',
         }]
       }]
     });
@@ -57,8 +57,8 @@ export async function create_marker(createObj: {
   image_link?: string;
   image_id?: string;
   place_id: string;
-  date_traveled?: string;
-  uploadedPhotos: { fileInfo: PlainObject; results: IStoreImage }[];
+  date_traveled?: string | Date | null;
+  // uploadedPhotos?: { fileInfo: PlainObject; results: IStoreImage }[];
 }) {
   const new_marker_model = await Markers.create(<any> {
     owner_id: createObj.owner_id,
@@ -71,20 +71,20 @@ export async function create_marker(createObj: {
     place_id: createObj.place_id,
     date_traveled: createObj.date_traveled,
   });
-  for (const uploadedPhoto of createObj.uploadedPhotos) {
-    const photo_model = await Photos.create(<any> {
-      owner_id: createObj.owner_id,
-      caption: uploadedPhoto.fileInfo.caption || '',
-      photo_link: uploadedPhoto.results.result!.secure_url,
-      photo_id: uploadedPhoto.results.result!.public_id,
-      tags: uploadedPhoto.fileInfo.tags.join(',') || '',
-      industry: uploadedPhoto.fileInfo.industry.join(',') || '',
-    });
-    const marker_photo_model = await MarkerPhotos.create({
-      marker_id: new_marker_model.get('id'),
-      photo_id: photo_model.get('id'),
-    });
-  }
+  // for (const uploadedPhoto of createObj.uploadedPhotos) {
+  //   const photo_model = await Photos.create(<any> {
+  //     owner_id: createObj.owner_id,
+  //     caption: uploadedPhoto.fileInfo.caption || '',
+  //     photo_link: uploadedPhoto.results.result!.secure_url,
+  //     photo_id: uploadedPhoto.results.result!.public_id,
+  //     tags: uploadedPhoto.fileInfo.tags.join(',') || '',
+  //     industry: uploadedPhoto.fileInfo.industry.join(',') || '',
+  //   });
+  //   const marker_photo_model = await MarkerPhotos.create({
+  //     marker_id: new_marker_model.get('id'),
+  //     photo_id: photo_model.get('id'),
+  //   });
+  // }
   const marker = await get_marker_by_id(new_marker_model.get('id'));
   return marker;
 }

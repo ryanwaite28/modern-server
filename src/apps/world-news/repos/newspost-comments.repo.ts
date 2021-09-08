@@ -21,7 +21,7 @@ import {
   NewsPostCommentAudios
 } from '../models/newspost.model';
 
-export async function get_comment_by_id(id: number) {
+export async function get_newspost_comment_by_id(id: number) {
   const comment = await NewsPostComments.findOne({
     where: { id },
     include: [{
@@ -54,7 +54,7 @@ export async function get_comment_by_id(id: number) {
   return comment;
 }
 
-export async function create_comment(createObj: {
+export async function create_newspost_comment(createObj: {
   owner_id: number,
   newspost_id: number,
   body: string,
@@ -64,11 +64,11 @@ export async function create_comment(createObj: {
     owner_id: createObj.owner_id,
     body: createObj.body,
   });
-  const comment = await get_comment_by_id(new_comment_model.get('id'));
+  const comment = await get_newspost_comment_by_id(new_comment_model.get('id'));
   return comment;
 }
 
-export async function update_comment(
+export async function update_newspost_comment(
   updatesObj: {
     body: string,
   },
@@ -80,7 +80,7 @@ export async function update_comment(
   return updates;
 }
 
-export async function delete_comment(id: number) {
+export async function delete_newspost_comment(id: number) {
   const deletes = await NewsPostComments.destroy({ where: { id } });
   return deletes;
 }

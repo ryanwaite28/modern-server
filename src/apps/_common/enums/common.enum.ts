@@ -115,3 +115,7 @@ export enum COMMON_CRON_JOB_TYPES {
 export enum COMMON_USER_TYPES {
   
 }
+
+export enum MODERN_APP_NAMES {
+  DELIVERME = 'DELIVERME',
+}

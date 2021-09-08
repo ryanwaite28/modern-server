@@ -16,6 +16,7 @@ export async function create_notification(
     from_id: number;
     to_id: number;
     event: string;
+    micro_app?: string | null | undefined;
     target_type: string | null;
     target_id?: number | null;
   }

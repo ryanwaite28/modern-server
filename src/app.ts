@@ -12,6 +12,7 @@ import * as http from 'http';
 import express_device from 'express-device';
 import express_fileupload from 'express-fileupload';
 import * as body_parser from 'body-parser';
+import * as cookie_parser from 'cookie-parser';
 
 import { v1 as uuidv1 } from 'uuid';
 import { installExpressApp } from './template-engine';
@@ -30,6 +31,7 @@ installExpressApp(app);
 app.use(express_fileupload({ safeFileNames: true, preserveExtension: true }));
 app.use(express_device.capture());
 app.use(body_parser.json());
+app.use(cookie_parser.default());
 app.use(body_parser.urlencoded({ extended: false }));
 
 const server: http.Server = http.createServer(app);
@@ -75,5 +77,5 @@ db_init().then(() => {
 
   /** Start Server */
   server.listen(PORT);
-  console.log(`Listening on port ${PORT}...`);
+  console.log(`Listening on port ${PORT}...\n\n`);
 });

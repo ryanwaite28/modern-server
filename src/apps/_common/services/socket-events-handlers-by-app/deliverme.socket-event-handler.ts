@@ -1,15 +1,15 @@
 import socket_io from 'socket.io';
-import { HOTSPOT_EVENT_TYPES } from '../../../hotspot/enums/hotspot.enum';
+import { DELIVERME_EVENT_TYPES } from '../../../deliver-me/enums/deliverme.enum';
 import { PlainObject } from '../../interfaces/common.interface';
 
-export class HotspotSocketEventsHandler {
+export class DeliverMeSocketEventsHandler {
   public static handleNewSocket(
     io: socket_io.Server,
     socket: socket_io.Socket,
     socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ): void {
-    // socket.on(HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ADDED, (data: any) => {
+    // socket.on(DELIVERME_EVENT_TYPES.CARRIER_ASSIGNED, (data: any) => {
       
     // });
   }

@@ -26,14 +26,14 @@ export async function UserExists(
   next: NextFunction
 ) {
   const user_id = parseInt(request.params.user_id, 10);
-  const user = await get_user_by_id(user_id);
-  if (!user) {
+  const user_model = await get_user_by_id(user_id);
+  if (!user_model) {
     return response.status(HttpStatusCode.NOT_FOUND).json({
       message: `User does not exist by id: ${user_id}`
     });
   }
-  response.locals.user_model = user;
-  response.locals.user = user;
+  response.locals.user_model = user_model;
+  response.locals.user = user_model.toJSON();
   return next();
 }
 
@@ -43,6 +43,18 @@ export function UserAuthorized(
   next: NextFunction
 ) {
   const auth = AuthorizeJWT(request, true);
+  if (auth.error) {
+    return response.status(auth.status).json(auth);
+  }
+  response.locals.you = auth.you;
+  return next();
+}
+export function UserAuthorizedSlim(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const auth = AuthorizeJWT(request, false);
   if (auth.error) {
     return response.status(auth.status).json(auth);
   }

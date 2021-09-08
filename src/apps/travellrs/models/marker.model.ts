@@ -164,3 +164,25 @@ export const MarkerCommentReplyAudios = <MyModelStatic> sequelize.define('travel
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
+
+
+
+
+Users.hasMany(Markers, { as: 'owner', foreignKey: 'owner_id', sourceKey: 'id' });
+Markers.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
+
+
+Markers.hasMany(MarkerPhotos, { as: 'photos', foreignKey: 'marker_id', sourceKey: 'id' });
+MarkerPhotos.belongsTo(Markers, { as: 'marker', foreignKey: 'marker_id', targetKey: 'id' });
+Photos.hasMany(MarkerPhotos, { as: 'marker_photos', foreignKey: 'photo_id', sourceKey: 'id' });
+MarkerPhotos.belongsTo(Photos, { as: 'photo_marker', foreignKey: 'photo_id', targetKey: 'id' });
+
+Markers.hasMany(MarkerVideos, { as: 'videos', foreignKey: 'marker_id', sourceKey: 'id' });
+MarkerVideos.belongsTo(Markers, { as: 'marker', foreignKey: 'marker_id', targetKey: 'id' });
+Videos.hasMany(MarkerVideos, { as: 'marker_videos', foreignKey: 'video_id', sourceKey: 'id' });
+MarkerVideos.belongsTo(Videos, { as: 'video_marker', foreignKey: 'video_id', targetKey: 'id' });
+
+Markers.hasMany(MarkerAudios, { as: 'audios', foreignKey: 'marker_id', sourceKey: 'id' });
+MarkerAudios.belongsTo(Markers, { as: 'marker', foreignKey: 'marker_id', targetKey: 'id' });
+Audios.hasMany(MarkerAudios, { as: 'marker_audios', foreignKey: 'audio_id', sourceKey: 'id' });
+MarkerAudios.belongsTo(Audios, { as: 'audio_marker', foreignKey: 'audio_id', targetKey: 'id' });

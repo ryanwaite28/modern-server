@@ -23,13 +23,13 @@ export async function paginateTable<T>(
   whereClause?: WhereOptions,
   orderBy?: Order
 )  {
-  const whereCaluse: WhereOptions = whereClause || <PlainObject> (!min_id
+  const useWhereClause: WhereOptions = whereClause || <PlainObject> (!min_id
     ? { [(user_id_field || '')]: user_id }
     : { [(user_id_field || '')]: user_id, id: { [Op.lt]: min_id } });
   const models = await (<any> model).findAll({
     attributes,
     group,
-    where: whereCaluse,
+    where: useWhereClause,
     include: include || [],
     limit: 5,
     order: orderBy || [['id', 'DESC']]
@@ -44,15 +44,17 @@ export async function getAll<T>(
   include?: Includeable[],
   attributes?: FindAttributeOptions,
   group?: GroupOption,
+  whereClause?: WhereOptions,
+  orderBy?: Order
 )  {
   // const models = await model.findAll<Model<T>>({
 
   const models = await (<any> model).findAll({
     attributes,
     group,
-    where: { [user_id_field]: user_id },
+    where: { ...whereClause, [user_id_field]: user_id },
     include: include || [],
-    order: [['id', 'DESC']]
+    order: orderBy || [['id', 'DESC']]
   });
   return models as Model<T>[];
 }
@@ -63,13 +65,14 @@ export async function getById<T>(
   include?: Includeable[],
   attributes?: FindAttributeOptions,
   group?: GroupOption,
+  whereClause?: WhereOptions,
 )  {
   // const result = await model.findOne<Model<T>>({
 
   const result = await (<any> model).findOne({
     attributes,
     group,
-    where: { id },
+    where: { ...whereClause, id: id },
     include: include || [],
   });
   return result as Model<T>;

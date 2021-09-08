@@ -101,6 +101,7 @@ export async function create_newspost(createObj: {
       newspost_id: new_newspost_model.get('id'),
       photo_id: photo_model.get('id'),
     });
+    console.log(`newspost_photo_model upload successful.`);
   }
   const newspost = await get_newspost_by_id(new_newspost_model.get('id'));
   return newspost;

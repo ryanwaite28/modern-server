@@ -21,7 +21,7 @@ import {
   NewsPostCommentReplyVideos
 } from '../models/newspost.model';
 
-export async function get_reply_by_id(id: number) {
+export async function get_newspost_comment_reply_by_id(id: number) {
   const reply = await NewsPostCommentReplies.findOne({
     where: { id },
     include: [{
@@ -54,7 +54,7 @@ export async function get_reply_by_id(id: number) {
   return reply;
 }
 
-export async function create_reply(createObj: {
+export async function create_newspost_comment_reply(createObj: {
   owner_id: number,
   comment_id: number,
   body: string,
@@ -64,7 +64,7 @@ export async function create_reply(createObj: {
     owner_id: createObj.owner_id,
     body: createObj.body,
   });
-  const reply = await get_reply_by_id(new_reply_model.get('id'));
+  const reply = await get_newspost_comment_reply_by_id(new_reply_model.get('id'));
   return reply;
 }
 
@@ -80,7 +80,7 @@ export async function update_reply(
   return updates;
 }
 
-export async function delete_reply(id: number) {
+export async function delete_newspost_comment_reply(id: number) {
   const deletes = await NewsPostCommentReplies.destroy({ where: { id } });
   return deletes;
 }

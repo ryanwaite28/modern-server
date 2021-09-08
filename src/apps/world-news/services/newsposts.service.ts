@@ -109,7 +109,7 @@ export class NewsPostsService {
     });
   }
 
-  static async toggle_user_reaction(request: Request, response: Response) {
+  static async toggle_user_newspost_reaction(request: Request, response: Response) {
     const you: IUser = response.locals.you;
     const newspost_id: number = parseInt(request.params.newspost_id, 10);
 

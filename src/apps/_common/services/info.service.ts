@@ -20,6 +20,7 @@ import moment from 'moment';
 import { Cliques } from '../../hotspot/models/clique.model';
 import { NewsDataCache } from '../models/other.model';
 import { Resources } from '../../hotspot/models/resource.model';
+import { v1 as uuidv1 } from 'uuid';
 
 const lessThanOneDayAgo = (date: any) => {
   return moment(date).isAfter(moment().subtract(1, 'days'));

@@ -217,7 +217,7 @@ export class NewsPostCommentRepliesService {
         message: `Reply body is required`
       });
     }
-    const reply_model = await RepliesRepo.create_reply({ body, comment_id, owner_id: you.id });
+    const reply_model = await RepliesRepo.create_newspost_comment_reply({ body, comment_id, owner_id: you.id });
     return response.status(HttpStatusCode.OK).json({
       message: `Reply created successfully`,
       data: reply_model
@@ -234,7 +234,7 @@ export class NewsPostCommentRepliesService {
       });
     }
     const updates = await RepliesRepo.update_reply({ body }, reply_id);
-    const reply = await RepliesRepo.get_reply_by_id(reply_id);
+    const reply = await RepliesRepo.get_newspost_comment_reply_by_id(reply_id);
     return response.status(HttpStatusCode.OK).json({
       message: `Reply updated successfully`,
       updates: updates,
@@ -244,7 +244,7 @@ export class NewsPostCommentRepliesService {
 
   static async delete_reply(request: Request, response: Response) {
     const reply_id = parseInt(request.params.reply_id, 10);
-    const deletes = await RepliesRepo.delete_reply(reply_id);
+    const deletes = await RepliesRepo.delete_newspost_comment_reply(reply_id);
     return response.status(HttpStatusCode.OK).json({
       message: `Reply deleted successfully`,
       deletes

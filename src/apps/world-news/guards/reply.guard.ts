@@ -1,9 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
 import { IMyModel } from '../../_common/models/common.model-types';
-import {
-  get_reply_by_id as get_newspost_comment_reply_by_id
-} from '../repos/newspost-comment-replies.repo';
+import { get_newspost_comment_reply_by_id } from '../repos/newspost-comment-replies.repo';
 
 export async function NewsPostCommentReplyExists(
   request: Request,

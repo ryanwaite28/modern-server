@@ -3,12 +3,20 @@ import { COMMON_EVENT_TYPES } from '../../enums/common.enum';
 import { PlainObject } from '../../interfaces/common.interface';
 
 export class CommonSocketEventsHandler {
+  private static io: socket_io.Server;
+  private static socketsByUserIdMap: Map<number, Set<string>>;
+  private static userSocketsRoomKeyByUserId: Map<number, string>;
+
   public static handleNewSocket(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ): void {
+    CommonSocketEventsHandler.io = io;
+    CommonSocketEventsHandler.socketsByUserIdMap = socketsByUserIdMap;
+    CommonSocketEventsHandler.userSocketsRoomKeyByUserId = userSocketsRoomKeyByUserId;
+
     socket.on(`disconnect`, (data: any) => {
       console.log(`disconnecting socket ${socket.id}...`);
       CommonSocketEventsHandler.removeSocketBySocketId(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
@@ -60,39 +68,94 @@ export class CommonSocketEventsHandler {
 
   /** Helpers */
 
-  public static addUserSocket(
+  private static addUserSocket(
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>
   ) {
     let roomKey = userSocketsRoomKeyByUserId.get(data.user_id);
     if (roomKey) {
       socket.join(roomKey, (err: any) => {
-        console.log(err);
+        console.log(`err`, err);
+        console.log(`roomKey`, roomKey);
       });
     } else {
       roomKey = Date.now().toString();
       userSocketsRoomKeyByUserId.set(data.user_id, roomKey);
       socket.join(roomKey, (err: any) => {
-        console.log(err);
+        console.log(`err`, err);
+        console.log(`roomKey`, roomKey);
       });
     }
+
+    let socketIdsSet = socketsByUserIdMap.get(data.user_id);
+    if (socketIdsSet) {
+      socketIdsSet.add(socket.id);
+    } else {
+      socketIdsSet = new Set<string>();
+      socketIdsSet.add(socket.id);
+      socketsByUserIdMap.set(data.user_id, socketIdsSet);
+    }
+
+    console.log(
+      `addUserSocket() - CommonSocketEventsHandler.socketsByUserIdMap:`, 
+      CommonSocketEventsHandler.socketsByUserIdMap.entries()
+    );
+    console.log(
+      `addUserSocket() - CommonSocketEventsHandler.userSocketsRoomKeyByUserId:`, 
+      CommonSocketEventsHandler.userSocketsRoomKeyByUserId.entries()
+    );
+  }
+
+  static emitEventToUserSockets(params: {
+    event: string;
+    data: any;
+    user_id: number;
+  }) {
+    let roomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(params.user_id);
+    if (!roomKey) {
+      console.log(`CommonSocketEventsHandler.emitEventToUser - no roomKey bu user Id`);
+      return;
+    }
+    this.io.to(roomKey).emit(params.event, params.data);
   }
 
   public static removeSocketBySocketId(
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>
   ) {
-    // SocketsService.socketsBySocketIdMap.delete(socket_id);
-    for (const roomKey of userSocketsRoomKeyByUserId.values()) {
+    socket.leaveAll();
+    for (const keyVal of userSocketsRoomKeyByUserId.entries()) {
+      const userId = keyVal[0], roomKey = keyVal[1];
+
       const sockets_id_map = io.in(roomKey).sockets;
-      const isInRoom = (socket.id in sockets_id_map);
-      console.log({ socket_id: socket.id, roomKey, isInRoom });
+
+      if (Object.keys(sockets_id_map).length === 0) {
+        userSocketsRoomKeyByUserId.delete(userId);
+      }
+
+      const socketsByUserId = socketsByUserIdMap.get(userId);
+      socketsByUserId?.delete(socket.id);
+
+      // const isInRoom = (socket.id in sockets_id_map);
+      // console.log({ socket_id: socket.id, roomKey, isInRoom });
+      // if (isInRoom) {
+      //   socket.leave(roomKey);
+      // }
+
+      console.log(
+        `removeSocketBySocketId() - CommonSocketEventsHandler.socketsByUserIdMap:`, 
+        CommonSocketEventsHandler.socketsByUserIdMap.entries()
+      );
+      console.log(
+        `removeSocketBySocketId() - CommonSocketEventsHandler.userSocketsRoomKeyByUserId:`, 
+        CommonSocketEventsHandler.userSocketsRoomKeyByUserId.entries()
+      );
     }
   }
 
@@ -100,7 +163,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>
   ) {
     const forUserSocketsRoomKey = userSocketsRoomKeyByUserId.get(data.to_user_id);
@@ -113,7 +176,7 @@ export class CommonSocketEventsHandler {
   //   io: socket_io.Server,
   //   socket: socket_io.Socket,
   //   data: any,
-  //   socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+  //   socketsByUserIdMap: Map<number, Set<string>>,
   //   userSocketsRoomKeyByUserId: Map<number, string>
   // ) {
   //   const forUserSocketsMap = socketsByUserIdMap.get(data.for_user_id);
@@ -132,7 +195,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ) {
     const validEventData = (
@@ -152,7 +215,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ) {
     const validEventData = (
@@ -172,7 +235,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ) {
     const validEventData = (
@@ -198,7 +261,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ) {
     const validEventData = (
@@ -220,7 +283,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ) {
     const validEventData = (
@@ -239,7 +302,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ) {
     const validEventData = (
@@ -258,7 +321,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ) {
     const validEventData = (
@@ -266,7 +329,7 @@ export class CommonSocketEventsHandler {
       typeof(data.user_id) === 'number'
     );
     if (!validEventData) {
-      socket.to(socket.id).emit(`${COMMON_EVENT_TYPES.SOCKET_TRACK}-error`, { message: `user_id is required.` });
+      io.to(socket.id).emit(`${COMMON_EVENT_TYPES.SOCKET_TRACK}-error`, { message: `user_id is required.` });
       return;
     }
 
@@ -277,7 +340,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ) {
     const validEventData = (
@@ -303,7 +366,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ) {
     const validEventData = (
@@ -323,7 +386,7 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
+    socketsByUserIdMap: Map<number, Set<string>>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ) {
     const validEventData = (
@@ -331,14 +394,14 @@ export class CommonSocketEventsHandler {
       typeof(data.to_user_id) === 'number'
     );
     if (!validEventData) {
-      socket.to(socket.id).emit(`${COMMON_EVENT_TYPES.SOCKET_TO_USER_EVENT}-error`, { message: `to_user_id is required.` });
+      io.to(socket.id).emit(`${COMMON_EVENT_TYPES.SOCKET_TO_USER_EVENT}-error`, { message: `to_user_id is required.` });
       return;
     }
 
     const toUserSocketsMap = socketsByUserIdMap.get(data.to_user_id);
     if (toUserSocketsMap) {
-      for (const to_socket of toUserSocketsMap.values()) {
-        socket.to(to_socket.id).emit(data.eventName, data);
+      for (const to_socket_id of toUserSocketsMap.values()) {
+        io.to(to_socket_id).emit(data.eventName, data);
       }
     }
   }

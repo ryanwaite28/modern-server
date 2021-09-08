@@ -3824,7 +3824,7 @@ export const countries = [
       	"flag": "https://restcountries.eu/data/gbr.svg"
    	},
    	{
-      	"name": "United States of America",
+      	"name": "United States",
       	"code": "US",
       	"capital": "Washington, D.C.",
       	"region": "NA",
@@ -3841,6 +3841,24 @@ export const countries = [
      	},
       	"flag": "https://restcountries.eu/data/usa.svg"
    	},
+		 {
+			"name": "United States of America",
+			"code": "US",
+			"capital": "Washington, D.C.",
+			"region": "NA",
+			"currency": {
+					"code": "USD",
+					"name": "United States dollar",
+					"symbol": "$"
+		 },
+			"language": {
+					"code": "en",
+					"iso639_2": "eng",
+					"name": "English",
+					"nativeName": "English"
+		 },
+			"flag": "https://restcountries.eu/data/usa.svg"
+	 },
    	{
       	"name": "Uruguay",
       	"code": "UY",
@@ -4004,3 +4022,12 @@ export const countries = [
       	"flag": "https://restcountries.eu/data/zwe.svg"
    	}
 ];
+
+
+export const countries_by_name_map = new Map<string, boolean>();
+export const countries_by_code_map = new Map<string, boolean>();
+
+countries.forEach((country) => {
+  countries_by_name_map.set(country.name.toLowerCase(), true);
+  countries_by_code_map.set(country.code, true);
+});

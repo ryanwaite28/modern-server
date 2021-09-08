@@ -17,9 +17,11 @@ import {
 } from '../../_common/common.chamber';
 import { IStoreImage, store_image } from '../../../cloudinary-manager';
 import { Photos } from '../../_common/models/photo.model';
-import { Markers, MarkerPhotos, MarkerReactions } from '../models/marker.model';
+import { Markers, MarkerPhotos, MarkerReactions, MarkerAudios, MarkerVideos } from '../models/marker.model';
 import { Users } from '../../_common/models/user.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
+import { Audios } from '../../_common/models/audio.model';
+import { Videos } from '../../_common/models/video.model';
 
 export class MarkersService {
   /** Request Handlers */
@@ -59,7 +61,21 @@ export class MarkersService {
         as: 'photos',
         include: [{
           model: Photos,
-          as: 'photo',
+          as: 'photo_marker',
+        }]
+      }, {
+        model: MarkerVideos,
+        as: 'videos',
+        include: [{
+          model: Videos,
+          as: 'video_marker',
+        }]
+      }, {
+        model: MarkerAudios,
+        as: 'audios',
+        include: [{
+          model: Audios,
+          as: 'audio_marker',
         }]
       }]
     );
@@ -85,7 +101,21 @@ export class MarkersService {
         as: 'photos',
         include: [{
           model: Photos,
-          as: 'photo',
+          as: 'photo_marker',
+        }]
+      }, {
+        model: MarkerVideos,
+        as: 'videos',
+        include: [{
+          model: Videos,
+          as: 'video_marker',
+        }]
+      }, {
+        model: MarkerAudios,
+        as: 'audios',
+        include: [{
+          model: Audios,
+          as: 'audio_marker',
         }]
       }]
     );
@@ -224,33 +254,24 @@ export class MarkersService {
 
   static async create_marker(request: Request, response: Response) {
     const you: IUser = response.locals.you;
+   
     const data: PlainObject = JSON.parse(request.body.payload);
-    
     let location: string = data.location;
     let lat: number = data.lat;
     let lng: number = data.lng;
     let place_id: string = data.place_id;
-    let caption: string = data.caption;
-    let date_traveled: any = data.date_traveled && new Date(data.date_traveled);
-    if (!date_traveled) {
-      date_traveled = null;
+    let caption: string = data.caption || '';
+    
+    let date_traveled: any = data.date_traveled;
+    let time_traveled: any = data.time_traveled;
+    let datetime_traveled: Date | null = date_traveled && time_traveled  && new Date(`${date_traveled}T${time_traveled}`);
+    if (!datetime_traveled) {
+      datetime_traveled = null;
     }
 
-    let filesInfo: PlainObject[] = data.filesInfo || [];
-    const photo_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.photos);
+    const marker_icon: UploadedFile | undefined = request.files && (<UploadedFile> request.files.marker_icon);
 
-    // console.log({
-    //   body: request.body,
-    //   files: request.files,
-    //   photo_files,
-    //   photo_files_cstr: photo_files && photo_files.constructor,
-    // });
-
-    // return response.status(HttpStatusCode.BAD_REQUEST).json({
-    //   message: `Marker body is required`
-    // });
-
-    let props = ['location', 'lat', 'lng', 'place_id', 'caption', 'date_traveled'];
+    let props = ['location', 'lat', 'lng', 'place_id'];
     for (const prop of props) {
       if (!data[prop]) {
         return response.status(HttpStatusCode.BAD_REQUEST).json({
@@ -259,40 +280,28 @@ export class MarkersService {
       }
     }
 
-    const uploadedPhotos: { fileInfo: PlainObject; results: IStoreImage }[] = [];
-    const failedFiles: any[] = [];
-
-    if (photo_files) {
-      let photos = photo_files.constructor === Array
-        ? photo_files // When many files are sent, it is array; when only 1 file is sent, it is an object
-        : [photo_files]; // when single file; make an array for consistency
-
-      if (photos.length > 3) {
+    let image_id = '';
+    let image_link = '';
+    if (marker_icon) {
+      const type = marker_icon.mimetype.split('/')[1];
+      const isInvalidType = !allowedImages.includes(type);
+      if (isInvalidType) {
         return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `Maximum of photo files is 3`
+          error: true,
+          message: 'Invalid file type: jpg, jpeg or png required...'
         });
       }
-      
-      for (const photo of photos) {
-        const type = photo.mimetype.split('/')[1];
-        const isInvalidType = !allowedImages.includes(type);
-        if (isInvalidType) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            error: true,
-            message: 'Invalid file type: jpg, jpeg or png required...'
-          });
-        }
+
+      const results = await store_image(marker_icon);
+      if (!results.result) {
+        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+          error: true,
+          message: 'Could not upload file...'
+        });
       }
 
-      for (let i = 0; i < photos.length; i++) {
-        const fileInfo = filesInfo[i];
-        const results = await store_image(photos[i]);
-        if (!results.result) {
-          failedFiles.push({ results, fileInfo });
-        } else {
-          uploadedPhotos.push({ results, fileInfo });
-        }
-      }
+      image_id = results.result.public_id,
+      image_link = results.result.secure_url
     }
 
     const marker_model = await MarkersRepo.create_marker({
@@ -302,8 +311,9 @@ export class MarkersService {
       lng,
       caption,
       place_id,
-      date_traveled,
-      uploadedPhotos,
+      image_id,
+      image_link,
+      date_traveled: datetime_traveled || null,
     });
 
     return response.status(HttpStatusCode.OK).json({

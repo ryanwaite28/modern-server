@@ -4,6 +4,8 @@ import {
 } from './_def.model';
 
 import { Audios } from "./audio.model";
+import { Videos } from "./video.model";
+import { Photos } from './photo.model';
 import {
   Cliques,
   CliqueInterests,
@@ -12,7 +14,6 @@ import {
 } from "../../hotspot/models/clique.model";
 import { SavedPosts } from "./saves.model";
 import { Users, Notifications, Follows } from "./user.model";
-import { Videos } from "./video.model";
 import {
   RecipeCommentReactions,
   RecipeCommentReplies,
@@ -48,7 +49,6 @@ import {
   PostCommentReplyAudios
 } from '../../hotspot/models/post.model';
 import { Resources, ResourceInterests } from '../../hotspot/models/resource.model';
-import { Photos } from './photo.model';
 import { Messagings, Messages } from './messages.model';
 
 

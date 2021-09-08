@@ -643,6 +643,13 @@ export function validateCommonAccountType(type: string) {
   return isValid;
 }
 
+export function validatePersonName(value: any): boolean {
+  if (!value) { return false; }
+  if (value.constructor !== String) { return false; }
+  const re = /^[a-zA-Z\s\'\-\_\.]{2,50}$/;
+  return re.test(value.toLowerCase());
+}
+
 export function validateDisplayName(value: any): boolean {
   if (!value) { return false; }
   if (value.constructor !== String) { return false; }
@@ -688,9 +695,11 @@ export function validatePassword(password: string) {
   );
 }
 
-export const genericTextValidator = (arg: any) => {
-  return !!arg && (/[\W\-\s]{10, 250}/).test(arg);
-};
+export const genericTextValidator = (arg: any) => !!arg && (/^[a-zA-Z0-9\s\'\-\_\.\@\$\#]{5,250}/).test(arg);
+export const phoneValidator = (arg: any) => !!arg && (/^[0-9]{10,15}$/).test(arg);
+export const numberValidator = (arg: any) => typeof(arg) === 'number';
+export const booleanValidator = (arg: any) => typeof(arg) === 'boolean';
+export const notNullValidator = (arg: any) => arg !== null;
 
 export function uniqueValue() {
   return String(Date.now()) +

@@ -22,7 +22,7 @@ NewsPostsRouter.post('/owner/:you_id', UserAuthorized, NewsPostsService.create_n
 // PUT Routes
 
 NewsPostsRouter.put('/:newspost_id/owner/:you_id', UserAuthorized, NewsPostExists, IsNewsPostOwner, NewsPostsService.update_newspost);
-NewsPostsRouter.put('/:newspost_id/user-reaction/user/:you_id', UserAuthorized, NewsPostExists, NewsPostsService.toggle_user_reaction);
+NewsPostsRouter.put('/:newspost_id/user-reaction/user/:you_id', UserAuthorized, NewsPostExists, NewsPostsService.toggle_user_newspost_reaction);
 
 // DELETE Routes
 
