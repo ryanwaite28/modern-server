@@ -201,8 +201,8 @@ PostCommentReplyReactions.belongsTo(PostCommentReplies, { as: 'reply', foreignKe
 export const db_init = async () => {
   console.log({
     DB_ENV,
-    sequelize,
-    process_env: process.env,
+    // sequelize,
+    // process_env: process.env,
   });
   return sequelize.sync({ force: false })
     .then(() => {
