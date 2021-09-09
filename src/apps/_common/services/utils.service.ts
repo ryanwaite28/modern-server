@@ -14,6 +14,7 @@ export class UtilsService {
       httpOnly: false,
       path: `/`,
       sameSite: 'none',
+      secure: true,
     });
     return response.status(HttpStatusCode.OK).json({
       message: `new xsrf-token cookie sent.`,
