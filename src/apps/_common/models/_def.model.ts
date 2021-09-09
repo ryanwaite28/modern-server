@@ -4,15 +4,28 @@ let sequelize: Sequelize.Sequelize;
 let db_env: string;
 
 if (process.env.DATABASE_URL) {
-  db_env = 'Production';
-  sequelize = new Sequelize.Sequelize(process.env.DATABASE_URL, {
-    dialect: 'postgres',
-    dialectOptions: {
-      ssl: true
-    }
-  });
+  try {
+    console.log(`process.env.DATABASE_URL:`, process.env.DATABASE_URL);
+    db_env = 'Production';
+    sequelize = new Sequelize.Sequelize(process.env.DATABASE_URL, {
+      dialect: 'postgres',
+      dialectOptions: {
+        ssl: true
+      }
+    });
+  } catch (e) {
+    console.log(e);
+    console.log(`error connecting to prod postgresql database; using local sqlite...`);
+    
+    db_env = 'Development (sqlite)';
+    sequelize = new Sequelize.Sequelize('database', 'username', 'password', {
+      dialect: 'sqlite',
+      storage: 'database.sqlite',
+    });
+  }
 } else if (process.env.DATABASE_URL_DEV) {
   try {
+    console.log(`process.env.DATABASE_URL:`, process.env.DATABASE_URL);
     db_env = 'Development';
     sequelize = new Sequelize.Sequelize(<string> process.env.DATABASE_URL_DEV, {
       dialect: 'postgres',
