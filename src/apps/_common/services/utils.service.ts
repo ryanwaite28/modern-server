@@ -1,25 +1,43 @@
 import {
+  CookieOptions,
   Request,
   Response,
 } from 'express';
 import { HttpStatusCode } from '../enums/http-codes.enum';
 import moment from 'moment';
+import { generateJWT } from '../common.chamber';
 import { v1 as uuidv1 } from 'uuid';
+
+
+const cookieOptions: CookieOptions = {
+  httpOnly: false,
+  path: `/`,
+  // domain: process.env.NODE_ENV && process.env.NODE_ENV === 'production' ? 'https://rmw-modern-client.herokuapp.com' : undefined,
+  sameSite: 'none',
+  secure: true,
+  // expires: 
+};
 
 
 export class UtilsService {
   static async get_xsrf_token(request: Request, response: Response) {
-    const uuid = uuidv1();
-    response.cookie('xsrf-token', uuid, {
-      httpOnly: false,
-      path: `/`,
-      // domain: process.env.NODE_ENV && process.env.NODE_ENV === 'production' ? 'https://rmw-modern-client.herokuapp.com' : undefined,
-      sameSite: 'none',
-      secure: true,
-    });
+    const token = generateJWT(process.env.APP_SECRET);
+    
+    response.cookie('xsrf-token', token, cookieOptions as CookieOptions);
     return response.status(HttpStatusCode.OK).json({
       message: `new xsrf-token cookie sent.`,
-      // xsrf_token: uuid,
+      // xsrf_token: token,
+    });
+  }
+
+  static async get_xsrf_token_pair(request: Request, response: Response) {
+    const datetime = new Date().toISOString();
+    const jwt = generateJWT(datetime);
+    
+    response.cookie('xsrf-token-a', datetime, cookieOptions as CookieOptions);
+    response.cookie('xsrf-token-b', jwt, cookieOptions as CookieOptions);
+    return response.status(HttpStatusCode.OK).json({
+      message: `new xsrf-token cookies sent.`,
     });
   }
 
