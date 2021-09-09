@@ -14,12 +14,13 @@ import express_fileupload from 'express-fileupload';
 import * as body_parser from 'body-parser';
 import * as cookie_parser from 'cookie-parser';
 
-import { v1 as uuidv1 } from 'uuid';
+// import { v1 as uuidv1 } from 'uuid';
 import { installExpressApp } from './template-engine';
 import { IRequest } from './apps/_common/interfaces/common.interface';
 import { db_init } from './apps/_common/models/_init.model';
 import { SocketsService } from './apps/_common/services/sockets.service';
 import { AppsRouter } from './apps/apps.router';
+import { uniqueValue } from './apps/_common/common.chamber';
 
 /** Setup */
 
@@ -37,7 +38,7 @@ app.use(body_parser.urlencoded({ extended: false }));
 const server: http.Server = http.createServer(app);
 const io: socket_io.Server = socket_io(server);
 io.engine.generateId = (req) => {
-  return uuidv1(); // must be unique across all Socket.IO servers
+  return uniqueValue(); // must be unique across all Socket.IO servers
 };
 
 SocketsService.handle_io_connections(io);
