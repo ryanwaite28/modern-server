@@ -13,9 +13,9 @@ export class UtilsService {
     response.cookie('xsrf-token', uuid, {
       httpOnly: false,
       path: `/`,
-      domain: process.env.NODE_ENV && process.env.NODE_ENV === 'production' ? 'herokuapp.com' : undefined,
-      // sameSite: 'none',
-      // secure: true,
+      // domain: process.env.NODE_ENV && process.env.NODE_ENV === 'production' ? 'https://rmw-modern-client.herokuapp.com' : undefined,
+      sameSite: 'none',
+      secure: true,
     });
     return response.status(HttpStatusCode.OK).json({
       message: `new xsrf-token cookie sent.`,
