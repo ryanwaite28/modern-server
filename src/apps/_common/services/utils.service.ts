@@ -19,7 +19,7 @@ export class UtilsService {
     });
     return response.status(HttpStatusCode.OK).json({
       message: `new xsrf-token cookie sent.`,
-      xsrf_token: uuid,
+      // xsrf_token: uuid,
     });
   }
 
