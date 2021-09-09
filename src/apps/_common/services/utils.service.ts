@@ -13,6 +13,7 @@ export class UtilsService {
     response.cookie('xsrf-token', uuid, {
       httpOnly: false,
       path: `/`,
+      sameSite: 'none',
     });
     return response.status(HttpStatusCode.OK).json({
       message: `new xsrf-token cookie sent.`,
