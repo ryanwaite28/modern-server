@@ -19,6 +19,7 @@ import {
 } from '../enums/hotspot.enum';
 import { populate_hotspot_notification_obj } from '../hotspot.chamber';
 import { SocketsService } from '../../_common/services/sockets.service';
+import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 
 export class ResourceInterestsService {
   static async get_user_resource_interests(request: Request, response: Response) {
@@ -148,6 +149,7 @@ export class ResourceInterestsService {
     });
     create_notification({
       from_id: you_id,
+      micro_app: MODERN_APP_NAMES.HOTSPOT,
       to_id: response.locals.resource_model.get('owner_id'),
       event: HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST,
       target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.RESOURCE,

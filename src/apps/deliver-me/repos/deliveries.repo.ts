@@ -106,6 +106,14 @@ export async function get_delivery_tracking_updates(delivery_id: number) {
   return tracking_update;
 }
 
+export async function get_delivery_tracking_update_by_id(id: number) {
+  const tracking_update = await DeliveryTrackingUpdates.findOne({
+    where: { id },
+    include: []
+  });
+  return tracking_update;
+}
+
 export async function create_delivery_tracking_update(createObj: ICreateDeliveryTrackingUpdateProps) {
   const new_delivery_tracking_update_model = await DeliveryTrackingUpdates.create(<any> createObj);
   const id = new_delivery_tracking_update_model.get('id') as number;

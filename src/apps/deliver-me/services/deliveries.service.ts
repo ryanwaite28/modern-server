@@ -34,7 +34,7 @@ import {
   Delivery,
   DeliveryTrackingUpdates
 } from '../models/delivery.model';
-import { IMyModel } from 'src/apps/_common/models/common.model-types';
+import { IMyModel } from '../../_common/models/common.model-types';
 import {
   create_delivery_required_props,
   create_delivery_tracking_update_required_props,

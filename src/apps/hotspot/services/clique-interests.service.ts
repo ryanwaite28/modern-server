@@ -16,7 +16,6 @@ import {
   IUser,
   IRequest
 } from '../../_common/interfaces/common.interface';
-
 import * as CliqueInterestsRepo from '../repos/clique-interests.repo';
 import * as CommonRepo from '../../_common/repos/_common.repo';
 import { fn, col, cast, Op } from 'sequelize';
@@ -28,6 +27,7 @@ import {
   HOTSPOT_NOTIFICATION_TARGET_TYPES
 } from '../enums/hotspot.enum';
 import { SocketsService } from '../../_common/services/sockets.service';
+import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 
 export class CliqueInterestsService {
   static async get_user_clique_interests(request: Request, response: Response) {
@@ -172,6 +172,7 @@ export class CliqueInterestsService {
     });
     create_notification({
       from_id: you_id,
+      micro_app: MODERN_APP_NAMES.HOTSPOT,
       to_id: response.locals.clique_model.get('creator_id'),
       event: HOTSPOT_EVENT_TYPES.NEW_CLIQUE_INTEREST,
       target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.CLIQUE,

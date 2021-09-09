@@ -16,9 +16,16 @@ import { TokensService } from './tokens.service';
 import { HttpStatusCode } from '../enums/http-codes.enum';
 
 import { Notifications, Users } from '../models/user.model';
+import { MODERN_APP_NAMES } from '../enums/common.enum';
+import { populate_deliverme_notification_obj } from '../../deliver-me/deliverme.chamber';
 
 
 export class NotificationsService {
+  static notifications_populate_fn_by_app = {
+    [MODERN_APP_NAMES.COMMON as string]: populate_common_notification_obj,
+    [MODERN_APP_NAMES.DELIVERME as string]: populate_deliverme_notification_obj,
+  };
+  
   // request handlers
 
   static async get_user_notifications(request: Request, response: Response) {
@@ -34,7 +41,9 @@ export class NotificationsService {
     const newList: any = [];
     for (const notification_model of notifications_models) {
       try {
-        const notificationObj = await populate_common_notification_obj(notification_model);
+        const app = notification_model.get('micro_app') as string;
+        const fn = NotificationsService.notifications_populate_fn_by_app[app];
+        const notificationObj = await fn(notification_model);
         newList.push(notificationObj);
       } catch (e) {
         console.log(e, { notification: notification_model.toJSON() });

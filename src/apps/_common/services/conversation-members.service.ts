@@ -32,7 +32,7 @@ import {
 } from '../models/conversations.model';
 import { Users } from '../models/user.model';
 import { IMyModel } from '../models/common.model-types';
-import { COMMON_EVENT_TYPES, COMMON_NOTIFICATION_TARGET_TYPES } from '../enums/common.enum';
+import { COMMON_EVENT_TYPES, COMMON_NOTIFICATION_TARGET_TYPES, MODERN_APP_NAMES } from '../enums/common.enum';
 import { SocketsService } from './sockets.service';
 
 export class ConversationMembersService {
@@ -122,6 +122,7 @@ export class ConversationMembersService {
     create_notification({
       from_id: you_id,
       to_id: user_id,
+      micro_app: MODERN_APP_NAMES.COMMON,
       event: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED,
       target_type: COMMON_NOTIFICATION_TARGET_TYPES.CONVERSATION,
       target_id: conversation_id
@@ -188,6 +189,7 @@ export class ConversationMembersService {
     create_notification({
       from_id: you_id,
       to_id: user_id,
+      micro_app: MODERN_APP_NAMES.COMMON,
       event: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_REMOVED,
       target_type: COMMON_NOTIFICATION_TARGET_TYPES.CONVERSATION,
       target_id: conversation_id

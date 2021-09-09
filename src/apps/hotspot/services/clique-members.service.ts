@@ -31,6 +31,7 @@ import {
 } from '../enums/hotspot.enum';
 import { populate_hotspot_notification_obj } from '../hotspot.chamber';
 import { SocketsService } from '../../_common/services/sockets.service';
+import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 
 
 export class CliqueMembersService {
@@ -303,6 +304,7 @@ export class CliqueMembersService {
     });
     create_notification({
       from_id: you_id,
+      micro_app: MODERN_APP_NAMES.HOTSPOT,
       to_id: response.locals.clique_model.get('creator_id'),
       event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_LEFT,
       target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.CLIQUE,
@@ -420,6 +422,7 @@ export class CliqueMembersService {
     create_notification({
       from_id: you_id,
       to_id: user_id,
+      micro_app: MODERN_APP_NAMES.HOTSPOT,
       event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_REQUEST,
       target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.CLIQUE,
       target_id: clique_id
@@ -463,6 +466,7 @@ export class CliqueMembersService {
     create_notification({
       from_id: you_id,
       to_id: member_request.user_id,
+      micro_app: MODERN_APP_NAMES.HOTSPOT,
       event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_CANCEL,
       target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.CLIQUE,
       target_id: clique_id
@@ -535,6 +539,7 @@ export class CliqueMembersService {
     create_notification({
       from_id: you_id,
       to_id: member_request.sender_id,
+      micro_app: MODERN_APP_NAMES.HOTSPOT,
       event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ACCEPT,
       target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.CLIQUE,
       target_id: clique_id
@@ -576,6 +581,7 @@ export class CliqueMembersService {
     create_notification({
       from_id: you_id,
       to_id: member_request.sender_id,
+      micro_app: MODERN_APP_NAMES.HOTSPOT,
       event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_DECLINE,
       target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.CLIQUE,
       target_id: clique_id

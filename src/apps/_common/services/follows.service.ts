@@ -20,7 +20,7 @@ import * as FollowsRepo from '../repos/follows.repo';
 import * as CommonRepo from '../repos/_common.repo';
 import { create_notification } from '../repos/notifications.repo';
 import { Follows, Users } from '../models/user.model';
-import { COMMON_EVENT_TYPES } from '../enums/common.enum';
+import { COMMON_EVENT_TYPES, MODERN_APP_NAMES } from '../enums/common.enum';
 import { SocketsService } from './sockets.service';
 
 
@@ -93,8 +93,9 @@ export class FollowsService {
         from_id: you_id,
         to_id: user_id,
         event: COMMON_EVENT_TYPES.NEW_FOLLOWER,
-        target_type: null,
-        target_id: null
+        micro_app: MODERN_APP_NAMES.COMMON,
+        target_type: '',
+        target_id: 0
       }).then(async (notification_model) => {
         const notification = await populate_common_notification_obj(notification_model);
         SocketsService.emitEventForUser(user_id, {
