@@ -11,13 +11,15 @@ export class UtilsService {
   static async get_xsrf_token(request: Request, response: Response) {
     const uuid = uuidv1();
     response.cookie('xsrf-token', uuid, {
-      // httpOnly: false,
+      httpOnly: false,
       path: `/`,
-      sameSite: 'none',
-      secure: true,
+      domain: process.env.NODE_ENV && process.env.NODE_ENV === 'production' ? 'herokuapp.com' : undefined,
+      // sameSite: 'none',
+      // secure: true,
     });
     return response.status(HttpStatusCode.OK).json({
       message: `new xsrf-token cookie sent.`,
+      xsrf_token: uuid,
     });
   }
 
