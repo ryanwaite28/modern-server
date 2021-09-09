@@ -16,6 +16,10 @@
     "build": "npm run tsc",
     "start": "node dist/app.js"
   },
+  "engines": {
+    "node": "=12.14.0",
+    "npm": "=6.13.4"
+  },
   "keywords": [
     "Node",
     "App"
