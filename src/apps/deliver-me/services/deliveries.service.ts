@@ -223,7 +223,8 @@ export class DeliveriesService {
   }
 
   static async get_user_deliverings_all(request: Request, response: Response) {
-    const user_id = response.locals.user.id;
+    const user_id: number = parseInt(request.params.user_id, 10);
+    
     const results = await CommonRepo.getAll(
       Delivery,
       'carrier_id',
@@ -254,7 +255,7 @@ export class DeliveriesService {
       undefined,
       undefined,
       {
-        completed: true
+        completed: false
       },
       DeliveryRepo.deliveryTrackingOrderBy
     );
