@@ -11,7 +11,7 @@ export class UtilsService {
   static async get_xsrf_token(request: Request, response: Response) {
     const uuid = uuidv1();
     response.cookie('xsrf-token', uuid, {
-      httpOnly: false,
+      // httpOnly: false,
       path: `/`,
       sameSite: 'none',
       secure: true,
