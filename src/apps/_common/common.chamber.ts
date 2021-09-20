@@ -513,6 +513,9 @@ export const user_attrs_slim = [
   'public',
   'can_message',
   'can_converse',
+  'stripe_account_id',
+  'stripe_account_verified',
+  'can_converse',
   'email',
   'phone',
   'bio',
@@ -569,6 +572,12 @@ export const populate_common_notification_obj = async (notification_model: any) 
       mount_value = user_model!.toJSON();
       break;
     }
+    case COMMON_EVENT_TYPES.NEW_UNFOLLOWER: {
+      message = `${full_name} unfollowed you`;
+      mount_prop_key = 'user';
+      mount_value = user_model!.toJSON();
+      break;
+    }
   }
 
   notificationObj.from = user_model!.toJSON();
@@ -613,6 +622,14 @@ export function validateEmail(email: string) {
   if (email.constructor !== String) { return false; }
   const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return re.test(email.toLowerCase());
+}
+
+export function validatePhone(phone?: string) {
+  // https://stackoverflow.com/questions/4338267/validate-phone-number-with-javascript
+  if (!phone) { return false; }
+  if (typeof(phone) !== 'string') { return false; }
+  const re = /^[\d]+$/;
+  return re.test(phone.toLowerCase()) && (phone.length === 10 || phone.length === 11);
 }
 
 export function validateName(name: string) {
@@ -695,7 +712,7 @@ export function validatePassword(password: string) {
   );
 }
 
-export const genericTextValidator = (arg: any) => !!arg && (/^[a-zA-Z0-9\s\'\-\_\.\@\$\#]{5,250}/).test(arg);
+export const genericTextValidator = (arg: any) => !!arg && (/^[a-zA-Z0-9\s\'\-\_\.\@\$\#]{3,250}/).test(arg);
 export const phoneValidator = (arg: any) => !!arg && (/^[0-9]{10,15}$/).test(arg);
 export const numberValidator = (arg: any) => typeof(arg) === 'number';
 export const booleanValidator = (arg: any) => typeof(arg) === 'boolean';

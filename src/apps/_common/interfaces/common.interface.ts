@@ -51,6 +51,8 @@ export interface IUser extends ICommonModel {
   bio:                         string;
   headline:                    string;
   tags:                        string;
+  stripe_account_id:           string;
+  stripe_account_verified:     boolean;
   icon_link:                   string;
   icon_id:                     string;
   photo_id_link:               string;

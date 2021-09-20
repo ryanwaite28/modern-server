@@ -19,6 +19,7 @@ import { Audios } from '../../_common/models/audio.model';
 import { Users } from '../../_common/models/user.model';
 import {
   Delivery,
+  DeliveryMessages,
   DeliveryTrackingUpdates
 } from '../models/delivery.model';
 import { ICreateDeliveryProps, ICreateDeliveryTrackingUpdateProps } from '../interfaces/deliverme.interface';
@@ -32,7 +33,11 @@ export const deliveryTrackingOrderBy: Order = [
 export const deliveryMasterIncludes: Includeable[] = [{
   model: Users,
   as: 'owner',
-  attributes: user_attrs_slim
+  attributes: user_attrs_slim,
+  include: [{
+    model: DeliverMeUserProfileSettings,
+    as: 'deliverme_settings',
+  }]
 }, {
   model: Users,
   as: 'carrier',
@@ -49,12 +54,24 @@ export const deliveryMasterIncludes: Includeable[] = [{
     as: 'user',
     attributes: user_attrs_slim
   }]
+}, {
+  model: DeliveryMessages,
+  as: 'delivery_messages',
+  include: [{
+    model: Users,
+    as: 'user',
+    attributes: user_attrs_slim
+  }]
 }];
 
 export const deliveryGeneralIncludes: Includeable[] = [{
   model: Users,
   as: 'owner',
-  attributes: user_attrs_slim
+  attributes: user_attrs_slim,
+  include: [{
+    model: DeliverMeUserProfileSettings,
+    as: 'deliverme_settings',
+  }]
 }, {
   model: Users,
   as: 'carrier',

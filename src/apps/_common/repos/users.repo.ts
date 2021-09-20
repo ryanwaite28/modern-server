@@ -26,7 +26,7 @@ export async function create_user(
   }
 ) {
   const new_user_model = await Users.create(<any> params);
-  return new_user_model;
+  return get_user_by_id(new_user_model.get('id'));
 }
 
 export async function get_random_users(
@@ -91,7 +91,7 @@ export async function get_user_by_phone(
   try {
     const userModel = await Users.findOne({
       where: { phone },
-      attributes: user_attrs_slim
+      
     });
     return userModel;
   } catch (e) {
@@ -102,41 +102,24 @@ export async function get_user_by_phone(
 
 
 
-export async function get_user_by_id(
-  id: number
-) {
-  try {
-    const user_model = await Users.findOne({
-      where: { id },
-    });
-    // console.log({ user: user_model && user_model.toJSON() });
-    return user_model;
-  } catch (e) {
-    console.log({
-      errorMessage: `get_user_by_id error - `,
-      e,
-      id
-    });
-    return null;
-  }
+export async function get_user_by_id(id: number) {
+  const user_model = await Users.findOne({
+    where: { id },
+    include: [],
+    attributes: {
+      exclude: ['password']
+    }
+  });
+  return user_model;
 }
 
 export async function get_user_by_username(
   username: string
 ) {
-  try {
-    const user_model = await Users.findOne({
-      where: { username },
-    });
-    return user_model;
-  } catch (e) {
-    console.log({
-      errorMessage: `get_user_by_username error - `,
-      e,
-      username
-    });
-    return null;
-  }
+  const user_model = await Users.findOne({
+    where: { username },
+  });
+  return user_model;
 }
 
 export async function get_user_by_uuid(
@@ -162,7 +145,7 @@ export async function update_user(
     email: string;
     paypal: string;
     username: string;
-    phone: string;
+    phone: string | null;
     bio: string;
     location: string;
     password: string;
@@ -177,7 +160,7 @@ export async function update_user(
 ) {
   try {
     const user_model_update = await Users.update(
-      newState,
+      newState as any,
       { where: whereClause }
     );
     return user_model_update;

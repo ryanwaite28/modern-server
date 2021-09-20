@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { ConversationExists, IsConversationOwner, IsNotConversationOwner } from '../guards/conversation.guard';
-import { UserAuthorized, UserIdsAreDifferent } from '../guards/user.guard';
+import { UserAuthorized, UserAuthorizedSlim, UserIdsAreDifferent } from '../guards/user.guard';
 import { ConversationMembersService } from '../services/conversation-members.service';
 import { ConversationMessagesService } from '../services/conversation-messages.service';
 import { ConversationsService } from '../services/conversations.service';
@@ -21,8 +21,8 @@ UsersRouter.get('', UsersService.main);
 UsersRouter.get('/sign-out', UsersService.sign_out);
 UsersRouter.get('/check-session', UsersService.check_session);
 UsersRouter.get('/verify-email/:verification_code', UsersService.verify_email);
-UsersRouter.get('/send-sms-verification/:phone_number', UsersService.send_sms_verification);
-UsersRouter.get('/verify-sms-code/request_id/:request_id/code/:code', UsersService.verify_sms_code);
+UsersRouter.get('/send-sms-verification/:phone_number', UserAuthorizedSlim, UsersService.send_sms_verification);
+UsersRouter.get('/verify-sms-code/request_id/:request_id/code/:code', UserAuthorizedSlim, UsersService.verify_sms_code);
 
 UsersRouter.get('/:you_id/unseen-counts', UserAuthorized, UsersService.get_unseen_counts);
 
@@ -73,12 +73,15 @@ UsersRouter.post('/:you_id/send-message/:user_id', UserAuthorized, UserIdsAreDif
 UsersRouter.post('/:you_id/conversations/:conversation_id/messages/:message_id/mark-as-seen', UserAuthorized, ConversationExists, ConversationMessagesService.mark_message_as_seen);
 UsersRouter.post('/:you_id/conversations/:conversation_id/members/:user_id', UserAuthorized, UserIdsAreDifferent, ConversationExists, IsConversationOwner, ConversationMembersService.add_conversation_member);
 
+// PUT
 UsersRouter.put('/', UsersService.sign_in);
 UsersRouter.put('/:you_id/info', UserAuthorized, UsersService.update_info);
 UsersRouter.put('/:you_id/password', UserAuthorized, UsersService.update_password);
 UsersRouter.put('/:you_id/phone', UserAuthorized, UsersService.update_phone);
 UsersRouter.put('/:you_id/icon', UserAuthorized, UsersService.update_icon);
 UsersRouter.put('/:you_id/wallpaper', UserAuthorized, UsersService.update_wallpaper);
+UsersRouter.put('/:you_id/create-stripe-account', UserAuthorized, UsersService.create_stripe_account);
+UsersRouter.put('/:you_id/verify-stripe-account', UserAuthorized, UsersService.verify_stripe_account);
 UsersRouter.put('/:you_id/conversations/:conversation_id/update-last-opened', UserAuthorized, ConversationMessagesService.update_conversation_last_opened);
 UsersRouter.put('/:you_id/conversations/:conversation_id', UserAuthorized, ConversationsService.update_conservation);
 

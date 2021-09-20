@@ -1,13 +1,17 @@
-import Nexmo from 'nexmo';
+import Nexmo, {
+  SendSmsOptions,
+  MessageRequestResponseStatusCode
+} from 'nexmo';
 import { PlainObject } from './apps/_common/interfaces/common.interface';
 
 export function send_sms(params: {
-  phone_number: string,
-  message: string
+  to_phone_number: string,
+  message: string,
+  countryCode?: string
 }) {
   return new Promise((resolve, reject) => {
-    const { phone_number, message } = params;
-    if (!phone_number) {
+    const { to_phone_number, message, countryCode } = params;
+    if (!to_phone_number) {
       console.log(`PHONE NUMBER REQUIRED...`);
       return reject();
     }
@@ -35,15 +39,26 @@ export function send_sms(params: {
       return reject(e);
     }
 
+    const from = process.env.NEXMO_APP_NUMBER!;
+    const to_number = to_phone_number.length === 10
+      ? (countryCode || '1') + to_phone_number
+      : to_phone_number;
+
+    const smsOpts =  {
+      from,
+      to: to_number,
+      body: message
+    } as SendSmsOptions;
+
     try {
-      nexmo.verify.request({
-        number: phone_number,
-        brand: process.env.APP_NAME!,
-        code_length: 6
-      }, (err, result) => {
-        return err
-          ? reject(err)
-          : resolve(result);
+      nexmo.message.sendSms(from, to_number, message, smsOpts, (err, result) => {
+        console.log(`send sms reaults:`, { from, to_number, err, result });
+        if (err || (<any> result).messages[0]['error-text']) {
+          reject(err);
+        } else {
+          console.log(result.messages);
+          resolve(result);
+        }
       });
     } catch (e) {
       console.log(`COULD NOT INITIALIZE NEXMO...`, e);

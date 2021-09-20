@@ -30,6 +30,8 @@ export const Users = <MyModelStaticGeneric<IUserModel>> sequelize.define('common
 
   paypal:                              { type: Sequelize.STRING, allowNull: true },
   paypal_verified:                     { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  stripe_account_id:                   { type: Sequelize.STRING, allowNull: true },
+  stripe_account_verified:             { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
   phone:                               { type: Sequelize.STRING, allowNull: true },
   headline:                            { type: Sequelize.STRING(75), allowNull: false, defaultValue: '' },
   bio:                                 { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
@@ -66,6 +68,27 @@ export const Users = <MyModelStaticGeneric<IUserModel>> sequelize.define('common
   ...common_options,
   indexes: [{ unique: true, fields: ['email', 'paypal', 'uuid']} ] 
 });
+
+// export const UserStripeAccounts = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_stripe_accounts', {
+//   id:                                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+//   user_id:                             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+//   stripe_account_id:                   { type: Sequelize.STRING, allowNull: true },
+//   stripe_account_verified:             { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+//   date_created:                        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+//   uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+// }, common_options);
+
+export const UserPaymentIntents = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_payment_intents', {
+  id:                                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:                             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  payment_intent_id:                   { type: Sequelize.STRING, allowNull: false },
+  payment_intent_event:                { type: Sequelize.STRING, allowNull: false },
+  micro_app:                           { type: Sequelize.STRING, allowNull: true },
+  target_type:                         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  target_id:                           { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
+  date_created:                        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
 
 export const UserPremiumSubscriptions = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_premium_suscriptions', {
   id:                   { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },

@@ -22,14 +22,33 @@ export class CommonSocketEventsHandler {
       CommonSocketEventsHandler.removeSocketBySocketId(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
     });
 
-
-    socket.on(COMMON_EVENT_TYPES.MESSAGE_TYPING, (data: any) => {
-      CommonSocketEventsHandler.MESSAGE_TYPING(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
+    socket.on(COMMON_EVENT_TYPES.SOCKET_JOIN_ROOM, (data: any) => {
+      CommonSocketEventsHandler.SOCKET_JOIN_ROOM(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
     });
 
-    socket.on(COMMON_EVENT_TYPES.MESSAGE_TYPING_STOPPED, (data: any) => {
-      CommonSocketEventsHandler.MESSAGE_TYPING_STOPPED(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
+    socket.on(COMMON_EVENT_TYPES.SOCKET_LEAVE_ROOM, (data: any) => {
+      CommonSocketEventsHandler.SOCKET_LEAVE_ROOM(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
     });
+
+    socket.on(COMMON_EVENT_TYPES.JOIN_TO_MESSAGING_ROOM, (data: any) => {
+      CommonSocketEventsHandler.JOIN_TO_MESSAGING_ROOM(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
+    });
+
+    socket.on(COMMON_EVENT_TYPES.LEAVE_TO_MESSAGING_ROOM, (data: any) => {
+      CommonSocketEventsHandler.LEAVE_TO_MESSAGING_ROOM(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
+    });
+
+    socket.on(COMMON_EVENT_TYPES.TO_MESSAGING_ROOM, (data: any) => {
+      CommonSocketEventsHandler.TO_MESSAGING_ROOM(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
+    });
+
+    // socket.on(COMMON_EVENT_TYPES.MESSAGE_TYPING, (data: any) => {
+    //   CommonSocketEventsHandler.MESSAGE_TYPING(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
+    // });
+
+    // socket.on(COMMON_EVENT_TYPES.MESSAGE_TYPING_STOPPED, (data: any) => {
+    //   CommonSocketEventsHandler.MESSAGE_TYPING_STOPPED(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
+    // });
 
     socket.on(COMMON_EVENT_TYPES.CONVERSATION_EVENTS_SUBSCRIBED, (data: any) => {
       CommonSocketEventsHandler.CONVERSATION_EVENTS_SUBSCRIBED(io, socket, data, socketsByUserIdMap, userSocketsRoomKeyByUserId);
@@ -67,6 +86,56 @@ export class CommonSocketEventsHandler {
 
 
   /** Helpers */
+
+  private static SOCKET_JOIN_ROOM(
+    io: socket_io.Server,
+    socket: socket_io.Socket,
+    data: any,
+    socketsByUserIdMap: Map<number, Set<string>>,
+    userSocketsRoomKeyByUserId: Map<number, string>
+  ) {
+    const validEventData = (
+      data.hasOwnProperty('room') &&
+      typeof(data.room) === 'string'
+    );
+    if (!validEventData) {
+      socket.to(socket.id).emit(`ERROR`, {
+        error: `${COMMON_EVENT_TYPES.SOCKET_JOIN_ROOM}-error`,
+        message: `room is required.`
+      });
+      return;
+    }
+
+    socket.join(data.room, (err: any) => {
+      console.log(`socket ${socket.id} joined room ${data.room}. error:`, err);
+      socket.to(socket.id).emit(COMMON_EVENT_TYPES.SOCKET_JOIN_ROOM, { err, room: data.room });
+    });
+  }
+
+  private static SOCKET_LEAVE_ROOM(
+    io: socket_io.Server,
+    socket: socket_io.Socket,
+    data: any,
+    socketsByUserIdMap: Map<number, Set<string>>,
+    userSocketsRoomKeyByUserId: Map<number, string>
+  ) {
+    const validEventData = (
+      data.hasOwnProperty('room') &&
+      typeof(data.room) === 'string'
+    );
+    if (!validEventData) {
+      socket.to(socket.id).emit(`ERROR`, {
+        error: `${COMMON_EVENT_TYPES.SOCKET_LEAVE_ROOM}-error`,
+        message: `room is required.`
+      });
+      return;
+    }
+
+    socket.leave(data.room, (err: any) => {
+      console.log(`socket ${socket.id} left room ${data.room}. error:`, err);
+      socket.to(socket.id).emit(COMMON_EVENT_TYPES.SOCKET_LEAVE_ROOM, { err, room: data.room });
+    });
+  }
 
   private static addUserSocket(
     io: socket_io.Server,
@@ -120,6 +189,7 @@ export class CommonSocketEventsHandler {
       return;
     }
     this.io.to(roomKey).emit(params.event, params.data);
+    this.io.to(roomKey).emit(`FOR-USER:${params.user_id}`, params.data);
   }
 
   public static removeSocketBySocketId(
@@ -190,6 +260,95 @@ export class CommonSocketEventsHandler {
 
 
   /** Handlers */
+
+  private static JOIN_TO_MESSAGING_ROOM(
+    io: socket_io.Server,
+    socket: socket_io.Socket,
+    data: any,
+    socketsByUserIdMap: Map<number, Set<string>>,
+    userSocketsRoomKeyByUserId: Map<number, string>,
+  ) {
+    const validEventData = (
+      data.hasOwnProperty('messaging_id') &&
+      typeof(data.messaging_id) === 'number'
+    );
+    if (!validEventData) {
+      socket.to(socket.id).emit(`ERROR`, {
+        error: `${COMMON_EVENT_TYPES.JOIN_TO_MESSAGING_ROOM}-error`,
+        message: `from_user_id and messaging_id is required.`
+      });
+      return;
+    }
+
+    data.event = COMMON_EVENT_TYPES.JOIN_TO_MESSAGING_ROOM;
+    const TO_ROOM = `${COMMON_EVENT_TYPES.TO_MESSAGING_ROOM}:${data.messaging_id}`;
+    socket.join(TO_ROOM, (err: any) => {
+      console.log(err);
+    });
+
+    console.log(`--- socket ${socket.id} joined messaging room ${data.messaging_id}`);
+    console.log({ TO_ROOM, data, sockets: Object.keys(io.in(TO_ROOM).sockets) });
+    io.to(TO_ROOM).emit(COMMON_EVENT_TYPES.JOIN_TO_MESSAGING_ROOM, data);
+  }
+
+  private static LEAVE_TO_MESSAGING_ROOM(
+    io: socket_io.Server,
+    socket: socket_io.Socket,
+    data: any,
+    socketsByUserIdMap: Map<number, Set<string>>,
+    userSocketsRoomKeyByUserId: Map<number, string>,
+  ) {
+    const validEventData = (
+      data.hasOwnProperty('messaging_id') &&
+      typeof(data.messaging_id) === 'number'
+    );
+    if (!validEventData) {
+      socket.to(socket.id).emit(`ERROR`, {
+        error: `${COMMON_EVENT_TYPES.LEAVE_TO_MESSAGING_ROOM}-error`,
+        message: `from_user_id and messaging_id is required.`
+      });
+      return;
+    }
+
+    data.event = COMMON_EVENT_TYPES.LEAVE_TO_MESSAGING_ROOM;
+    const TO_ROOM = `${COMMON_EVENT_TYPES.TO_MESSAGING_ROOM}:${data.messaging_id}`;
+    socket.leave(TO_ROOM, (err: any) => {
+      console.log(err);
+    });
+
+    console.log(`--- socket ${socket.id} left messaging room ${data.messaging_id}`);
+    console.log({ TO_ROOM, data, sockets: Object.keys(io.in(TO_ROOM).sockets) });
+    io.to(TO_ROOM).emit(COMMON_EVENT_TYPES.LEAVE_TO_MESSAGING_ROOM, data);
+  }
+
+  private static TO_MESSAGING_ROOM(
+    io: socket_io.Server,
+    socket: socket_io.Socket,
+    data: any,
+    socketsByUserIdMap: Map<number, Set<string>>,
+    userSocketsRoomKeyByUserId: Map<number, string>,
+  ) {
+    const validEventData = (
+      data.hasOwnProperty('from_user_id') &&
+      typeof(data.from_user_id) === 'number' &&
+      data.hasOwnProperty('to_user_id') &&
+      typeof(data.to_user_id) === 'number' &&
+      data.hasOwnProperty('messaging_id') &&
+      typeof(data.messaging_id) === 'number'
+    );
+    if (!validEventData) {
+      console.log(`${COMMON_EVENT_TYPES.MESSAGE_TYPING}-error`, data);
+      socket.to(socket.id).emit(`ERROR`, {
+        error: `${COMMON_EVENT_TYPES.MESSAGE_TYPING}-error`,
+        message: `from_user_id, to_user_id and messaging_id is required.`
+      });
+      return;
+    }
+    
+    const TO_ROOM = `${COMMON_EVENT_TYPES.TO_MESSAGING_ROOM}:${data.messaging_id}`;
+    console.log({ TO_ROOM, data, sockets: Object.keys(io.in(TO_ROOM).sockets) });
+    io.to(TO_ROOM).emit(TO_ROOM, data);
+  }
 
   private static MESSAGE_TYPING(
     io: socket_io.Server,

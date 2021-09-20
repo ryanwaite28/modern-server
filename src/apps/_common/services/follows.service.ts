@@ -22,6 +22,7 @@ import { create_notification } from '../repos/notifications.repo';
 import { Follows, Users } from '../models/user.model';
 import { COMMON_EVENT_TYPES, MODERN_APP_NAMES } from '../enums/common.enum';
 import { SocketsService } from './sockets.service';
+import { CommonSocketEventsHandler } from './socket-events-handlers-by-app/common.socket-event-handler';
 
 
 export class FollowsService {
@@ -98,11 +99,16 @@ export class FollowsService {
         target_id: 0
       }).then(async (notification_model) => {
         const notification = await populate_common_notification_obj(notification_model);
-        SocketsService.emitEventForUser(user_id, {
-          event_type: COMMON_EVENT_TYPES.NEW_FOLLOWER,
+
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: user_id,
+          event: COMMON_EVENT_TYPES.NEW_FOLLOWER,
           data: {
-            ...follow_model!.toJSON(),
-            notification
+            event: COMMON_EVENT_TYPES.NEW_FOLLOWER,
+            data: {
+              ...follow_model!.toJSON(),
+              notification
+            }
           }
         });
       });
@@ -139,6 +145,27 @@ export class FollowsService {
     }
 
     const deletes = await check_follow.destroy();
+
+    create_notification({
+      from_id: you_id,
+      to_id: user_id,
+      event: COMMON_EVENT_TYPES.NEW_UNFOLLOWER,
+      micro_app: MODERN_APP_NAMES.COMMON,
+      target_type: '',
+      target_id: 0
+    }).then(async (notification_model) => {
+      const notification = await populate_common_notification_obj(notification_model);
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: user_id,
+        event: COMMON_EVENT_TYPES.NEW_UNFOLLOWER,
+        data: {
+          event: COMMON_EVENT_TYPES.NEW_UNFOLLOWER,
+          data: {
+            notification
+          }
+        }
+      });
+    });
 
     return response.status(HttpStatusCode.OK).json({
       message: `Unfollowed!`,

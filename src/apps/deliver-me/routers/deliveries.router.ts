@@ -18,12 +18,17 @@ DeliveriesRouter.get('/find-available-to/city/:city/state/:state', UserAuthorize
 
 DeliveriesRouter.post('/', UserAuthorizedSlim, DeliveriesService.create_delivery);
 DeliveriesRouter.post('/find-available', UserAuthorizedSlim, DeliveriesService.find_available_delivery);
+DeliveriesRouter.post('/search', UserAuthorizedSlim, DeliveriesService.search_deliveries);
+DeliveriesRouter.post('/:delivery_id/message', UserAuthorizedSlim, DeliveryExists, DeliveriesService.send_delivery_message);
 
+DeliveriesRouter.post('/:delivery_id/create-checkout-session', UserAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesService.create_checkout_session);
+DeliveriesRouter.post('/:delivery_id/payment-success', UserAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesService.payment_success);
+DeliveriesRouter.post('/:delivery_id/payment-cancel', UserAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesService.payment_cancel);
 
 
 /** PUT */
 
-DeliveriesRouter.put('/:delivery_id', UserAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesService.update_delivery);
+// DeliveriesRouter.put('/:delivery_id', UserAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesService.update_delivery);
 
 
 

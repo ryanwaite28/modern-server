@@ -45,6 +45,7 @@ import { SiteFeedbacks, Users } from '../models/user.model';
 import { get_user_unseen_notifications_count } from '../repos/notifications.repo';
 import { get_user_unread_conversations_messages_count } from '../repos/conversations.repo';
 import { get_user_unread_personal_messages_count } from '../repos/messagings.repo';
+import { StripeService } from './stripe.service';
 
 export class UsersService {
 
@@ -66,6 +67,10 @@ export class UsersService {
   static async check_session(request: Request, response: Response) {
     try {
       const auth = AuthorizeJWT(request, false);
+      if (auth.you) {
+        const you_model = await UserRepo.get_user_by_id(auth.you.id);
+        auth.you = you_model!.toJSON() as IUser;
+      }
       response.status(auth.status).json(auth);
     } catch (e) {
       console.log('error: ', e);
@@ -355,7 +360,7 @@ export class UsersService {
       password: bcrypt.hashSync(password)
     };
     const new_user_model = await UserRepo.create_user(createInfo);
-    const new_user = <IUser> new_user_model.toJSON();
+    const new_user = <IUser> new_user_model!.toJSON();
     delete new_user.password;
 
     // create JWT
@@ -378,8 +383,8 @@ export class UsersService {
 
       const host: string = request.get('origin')!;
       const verify_link = (<string> host).endsWith('/')
-        ? (host + 'verify-email/' + new_email_verf.verification_code)
-        : (host + '/verify-email/' + new_email_verf.verification_code);
+        ? (host + 'modern/verify-email/' + new_email_verf.verification_code)
+        : (host + '/modern/verify-email/' + new_email_verf.verification_code);
       const email_subject = `${process.env.APP_NAME} - Signed Up!`;
       const userName = `${new_user.firstname} ${new_user.lastname}`;
       const email_html = SignedUp_EMAIL({
@@ -477,6 +482,7 @@ export class UsersService {
 
   static async send_sms_verification(request: Request, response: Response) {
     try {
+      const you: IUser = response.locals.you;
       const phone = request.params.phone_number;
       if (!phone) {
         return response.status(HttpStatusCode.BAD_REQUEST).json({
@@ -484,6 +490,23 @@ export class UsersService {
           message: `Phone number is required`
         });
       }
+
+      if (phone.toLowerCase() === 'x') {
+        const updates = await UserRepo.update_user({ phone: null }, { id: you.id });
+        const newYouModel = await UserRepo.get_user_by_id(you.id);
+        const newYou = newYouModel!.toJSON() as any;
+        delete newYou.password;
+
+        const jwt = TokensService.newJwtToken(request, newYou, true);
+
+        return response.status(HttpStatusCode.OK).json({
+          updates,
+          you: newYou,
+          token: jwt,
+          message: `Phone number cleared successfully`
+        });
+      }
+
       const phoneNumberIsOutOfRange = !(/^[0-9]{10,12}$/).test(phone);
       if (phoneNumberIsOutOfRange) {
         return response.status(HttpStatusCode.BAD_REQUEST).json({
@@ -492,30 +515,43 @@ export class UsersService {
         });
       }
 
-      // check if there is a pending code
-      const check_sms_verf = await PhoneVerfRepo.query_phone_verification({ phone });
-      // if there is a result, delete it and make a new one
-      if (check_sms_verf) {
-        await check_sms_verf.destroy();
-      }
+      // // check if there is a pending code
+      // const check_sms_verf = await PhoneVerfRepo.query_phone_verification({ phone });
+      // // if there is a result, delete it and make a new one
+      // if (check_sms_verf) {
+      //   await check_sms_verf.destroy();
+      // }
+      
       // send a new verification code
-      const sms_results: PlainObject = await send_verify_sms_request(phone);
+      let sms_results: PlainObject = await send_verify_sms_request(phone);
       console.log('sms_results', sms_results);
       if (sms_results.error_text) {
         try {
           console.log('canceling...', sms_results);
           await cancel_verify_sms_request(sms_results.request_id);
+
+          sms_results = await send_verify_sms_request(phone);
+
+          const updates = await UserRepo.update_user({ phone }, { id: you.id });
+          return response.status(HttpStatusCode.OK).json({
+            sms_results,
+            sms_request_id: sms_results.request_id,
+            message: `SMS verification sent, check your phone!`
+          });
         } catch (e) {
           console.log(`could not cancel...`, sms_results, e);
+          return response.status(HttpStatusCode.BAD_REQUEST).json({
+            e,
+            sms_results,
+            message: `Could not send sms...`
+          });
         }
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          sms_results,
-          message: `Could not send sms...`
-        });
       } else {
         // sms sent successfully; store it on the request session
-        (<IRequest> request).session.sms_verification = sms_results;
-        (<IRequest> request).session.sms_phone = phone;
+        // (<IRequest> request).session.sms_verification = sms_results;
+        // (<IRequest> request).session.sms_phone = phone;
+
+        const updates = await UserRepo.update_user({ phone }, { id: you.id });
         return response.status(HttpStatusCode.OK).json({
           sms_results,
           sms_request_id: sms_results.request_id,
@@ -534,18 +570,24 @@ export class UsersService {
 
   static async verify_sms_code(request: Request, response: Response) {
     try {
-      const { request_id, code } = request.params;
-      const sms_results = (<IRequest> request).session.sms_verification;
-      if (!sms_results) {
+      const you: IUser = response.locals.you;
+      const { request_id, code, phone } = request.params;
+      if (!request_id) {
         return response.status(HttpStatusCode.BAD_REQUEST).json({
           error: true,
-          message: `no sms verification in progress...`
+          message: `Verification request id is required`
         });
       }
-      if (sms_results.request_id !== request_id) {
+      // if (!phone) {
+      //   return response.status(HttpStatusCode.BAD_REQUEST).json({
+      //     error: true,
+      //     message: `Phone number is required`
+      //   });
+      // }
+      if (!code) {
         return response.status(HttpStatusCode.BAD_REQUEST).json({
           error: true,
-          message: `sms request_id is invalid...`
+          message: `Verification code is required`
         });
       }
 
@@ -559,34 +601,21 @@ export class UsersService {
           message: `Invalid sms verification code`
         });
       }
-      // successful, notify user
-      (<IRequest> request).session.sms_verification = undefined;
 
-      const responseObj: PlainObject = {
+      const updates = await UserRepo.update_user({ phone_verified: true }, { id: you.id });
+      const newYouModel = await UserRepo.get_user_by_id(you.id);
+      const newYou = newYouModel!.toJSON() as any;
+      delete newYou.password;
+
+      const jwt = TokensService.newJwtToken(request, newYou, true);
+
+      return response.status(HttpStatusCode.OK).json({
         sms_verify_results,
-        message: `Phone number verified!`
-      };
-      const setUserSession: string = (<string> request.query.setUserSession) || '';
-      const shouldSetNewSession = setUserSession && !(<IRequest> request).session.you;
-      if (shouldSetNewSession) {
-        try {
-          const user_model = await UserRepo.get_user_by_phone((<IRequest> request).session.sms_phone.substr(1));
-          if (user_model) {
-            const user = <IUser> user_model.toJSON();
-            (<IRequest> request).session.id = uniqueValue();
-            (<IRequest> request).session.you = user;
-            responseObj.you = user;
-          } else {
-            responseObj.warning = `No user found by phone number: ${(<IRequest> request).session.sms_phone}`;
-          }
-        } catch (e) {
-          console.log(`could not find user by phone:`, (<IRequest> request).session.sms_phone);
-          console.log(e);
-        }
-        delete (<IRequest> request).session.sms_phone;
-      }
-
-      return response.status(HttpStatusCode.OK).json(responseObj);
+        updates,
+        you: newYou,
+        token: jwt,
+        message: `Phone number verified and updated successfully`
+      });
     } catch (e) {
       console.log(`verify_sms_code error; something went wrong...`, e);
       (<IRequest> request).session.sms_verification = undefined;
@@ -736,7 +765,8 @@ export class UsersService {
     }
 
     const updates = await UserRepo.update_user(updatesObj, { id: you.id });
-    const newYou = { ...you, ...updatesObj };
+    const newYouModel = await UserRepo.get_user_by_id(you.id);
+    const newYou = newYouModel!.toJSON() as any;
     delete newYou.password;
 
     // check if phone/email changed
@@ -824,8 +854,8 @@ export class UsersService {
       (<IRequest> request).session.sms_verification = undefined;
 
       const updates = await UserRepo.update_user({ phone }, { id: you.id });
-      Object.assign(you, { phone });
-      const newYou = { ...you };
+      const newYouModel = await UserRepo.get_user_by_id(you.id);
+      const newYou = newYouModel!.toJSON() as any;
       delete newYou.password;
 
       const jwt = TokensService.newJwtToken(request, newYou, true);
@@ -1065,5 +1095,68 @@ export class UsersService {
         message: 'Could not update wallpaper...' 
       });
     }
+  }
+
+  static async create_stripe_account(request: Request, response: Response) {
+    const you: IUser = response.locals.you;
+    const you_model = await UserRepo.get_user_by_id(you.id);
+
+    const host: string = request.get('origin')!;
+    const useHost = host.endsWith('/') ? host.substr(0, host.length - 1) : host;
+    const refresh_url = `${useHost}/modern/users/${you.id}/settings`;
+    const return_url = `${useHost}/modern/users/${you.id}/verify-stripe-account`;
+
+    const account = await StripeService.stripe.accounts.create({
+      type: 'express',
+    });
+
+    const updates = await you_model!.update({ stripe_account_id: account.id });
+
+    // https://stripe.com/docs/connect/collect-then-transfer-guide
+    const accountLinks = await StripeService.stripe.accountLinks.create({
+      account: account.id,
+      refresh_url,
+      return_url,
+      type: 'account_onboarding',
+    });
+
+    const log = { updates, account, accountLinks };
+
+    console.log(log, JSON.stringify(log));
+
+    return response.status(HttpStatusCode.OK).json({
+      onboarding_url: accountLinks.url
+    });
+  }
+
+  static async verify_stripe_account(request: Request, response: Response) {
+    const you_model = await UserRepo.get_user_by_id(response.locals.you.id);
+    let you = you_model!.toJSON() as IUser;
+
+    if (!you.stripe_account_id) {
+      return response.status(HttpStatusCode.PRECONDITION_FAILED).json({
+        message: `You must create a stripe account first and connect it with Modern Apps.`
+      });
+    }
+
+    if (you.stripe_account_verified) {
+      return response.status(HttpStatusCode.OK).json({
+        message: `Your stripe account is verified and valid!`
+      });
+    }
+
+    const results = await StripeService.account_is_complete(you.stripe_account_id);
+    console.log({ results });
+
+    if (!results.error) {
+      await you_model!.update({ stripe_account_verified: true });
+      you = you_model!.toJSON() as IUser;
+      // create JWT
+      const jwt = TokensService.newJwtToken(request, you, true);
+      (<any> results).token = jwt;
+      (<any> results).you = you;
+    }
+
+    return response.status(results.status).json(results);
   }
 }

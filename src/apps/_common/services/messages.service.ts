@@ -19,6 +19,7 @@ import {
 import { Messages, Messagings } from '../models/messages.model';
 import { Users } from '../models/user.model';
 import { COMMON_EVENT_TYPES } from '../enums/common.enum';
+import { CommonSocketEventsHandler } from './socket-events-handlers-by-app/common.socket-event-handler';
 
 export class MessagesService {
   static async get_user_messages(request: Request, response: Response) {
@@ -167,12 +168,21 @@ export class MessagesService {
     });
 
     const eventData = {
-      event_type: COMMON_EVENT_TYPES.NEW_MESSAGE,
-      data: new_message!.toJSON(),
-      messaging: get_messaging_model!.toJSON(),
-    };
-    const roomKey = `messaging-${messaging_model.get('id')}`;
-    (<IRequest> request).io.to(roomKey).emit(COMMON_EVENT_TYPES.NEW_MESSAGE, eventData);
+      event: COMMON_EVENT_TYPES.NEW_MESSAGE,
+      data: new_message!.toJSON() as any,
+      messaging: get_messaging_model!.toJSON() as any,
+      from_user_id: you_id,
+      to_user_id: user_id,
+    }
+    const TO_ROOM = `${COMMON_EVENT_TYPES.TO_MESSAGING_ROOM}:${eventData.messaging.id}`;
+    console.log({ TO_ROOM, eventData });
+    (<IRequest> request).io.to(TO_ROOM).emit(TO_ROOM, eventData);
+    
+    CommonSocketEventsHandler.emitEventToUserSockets({
+      user_id: user_id,
+      event: COMMON_EVENT_TYPES.NEW_MESSAGE,
+      data: eventData
+    });
 
     // create_notification({
     //   from_id: you_id,

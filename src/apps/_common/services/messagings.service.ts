@@ -71,7 +71,7 @@ export class MessagingsService {
 
     const messagings_models = await paginateTable(
       Messagings,
-      undefined,
+      '',
       undefined,
       undefined,
       [{

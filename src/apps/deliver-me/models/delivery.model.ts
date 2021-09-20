@@ -86,6 +86,7 @@ export const Delivery = <MyModelStatic> sequelize.define('deliverme_deliveries',
   delivered_instructions:      { type: Sequelize.STRING(500), allowNull: true, defaultValue: '' },
   delivered_image_link:        { type: Sequelize.STRING(500), allowNull: true, defaultValue: '' },
   delivered_image_id:          { type: Sequelize.STRING(500), allowNull: true, defaultValue: '' },
+  payment_session_id:          { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
   payout:                      { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
   payout_invoice_id:           { type: Sequelize.STRING(500), allowNull: true, defaultValue: '' }, // paypal
   penalty:                     { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
@@ -101,6 +102,16 @@ export const Delivery = <MyModelStatic> sequelize.define('deliverme_deliveries',
 
   date_created:                { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                        { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+export const DeliveryMessages = <MyModelStatic> sequelize.define('deliverme_deliveries_messages', {
+  id:                 { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  delivery_id:        { type: Sequelize.INTEGER, allowNull: false, references: { model: Delivery, key: 'id' } },
+  user_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  body:               { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
+  opened:             { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  date_created:       { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
 export const DeliveryPayoutAttempts = <MyModelStatic> sequelize.define('deliverme_delivery_payout_attempts', {
@@ -174,3 +185,10 @@ Delivery.hasMany(DeliveryTrackingUpdates, { as: 'deliverme_delivery_tracking_upd
 DeliveryTrackingUpdates.belongsTo(Delivery, { as: 'delivery', foreignKey: 'delivery_id', targetKey: 'id' });
 Users.hasMany(DeliveryTrackingUpdates, { as: 'deliverme_user_tracking_updates', foreignKey: 'user_id', sourceKey: 'id' });
 DeliveryTrackingUpdates.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
+
+
+Users.hasMany(DeliveryMessages, { as: 'delivery_messages_sent', foreignKey: 'user_id', sourceKey: 'id' });
+DeliveryMessages.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
+
+Delivery.hasMany(DeliveryMessages, { as: 'delivery_messages', foreignKey: 'delivery_id', sourceKey: 'id' });
+DeliveryMessages.belongsTo(Delivery, { as: 'delivery', foreignKey: 'delivery_id', targetKey: 'id' });

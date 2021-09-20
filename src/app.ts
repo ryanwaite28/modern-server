@@ -31,7 +31,6 @@ installExpressApp(app);
 
 app.use(express_fileupload({ safeFileNames: true, preserveExtension: true }));
 app.use(express_device.capture());
-app.use(body_parser.json());
 app.use(cookie_parser.default());
 app.use(body_parser.urlencoded({ extended: false }));
 

@@ -14,7 +14,7 @@ import { PlainObject } from '../interfaces/common.interface';
 
 export async function paginateTable<T>(
   model: MyModelStaticGeneric<T>,
-  user_id_field?: string,
+  user_id_field: string,
   user_id?: number,
   min_id?: number,
   include?: Includeable[],
@@ -23,9 +23,13 @@ export async function paginateTable<T>(
   whereClause?: WhereOptions,
   orderBy?: Order
 )  {
-  const useWhereClause: WhereOptions = whereClause || <PlainObject> (!min_id
-    ? { [(user_id_field || '')]: user_id }
-    : { [(user_id_field || '')]: user_id, id: { [Op.lt]: min_id } });
+  const useWhereClause: WhereOptions = <PlainObject> (!min_id
+    ? { [user_id_field]: user_id }
+    : { [user_id_field]: user_id, id: { [Op.lt]: min_id } }
+  );
+  if (whereClause) {
+    Object.assign(useWhereClause, whereClause);
+  }
   const models = await (<any> model).findAll({
     attributes,
     group,
@@ -49,10 +53,13 @@ export async function getAll<T>(
 )  {
   // const models = await model.findAll<Model<T>>({
 
+  const useWhereClause = whereClause
+    ? { ...whereClause, [user_id_field]: user_id }
+    : { [user_id_field]: user_id };
   const models = await (<any> model).findAll({
     attributes,
     group,
-    where: { ...whereClause, [user_id_field]: user_id },
+    where: useWhereClause,
     include: include || [],
     order: orderBy || [['id', 'DESC']]
   });
@@ -69,10 +76,14 @@ export async function getById<T>(
 )  {
   // const result = await model.findOne<Model<T>>({
 
+    const useWhereClause = whereClause
+    ? { ...whereClause, id }
+    : { id };
+
   const result = await (<any> model).findOne({
     attributes,
     group,
-    where: { ...whereClause, id: id },
+    where: useWhereClause,
     include: include || [],
   });
   return result as Model<T>;

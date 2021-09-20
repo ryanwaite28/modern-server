@@ -142,9 +142,23 @@ export const populate_deliverme_notification_obj = async (notification_model: an
       mount_value = delivery_model!.toJSON();
       break;
     }
+    case DELIVERME_EVENT_TYPES.DELIVERY_ADD_COMPLETED_PICTURE: {
+      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} added a picture to complete delivery: ${delivery_model!.get('title')}`;
+      mount_prop_key = 'delivery';
+      mount_value = delivery_model!.toJSON();
+      break;
+    }
     case DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED: {
       const delivery_model = await get_delivery_by_id(notificationObj.target_id);
       message = `${full_name} completed the delivery: ${delivery_model!.get('title')}`;
+      mount_prop_key = 'delivery';
+      mount_value = delivery_model!.toJSON();
+      break;
+    }
+    case DELIVERME_EVENT_TYPES.DELIVERY_RETURNED: {
+      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} returned the delivery: ${delivery_model!.get('title')}`;
       mount_prop_key = 'delivery';
       mount_value = delivery_model!.toJSON();
       break;
@@ -168,3 +182,26 @@ export const populate_deliverme_notification_obj = async (notification_model: an
 
   return notificationObj;
 }
+
+export const delivery_search_attrs = [
+  'id',
+  'owner_id',
+
+  'created_at',
+  'size',
+  'weight',
+  'distance_miles',
+  'payout',
+  'penalty',
+
+  'title',
+  // 'description',
+
+  'from_city',
+  'from_state',
+  'from_zipcode',
+
+  'to_city',
+  'to_state',
+  'to_zipcode',
+];
