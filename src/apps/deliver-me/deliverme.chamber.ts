@@ -163,6 +163,13 @@ export const populate_deliverme_notification_obj = async (notification_model: an
       mount_value = delivery_model!.toJSON();
       break;
     }
+    case DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE: {
+      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} added a message to the delivery: ${delivery_model!.get('title')}`;
+      mount_prop_key = 'delivery';
+      mount_value = delivery_model!.toJSON();
+      break;
+    }
 
     case DELIVERME_EVENT_TYPES.DELIVERY_NEW_TRACKING_UPDATE: {
       const tracking_update_model = await get_delivery_tracking_update_by_id(notificationObj.target_id);
