@@ -37,9 +37,6 @@ AppsRouter.use('/travellrs', bodyParser.json(), corsMiddleware, TravellrsRouter)
 AppsRouter.use('/worldnews', bodyParser.json(), corsMiddleware, WorldNewsRouter);
 
 
-const s2 = `poetic-famous-master-avidly`;
-const s3 = `whsec_qyYyhfEc094xN1tjlNgfVvb0cjIdeJuE`;
-
 
 AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }), async (request: Request, response: Response) => {
   console.log(`-------stripe webhook request:-------`, request.body, request.headers);
@@ -51,7 +48,7 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
   // Verify webhook signature and extract the event.
   // See https://stripe.com/docs/webhooks/signatures for more information.
   try {
-    event = StripeService.stripe.webhooks.constructEvent(request.body, sig, s3);
+    event = StripeService.stripe.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_SIG!);
   } catch (err) {
     const errMsg = `Webhook Error: ${(<any> err).message}`;
     console.log(errMsg);
