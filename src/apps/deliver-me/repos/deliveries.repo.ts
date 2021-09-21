@@ -125,7 +125,7 @@ export async function get_delivery_tracking_updates(delivery_id: number) {
 
 export async function get_delivery_tracking_update_by_id(id: number) {
   const tracking_update = await DeliveryTrackingUpdates.findOne({
-    where: { id },
+    where: { id, deleted_at: null },
     include: []
   });
   return tracking_update;
