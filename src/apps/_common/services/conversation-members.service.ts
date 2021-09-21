@@ -34,6 +34,7 @@ import { Users } from '../models/user.model';
 import { IMyModel } from '../models/common.model-types';
 import { COMMON_EVENT_TYPES, COMMON_NOTIFICATION_TARGET_TYPES, MODERN_APP_NAMES } from '../enums/common.enum';
 import { SocketsService } from './sockets.service';
+import { CommonSocketEventsHandler } from './socket-events-handlers-by-app/common.socket-event-handler';
 
 export class ConversationMembersService {
   static async get_conversation_members_all(request: Request, response: Response) {
@@ -111,13 +112,16 @@ export class ConversationMembersService {
       }]
     });
 
-    (<IRequest> request).io.to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED, {
-      event_type: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED,
-      data: {
-        conversation: response.locals.conversation_model!.toJSON(),
-        member: conversation_member_model!.toJSON()
-      },
-    });
+    (<IRequest> request).io.to(`conversation-${conversation_id}`).emit(
+      COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED, 
+      {
+        event_type: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED,
+        data: {
+          conversation: response.locals.conversation_model!.toJSON(),
+          member: conversation_member_model!.toJSON()
+        },
+      }
+    );
 
     create_notification({
       from_id: you_id,
@@ -128,8 +132,23 @@ export class ConversationMembersService {
       target_id: conversation_id
     }).then(async (notification_model) => {
       const notification = await populate_common_notification_obj(notification_model);
+      /*
       SocketsService.emitEventForUser(user_id, {
         event_type: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED,
+        data: {
+          notification,
+          conversation: {
+            ...response.locals.conversation_model!.toJSON(),
+            last_opened: new_conversation_last_opened_model.get('last_opened')
+          },
+          member: conversation_member_model!.toJSON()
+        },
+      });
+      */
+
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id,
+        event: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED,
         data: {
           notification,
           conversation: {
@@ -195,9 +214,22 @@ export class ConversationMembersService {
       target_id: conversation_id
     }).then(async (notification_model: IMyModel) => {
       const notification = await populate_common_notification_obj(notification_model);
+      /*
       SocketsService.emitEventForUser(user_id, {
         event_type: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_REMOVED,
         data: { conversation_id, user_id, member: memberObj, notification },
+      });
+      */
+
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id,
+        event: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_REMOVED,
+        data: {
+          conversation_id,
+          user_id,
+          member: memberObj,
+          notification
+        },
       });
     });
 

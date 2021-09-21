@@ -143,10 +143,10 @@ export class ResourceInterestsService {
       user_id: you_id
     });
 
-    (<IRequest> request).io.to(`resource-${resource_id}`).emit(HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST, {
-      event_type: HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST,
-      data: { user: response.locals.you }
-    });
+    // (<IRequest> request).io.to(`resource-${resource_id}`).emit(HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST, {
+    //   event_type: HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST,
+    //   data: { user: response.locals.you }
+    // });
     create_notification({
       from_id: you_id,
       micro_app: MODERN_APP_NAMES.HOTSPOT,

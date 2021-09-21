@@ -104,7 +104,6 @@ export class FollowsService {
           user_id: user_id,
           event: COMMON_EVENT_TYPES.NEW_FOLLOWER,
           data: {
-            event: COMMON_EVENT_TYPES.NEW_FOLLOWER,
             data: {
               ...follow_model!.toJSON(),
               notification
@@ -159,7 +158,6 @@ export class FollowsService {
         user_id: user_id,
         event: COMMON_EVENT_TYPES.NEW_UNFOLLOWER,
         data: {
-          event: COMMON_EVENT_TYPES.NEW_UNFOLLOWER,
           data: {
             notification
           }

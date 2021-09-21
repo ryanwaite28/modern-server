@@ -12,6 +12,7 @@ export class SocketsService {
   /** Main state for app speific handlers */
   private static io: socket_io.Server;
   private static io_namespace: socket_io.Namespace;
+
   private static socketsByUserIdMap = new Map<number, Set<string>>();
   private static userSocketsRoomKeyByUserId = new Map<number, string>(); // all sockets belonging to a user via room key
   // private static socketsBySocketIdMap = new Map<string, socket_io.Socket>();
@@ -20,7 +21,7 @@ export class SocketsService {
   public static emitEventForUser(user_id: number, data: { event_type: string; [key:string]: any; }) {
     const forUserSocketsRoomKey = SocketsService.userSocketsRoomKeyByUserId.get(user_id);
     if (forUserSocketsRoomKey) {
-      SocketsService.io.to(forUserSocketsRoomKey).emit(data.event_type, data);
+      SocketsService.io.to(forUserSocketsRoomKey).emit(`FOR-USER:${user_id}`, data);
     }
   }
   

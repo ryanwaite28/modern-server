@@ -188,6 +188,9 @@ export class CommonSocketEventsHandler {
       console.log(`CommonSocketEventsHandler.emitEventToUser - no roomKey bu user Id`);
       return;
     }
+    if (!('event' in params.data)) {
+      params.data.event = params.event;
+    }
     this.io.to(roomKey).emit(params.event, params.data);
     this.io.to(roomKey).emit(`FOR-USER:${params.user_id}`, params.data);
   }
@@ -454,7 +457,7 @@ export class CommonSocketEventsHandler {
       return;
     }
 
-    io.to(`conversation-${data.conversation_id}`).emit(`${COMMON_EVENT_TYPES.CONVERSATION_MESSAGE_TYPING}:conversation-${data.conversation_id}`, data);
+    io.to(`conversation-${data.conversation_id}`).emit(COMMON_EVENT_TYPES.CONVERSATION_MESSAGE_TYPING, data);
   }
 
   private static CONVERSATION_MESSAGE_TYPING_STOPPED(
@@ -473,7 +476,7 @@ export class CommonSocketEventsHandler {
       return;
     }
 
-    io.to(`conversation-${data.conversation_id}`).emit(`${COMMON_EVENT_TYPES.CONVERSATION_MESSAGE_TYPING_STOPPED}:conversation-${data.conversation_id}`, data);
+    io.to(`conversation-${data.conversation_id}`).emit(COMMON_EVENT_TYPES.CONVERSATION_MESSAGE_TYPING_STOPPED, data);
   }
 
   private static SOCKET_TRACK(

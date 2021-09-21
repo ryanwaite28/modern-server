@@ -315,12 +315,6 @@ export class DeliveriesService {
       const TO_ROOM = `${DELIVERME_EVENT_TYPES.TO_DELIVERY}:${delivery_id}`;
       // console.log({ TO_ROOM, eventData });
       (<IRequest> request).io.to(TO_ROOM).emit(TO_ROOM, eventData);
-
-      // CommonSocketEventsHandler.emitEventToUserSockets({
-      //   user_id: to_id,
-      //   event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
-      //   data: eventData
-      // });
       
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: to_id,
