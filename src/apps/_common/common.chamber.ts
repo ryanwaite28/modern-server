@@ -863,7 +863,10 @@ export const prod_origins = [
   // prod origins
   'http://rmw-modern-client.herokuapp.com',
   'https://rmw-modern-client.herokuapp.com',
-
+  
+  'http://modern-apps.us',
+  'https://modern-apps.us',
+  
   'http://rmw-deliverme-client.herokuapp.com',
   'https://rmw-deliverme-client.herokuapp.com',
 ];
