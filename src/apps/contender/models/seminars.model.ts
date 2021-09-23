@@ -143,55 +143,55 @@ export const ContenderSeminarCommentReplyAudios = <MyModelStatic> sequelize.defi
 
 Users.hasMany(ContenderSeminars, { as: 'contender_seminars', foreignKey: 'owner_id', sourceKey: 'id' });
 ContenderSeminars.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
-Users.hasMany(ContenderSeminarComments, { as: 'comments', foreignKey: 'owner_id', sourceKey: 'id' });
+Users.hasMany(ContenderSeminarComments, { as: 'user_contender_seminar_comments', foreignKey: 'owner_id', sourceKey: 'id' });
 ContenderSeminarComments.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
-Users.hasMany(ContenderSeminarCommentReplies, { as: 'replies', foreignKey: 'owner_id', sourceKey: 'id' });
+Users.hasMany(ContenderSeminarCommentReplies, { as: 'user_contender_seminar_comment_replies', foreignKey: 'owner_id', sourceKey: 'id' });
 ContenderSeminarCommentReplies.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
 
-Users.hasMany(ContenderSeminarReactions, { as: 'contender_seminar_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
+Users.hasMany(ContenderSeminarReactions, { as: 'user_contender_seminar_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
 ContenderSeminarReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
-Users.hasMany(ContenderSeminarCommentReactions, { as: 'comment_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
+Users.hasMany(ContenderSeminarCommentReactions, { as: 'user_contender_seminar_comment_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
 ContenderSeminarCommentReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
-Users.hasMany(ContenderSeminarCommentReplyReactions, { as: 'reply_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
+Users.hasMany(ContenderSeminarCommentReplyReactions, { as: 'user_contender_seminar_comment_reply_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
 ContenderSeminarCommentReplyReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
 
 
-ContenderSeminars.hasMany(ContenderSeminarComments, { as: 'comments', foreignKey: 'seminar_id', sourceKey: 'id' });
+ContenderSeminars.hasMany(ContenderSeminarComments, { as: 'contender_seminar_comments', foreignKey: 'seminar_id', sourceKey: 'id' });
 ContenderSeminarComments.belongsTo(ContenderSeminars, { as: 'seminar', foreignKey: 'seminar_id', targetKey: 'id' });
-ContenderSeminars.hasMany(ContenderSeminarReactions, { as: 'reactions', foreignKey: 'seminar_id', sourceKey: 'id' });
+ContenderSeminars.hasMany(ContenderSeminarReactions, { as: 'contender_seminar_reactions', foreignKey: 'seminar_id', sourceKey: 'id' });
 ContenderSeminarReactions.belongsTo(ContenderSeminars, { as: 'comment_seminar', foreignKey: 'seminar_id', targetKey: 'id' });
 
-ContenderSeminarComments.hasMany(ContenderSeminarCommentPhotos, { as: 'comment_photos', foreignKey: 'comment_id', sourceKey: 'id' });
+ContenderSeminarComments.hasMany(ContenderSeminarCommentPhotos, { as: 'contender_comment_photos', foreignKey: 'comment_id', sourceKey: 'id' });
 ContenderSeminarCommentPhotos.belongsTo(ContenderSeminarComments, { as: 'comment', foreignKey: 'comment_id', targetKey: 'id' });
-Photos.hasMany(ContenderSeminarCommentPhotos, { as: 'comment_photos', foreignKey: 'photo_id', sourceKey: 'id' });
+Photos.hasMany(ContenderSeminarCommentPhotos, { as: 'contender_seminar_comment_photos', foreignKey: 'photo_id', sourceKey: 'id' });
 ContenderSeminarCommentPhotos.belongsTo(Photos, { as: 'photo_comment', foreignKey: 'photo_id', targetKey: 'id' });
 
-ContenderSeminarComments.hasMany(ContenderSeminarCommentVideos, { as: 'comment_videos', foreignKey: 'comment_id', sourceKey: 'id' });
+ContenderSeminarComments.hasMany(ContenderSeminarCommentVideos, { as: 'contender_seminar_comment_videos', foreignKey: 'comment_id', sourceKey: 'id' });
 ContenderSeminarCommentVideos.belongsTo(ContenderSeminarComments, { as: 'comment', foreignKey: 'comment_id', targetKey: 'id' });
-Videos.hasMany(ContenderSeminarCommentVideos, { as: 'comment_videos', foreignKey: 'video_id', sourceKey: 'id' });
+Videos.hasMany(ContenderSeminarCommentVideos, { as: 'contender_seminar_comment_videos', foreignKey: 'video_id', sourceKey: 'id' });
 ContenderSeminarCommentVideos.belongsTo(Videos, { as: 'video_comment', foreignKey: 'video_id', targetKey: 'id' });
 
-ContenderSeminarComments.hasMany(ContenderSeminarCommentAudios, { as: 'comment_audios', foreignKey: 'comment_id', sourceKey: 'id' });
+ContenderSeminarComments.hasMany(ContenderSeminarCommentAudios, { as: 'contender_seminar_comment_audios', foreignKey: 'comment_id', sourceKey: 'id' });
 ContenderSeminarCommentAudios.belongsTo(ContenderSeminarComments, { as: 'comment', foreignKey: 'comment_id', targetKey: 'id' });
-Audios.hasMany(ContenderSeminarCommentAudios, { as: 'comment_audios', foreignKey: 'audio_id', sourceKey: 'id' });
+Audios.hasMany(ContenderSeminarCommentAudios, { as: 'contender_seminar_comment_audios', foreignKey: 'audio_id', sourceKey: 'id' });
 ContenderSeminarCommentAudios.belongsTo(Audios, { as: 'audio_comment', foreignKey: 'audio_id', targetKey: 'id' });
 
-ContenderSeminarCommentReplies.hasMany(ContenderSeminarCommentReplyPhotos, { as: 'reply_photos', foreignKey: 'reply_id', sourceKey: 'id' });
+ContenderSeminarCommentReplies.hasMany(ContenderSeminarCommentReplyPhotos, { as: 'contender_seminar_reply_photos', foreignKey: 'reply_id', sourceKey: 'id' });
 ContenderSeminarCommentReplyPhotos.belongsTo(ContenderSeminarCommentReplies, { as: 'reply', foreignKey: 'reply_id', targetKey: 'id' });
-Photos.hasMany(ContenderSeminarCommentReplyPhotos, { as: 'reply_photos', foreignKey: 'photo_id', sourceKey: 'id' });
+Photos.hasMany(ContenderSeminarCommentReplyPhotos, { as: 'contender_seminar_reply_photos', foreignKey: 'photo_id', sourceKey: 'id' });
 ContenderSeminarCommentReplyPhotos.belongsTo(Photos, { as: 'photo_reply', foreignKey: 'photo_id', targetKey: 'id' });
 
-ContenderSeminarCommentReplies.hasMany(ContenderSeminarCommentReplyVideos, { as: 'reply_videos', foreignKey: 'reply_id', sourceKey: 'id' });
+ContenderSeminarCommentReplies.hasMany(ContenderSeminarCommentReplyVideos, { as: 'contender_seminar_reply_videos', foreignKey: 'reply_id', sourceKey: 'id' });
 ContenderSeminarCommentReplyVideos.belongsTo(ContenderSeminarCommentReplies, { as: 'reply', foreignKey: 'reply_id', targetKey: 'id' });
-Videos.hasMany(ContenderSeminarCommentReplyVideos, { as: 'reply_videos', foreignKey: 'video_id', sourceKey: 'id' });
+Videos.hasMany(ContenderSeminarCommentReplyVideos, { as: 'contender_seminar_reply_videos', foreignKey: 'video_id', sourceKey: 'id' });
 ContenderSeminarCommentReplyVideos.belongsTo(Videos, { as: 'video_reply', foreignKey: 'video_id', targetKey: 'id' });
 
-ContenderSeminarCommentReplies.hasMany(ContenderSeminarCommentReplyAudios, { as: 'reply_audios', foreignKey: 'reply_id', sourceKey: 'id' });
+ContenderSeminarCommentReplies.hasMany(ContenderSeminarCommentReplyAudios, { as: 'contender_seminar_reply_audios', foreignKey: 'reply_id', sourceKey: 'id' });
 ContenderSeminarCommentReplyAudios.belongsTo(ContenderSeminarCommentReplies, { as: 'reply', foreignKey: 'reply_id', targetKey: 'id' });
-Audios.hasMany(ContenderSeminarCommentReplyAudios, { as: 'reply_audios', foreignKey: 'audio_id', sourceKey: 'id' });
+Audios.hasMany(ContenderSeminarCommentReplyAudios, { as: 'contender_seminar_reply_audios', foreignKey: 'audio_id', sourceKey: 'id' });
 ContenderSeminarCommentReplyAudios.belongsTo(Audios, { as: 'audio_reply', foreignKey: 'audio_id', targetKey: 'id' });
 
-ContenderSeminarComments.hasMany(ContenderSeminarCommentReplies, { as: 'replies', foreignKey: 'comment_id', sourceKey: 'id' });
+ContenderSeminarComments.hasMany(ContenderSeminarCommentReplies, { as: 'seminar_comment_replies', foreignKey: 'comment_id', sourceKey: 'id' });
 ContenderSeminarCommentReplies.belongsTo(ContenderSeminarComments, { as: 'comment', foreignKey: 'comment_id', targetKey: 'id' });
 ContenderSeminarComments.hasMany(ContenderSeminarCommentReactions, { as: 'reactions', foreignKey: 'comment_id', sourceKey: 'id' });
 ContenderSeminarCommentReactions.belongsTo(ContenderSeminarComments, { as: 'comment', foreignKey: 'comment_id', targetKey: 'id' });

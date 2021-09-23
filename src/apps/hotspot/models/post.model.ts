@@ -176,16 +176,16 @@ export const PostCommentReplyAudios = <MyModelStatic> sequelize.define('hotspot_
 
 Users.hasMany(Posts, { as: 'posts', foreignKey: 'owner_id', sourceKey: 'id' });
 Posts.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
-Users.hasMany(PostComments, { as: 'comments', foreignKey: 'owner_id', sourceKey: 'id' });
+Users.hasMany(PostComments, { as: 'user_hotspot_post_comments', foreignKey: 'owner_id', sourceKey: 'id' });
 PostComments.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
-Users.hasMany(PostCommentReplies, { as: 'replies', foreignKey: 'owner_id', sourceKey: 'id' });
+Users.hasMany(PostCommentReplies, { as: 'user_hotspot_post_comment_replies', foreignKey: 'owner_id', sourceKey: 'id' });
 PostCommentReplies.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
 
 Users.hasMany(PostReactions, { as: 'post_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
 PostReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
-Users.hasMany(PostCommentReactions, { as: 'comment_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
+Users.hasMany(PostCommentReactions, { as: 'user_hotspot_post_comment_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
 PostCommentReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
-Users.hasMany(PostCommentReplyReactions, { as: 'reply_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
+Users.hasMany(PostCommentReplyReactions, { as: 'user_hotspot_post_comment_reply_reactions', foreignKey: 'owner_id', sourceKey: 'id' });
 PostCommentReplyReactions.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
 
 Posts.hasMany(PostViewers, { as: 'viewers', foreignKey: 'post_id', sourceKey: 'id' });
@@ -208,45 +208,45 @@ PostAudios.belongsTo(Posts, { as: 'post', foreignKey: 'post_id', targetKey: 'id'
 Photos.hasMany(PostAudios, { as: 'post_audios', foreignKey: 'audio_id', sourceKey: 'id' });
 PostAudios.belongsTo(Photos, { as: 'audio_post', foreignKey: 'audio_id', targetKey: 'id' });
 
-Posts.hasMany(PostComments, { as: 'comments', foreignKey: 'post_id', sourceKey: 'id' });
+Posts.hasMany(PostComments, { as: 'post_comments', foreignKey: 'post_id', sourceKey: 'id' });
 PostComments.belongsTo(Posts, { as: 'post', foreignKey: 'post_id', targetKey: 'id' });
 Posts.hasMany(PostReactions, { as: 'reactions', foreignKey: 'post_id', sourceKey: 'id' });
 PostReactions.belongsTo(Posts, { as: 'comment_post', foreignKey: 'post_id', targetKey: 'id' });
 
-PostComments.hasMany(PostCommentPhotos, { as: 'comment_photos', foreignKey: 'comment_id', sourceKey: 'id' });
+PostComments.hasMany(PostCommentPhotos, { as: 'hotspot_post_comment_photos', foreignKey: 'comment_id', sourceKey: 'id' });
 PostCommentPhotos.belongsTo(PostComments, { as: 'comment', foreignKey: 'comment_id', targetKey: 'id' });
-Photos.hasMany(PostCommentPhotos, { as: 'comment_photos', foreignKey: 'photo_id', sourceKey: 'id' });
+Photos.hasMany(PostCommentPhotos, { as: 'hotspot_post_comment_photos', foreignKey: 'photo_id', sourceKey: 'id' });
 PostCommentPhotos.belongsTo(Photos, { as: 'photo_comment', foreignKey: 'photo_id', targetKey: 'id' });
 
-PostComments.hasMany(PostCommentVideos, { as: 'comment_videos', foreignKey: 'comment_id', sourceKey: 'id' });
+PostComments.hasMany(PostCommentVideos, { as: 'hotspot_post_comment_videos', foreignKey: 'comment_id', sourceKey: 'id' });
 PostCommentVideos.belongsTo(PostComments, { as: 'comment', foreignKey: 'comment_id', targetKey: 'id' });
-Videos.hasMany(PostCommentVideos, { as: 'comment_videos', foreignKey: 'video_id', sourceKey: 'id' });
+Videos.hasMany(PostCommentVideos, { as: 'hotspot_post_comment_videos', foreignKey: 'video_id', sourceKey: 'id' });
 PostCommentVideos.belongsTo(Videos, { as: 'video_comment', foreignKey: 'video_id', targetKey: 'id' });
 
-PostComments.hasMany(PostCommentAudios, { as: 'comment_audios', foreignKey: 'comment_id', sourceKey: 'id' });
+PostComments.hasMany(PostCommentAudios, { as: 'hotspot_post_comment_audios', foreignKey: 'comment_id', sourceKey: 'id' });
 PostCommentAudios.belongsTo(PostComments, { as: 'comment', foreignKey: 'comment_id', targetKey: 'id' });
-Audios.hasMany(PostCommentAudios, { as: 'comment_audios', foreignKey: 'audio_id', sourceKey: 'id' });
+Audios.hasMany(PostCommentAudios, { as: 'hotspot_post_comment_audios', foreignKey: 'audio_id', sourceKey: 'id' });
 PostCommentAudios.belongsTo(Audios, { as: 'audio_comment', foreignKey: 'audio_id', targetKey: 'id' });
 
-PostCommentReplies.hasMany(PostCommentReplyPhotos, { as: 'reply_photos', foreignKey: 'reply_id', sourceKey: 'id' });
+PostCommentReplies.hasMany(PostCommentReplyPhotos, { as: 'hotspot_post_reply_photos', foreignKey: 'reply_id', sourceKey: 'id' });
 PostCommentReplyPhotos.belongsTo(PostCommentReplies, { as: 'reply', foreignKey: 'reply_id', targetKey: 'id' });
-Photos.hasMany(PostCommentReplyPhotos, { as: 'reply_photos', foreignKey: 'photo_id', sourceKey: 'id' });
+Photos.hasMany(PostCommentReplyPhotos, { as: 'hotspot_post_reply_photos', foreignKey: 'photo_id', sourceKey: 'id' });
 PostCommentReplyPhotos.belongsTo(Photos, { as: 'photo_reply', foreignKey: 'photo_id', targetKey: 'id' });
 
-PostCommentReplies.hasMany(PostCommentReplyVideos, { as: 'reply_videos', foreignKey: 'reply_id', sourceKey: 'id' });
+PostCommentReplies.hasMany(PostCommentReplyVideos, { as: 'hotspot_post_reply_videos', foreignKey: 'reply_id', sourceKey: 'id' });
 PostCommentReplyVideos.belongsTo(PostCommentReplies, { as: 'reply', foreignKey: 'reply_id', targetKey: 'id' });
-Videos.hasMany(PostCommentReplyVideos, { as: 'reply_videos', foreignKey: 'video_id', sourceKey: 'id' });
+Videos.hasMany(PostCommentReplyVideos, { as: 'hotspot_post_reply_videos', foreignKey: 'video_id', sourceKey: 'id' });
 PostCommentReplyVideos.belongsTo(Videos, { as: 'video_reply', foreignKey: 'video_id', targetKey: 'id' });
 
-PostCommentReplies.hasMany(PostCommentReplyAudios, { as: 'reply_audios', foreignKey: 'reply_id', sourceKey: 'id' });
+PostCommentReplies.hasMany(PostCommentReplyAudios, { as: 'hotspot_post_reply_audios', foreignKey: 'reply_id', sourceKey: 'id' });
 PostCommentReplyAudios.belongsTo(PostCommentReplies, { as: 'reply', foreignKey: 'reply_id', targetKey: 'id' });
-Audios.hasMany(PostCommentReplyAudios, { as: 'reply_audios', foreignKey: 'audio_id', sourceKey: 'id' });
+Audios.hasMany(PostCommentReplyAudios, { as: 'hotspot_post_reply_audios', foreignKey: 'audio_id', sourceKey: 'id' });
 PostCommentReplyAudios.belongsTo(Audios, { as: 'audio_reply', foreignKey: 'audio_id', targetKey: 'id' });
 
-PostComments.hasMany(PostCommentReplies, { as: 'replies', foreignKey: 'comment_id', sourceKey: 'id' });
+PostComments.hasMany(PostCommentReplies, { as: 'post_comment_replies', foreignKey: 'comment_id', sourceKey: 'id' });
 PostCommentReplies.belongsTo(PostComments, { as: 'comment', foreignKey: 'comment_id', targetKey: 'id' });
-PostComments.hasMany(PostCommentReactions, { as: 'reactions', foreignKey: 'comment_id', sourceKey: 'id' });
+PostComments.hasMany(PostCommentReactions, { as: 'post_comment_reactions', foreignKey: 'comment_id', sourceKey: 'id' });
 PostCommentReactions.belongsTo(PostComments, { as: 'comment', foreignKey: 'comment_id', targetKey: 'id' });
 
-PostCommentReplies.hasMany(PostCommentReplyReactions, { as: 'reactions', foreignKey: 'reply_id', sourceKey: 'id' });
+PostCommentReplies.hasMany(PostCommentReplyReactions, { as: 'post_comment_reply_reactions', foreignKey: 'reply_id', sourceKey: 'id' });
 PostCommentReplyReactions.belongsTo(PostCommentReplies, { as: 'reply', foreignKey: 'reply_id', targetKey: 'id' });
