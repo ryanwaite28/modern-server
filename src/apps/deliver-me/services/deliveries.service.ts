@@ -995,6 +995,12 @@ export class DeliveriesService {
       });
     }
 
+    if (deliveryObj.completed) {
+      return response.status(HttpStatusCode.BAD_REQUEST).json({
+        message: `Delivery is already completed.`,
+      });
+    }
+
     delivery_model.completed = true;
     const updates = await delivery_model.save({ fields: ['completed'] });
     
@@ -1048,6 +1054,12 @@ export class DeliveriesService {
     if (carrier_id !== you.id) {
       return response.status(HttpStatusCode.BAD_REQUEST).json({
         message: `You are not the carrier of this delivery.`,
+      });
+    }
+
+    if (deliveryObj.returned) {
+      return response.status(HttpStatusCode.BAD_REQUEST).json({
+        message: `Delivery is already returned.`,
       });
     }
 
