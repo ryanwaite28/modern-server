@@ -996,7 +996,7 @@ export class DeliveriesService {
     }
 
     if (deliveryObj.completed) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
+      return response.status(HttpStatusCode.OK).json({
         message: `Delivery is already completed.`,
       });
     }
