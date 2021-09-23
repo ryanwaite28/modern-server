@@ -26,6 +26,6 @@ UsersRouter.post('/:you_id/unassign-delivery/:delivery_id', UserAuthorized, Deli
 UsersRouter.post('/:you_id/mark-delivery-as-picked-up/:delivery_id', UserAuthorized, DeliveryExists, DeliveriesService.mark_delivery_as_picked_up);
 UsersRouter.post('/:you_id/mark-delivery-as-dropped-off/:delivery_id', UserAuthorized, DeliveryExists, DeliveriesService.mark_delivery_as_dropped_off);
 UsersRouter.post('/:you_id/mark-delivery-as-returned/:delivery_id', UserAuthorized, DeliveryExists, DeliveriesService.mark_delivery_as_returned);
-// UsersRouter.post('/:you_id/mark-delivery-as-completed/:delivery_id', UserAuthorized, DeliveryExists, DeliveriesService.mark_delivery_as_completed);
+UsersRouter.post('/:you_id/mark-delivery-as-completed/:delivery_id', UserAuthorized, DeliveryExists, DeliveriesService.mark_delivery_as_completed);
 UsersRouter.post('/:you_id/create-tracking-update/:delivery_id', UserAuthorized, DeliveryExists, DeliveriesService.create_tracking_update);
 UsersRouter.post('/:you_id/add-delivered-picture/:delivery_id', UserAuthorized, DeliveryExists, DeliveriesService.add_delivered_picture); 

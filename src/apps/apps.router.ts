@@ -1,5 +1,6 @@
 import { corsMiddleware, validatePhone } from './_common/common.chamber';
 import { Router, Request, Response } from 'express';
+import * as bodyParser from 'body-parser';
 
 import { CommonRouter } from './_common/common.app';
 
@@ -9,6 +10,8 @@ import { MyfavorsRouter } from './my-favors/myfavors.app';
 import { TravellrsRouter } from './travellrs/travellrs.app';
 import { WorldNewsRouter } from './world-news/worldnews.app';
 import { DeliverMeRouter } from './deliver-me/deliverme.app';
+import { ContenderRouter } from './contender/contender.app';
+
 import { StripeService } from './_common/services/stripe.service';
 import { UserPaymentIntents } from './_common/models/user.model';
 import { MODERN_APP_NAMES } from './_common/enums/common.enum';
@@ -19,7 +22,6 @@ import { create_notification } from './_common/repos/notifications.repo';
 import { populate_deliverme_notification_obj } from './deliver-me/deliverme.chamber';
 import { CommonSocketEventsHandler } from './_common/services/socket-events-handlers-by-app/common.socket-event-handler';
 import { send_sms } from '../sms-client';
-import * as bodyParser from 'body-parser';
 
 
 // create main apps router
@@ -35,6 +37,7 @@ AppsRouter.use('/hotspot', bodyParser.json(), corsMiddleware, HotspotRouter);
 AppsRouter.use('/deliverme', bodyParser.json(), corsMiddleware, DeliverMeRouter);
 AppsRouter.use('/travellrs', bodyParser.json(), corsMiddleware, TravellrsRouter);
 AppsRouter.use('/worldnews', bodyParser.json(), corsMiddleware, WorldNewsRouter);
+AppsRouter.use('/contender', bodyParser.json(), corsMiddleware, ContenderRouter);
 
 
 
@@ -57,6 +60,7 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
 
   console.log(`stripe webhook event:`, { event });
 
+  /*
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object;
     const userPaymentIntent = await UserPaymentIntents.findOne({ where: { payment_intent_id: paymentIntent.id } });
@@ -106,6 +110,7 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
       }
     }
   }
+  */
 
   return response.json({ received: true });
 });

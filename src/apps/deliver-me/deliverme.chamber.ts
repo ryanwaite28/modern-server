@@ -41,6 +41,8 @@ export const sizes = [
   'X-LARGE',
 ];
 
+const payout_min = 3;
+
 export const create_delivery_required_props: { field: string; name: string; validator: (arg: any) => boolean }[] = [
   { field: 'title', name: 'Title', validator: genericTextValidator },
   { field: 'description', name: 'Description', validator: genericTextValidator },
@@ -82,7 +84,7 @@ export const create_delivery_required_props: { field: string; name: string; vali
   { field: 'distance_miles', name: 'Distance (Miles)', validator: numberValidator },
   { field: 'auto_accept_anyone', name: 'Auto-Accept Anyone', validator: booleanValidator },
   { field: 'urgent', name: 'Urgent', validator: booleanValidator },
-  { field: 'payout', name: 'Payout', validator: (arg) => numberValidator(arg) && arg > 9 },
+  { field: 'payout', name: 'Payout', validator: (arg) => numberValidator(arg) && arg > payout_min },
   { field: 'penalty', name: 'Penalty', validator: numberValidator },
 ];
 

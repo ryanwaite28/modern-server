@@ -635,7 +635,7 @@ export function validatePhone(phone?: string) {
 export function validateName(name: string) {
   if (!name) { return false; }
   if (name.constructor !== String) { return false; }
-  const re = /^[a-zA-Z\'\-']{2,}$/;
+  const re = /^[a-zA-Z\'\-']{2,100}$/;
   return re.test(name.toLowerCase());
 }
 

@@ -1108,6 +1108,11 @@ export class UsersService {
 
     const account = await StripeService.stripe.accounts.create({
       type: 'express',
+      email: you.email,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      }
     });
 
     const updates = await you_model!.update({ stripe_account_id: account.id });

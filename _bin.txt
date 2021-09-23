@@ -82,13 +82,14 @@ import {
   IMyModel,
 } from '../../_common/models/common.model-types';
 
+import { Users } from '../../_common/models/user.model';
 import { Audios } from '../../_common/models/audio.model';
 import { Photos } from '../../_common/models/photo.model';
-import { Users } from '../../_common/models/user.model';
 import { Videos } from '../../_common/models/video.model';
 
 export const null = <MyModelStatic> sequelize.define('app_nnull', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
 
 
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
@@ -103,8 +104,10 @@ export const null = <MyModelStatic> sequelize.define('app_nnull', {
 
 // new router
 import { Router } from 'express';
+import { UserAuthorized, UserAuthorizedSlim } from '../../_common/guards/user.guard';
 
-export const UsersRouter: Router = Router();
+
+export const _Router: Router = Router({ mergeParams: true });
 
 
 
@@ -113,6 +116,7 @@ export const UsersRouter: Router = Router();
 
 
 // new guard
+
 import { NextFunction, Request, Response } from 'express';
 import { get_modell_by_id } from '../repos/modells.repo';
 import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
@@ -182,7 +186,7 @@ import { Users } from '../../_common/models/user.model';
 
 
 export async function get_modell_by_id(id: number, slim: boolean = false) {
-  const modell = !slim 
+  const modell = slim 
   ? await Modells.findByPk(id)
   : await Modells.findOne({
       where: { id },
@@ -200,8 +204,8 @@ export async function create_modell(createObj: {
 
 
 
-  const post = await get_modell_by_id(new_modell_model.get('id'));
-  return post;
+  const modell = await get_modell_by_id(new_modell_model.get('id'));
+  return modell!;
 }
 
 export async function update_modell(id: number, updateObj: {

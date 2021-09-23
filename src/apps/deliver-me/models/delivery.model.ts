@@ -104,6 +104,17 @@ export const Delivery = <MyModelStatic> sequelize.define('deliverme_deliveries',
   uuid:                        { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
+export const DeliveryTransactions = <MyModelStatic> sequelize.define('deliverme_delivery_transactions', {
+  id:                 { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  delivery_id:        { type: Sequelize.INTEGER, allowNull: false, references: { model: Delivery, key: 'id' } },
+  action_type:        { type: Sequelize.STRING, allowNull: false },
+  action_id:          { type: Sequelize.STRING, allowNull: false },
+  status:             { type: Sequelize.STRING, allowNull: false },
+  
+  date_created:       { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
 export const DeliveryMessages = <MyModelStatic> sequelize.define('deliverme_deliveries_messages', {
   id:                 { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   delivery_id:        { type: Sequelize.INTEGER, allowNull: false, references: { model: Delivery, key: 'id' } },

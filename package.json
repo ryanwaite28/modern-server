@@ -27,6 +27,8 @@
   "author": "Ryan M. Waite",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.32.0",
+    "@aws-sdk/node-http-handler": "^3.32.0",
     "@googlemaps/google-maps-services-js": "^3.1.16",
     "@overnightjs/core": "^1.6.9",
     "@overnightjs/jwt": "^1.1.14",

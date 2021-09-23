@@ -95,7 +95,7 @@ export async function get_delivery_by_id(id: number) {
 export async function create_delivery(createObj: ICreateDeliveryProps) {
   const new_delivery_model = await Delivery.create(<any> createObj);
   const delivery = await get_delivery_by_id(new_delivery_model.get('id'));
-  return delivery;
+  return delivery!;
 }
 
 export async function update_delivery(id: number, updateObj: Partial<ICreateDeliveryProps>) {
