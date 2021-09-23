@@ -60,7 +60,7 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
 
   console.log(`stripe webhook event:`, { event });
 
-  /*
+  
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object;
     const userPaymentIntent = await UserPaymentIntents.findOne({ where: { payment_intent_id: paymentIntent.id } });
@@ -110,7 +110,7 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
       }
     }
   }
-  */
+  
 
   return response.json({ received: true });
 });
