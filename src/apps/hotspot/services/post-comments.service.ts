@@ -9,13 +9,14 @@ import {
   IUser,
 } from '../../_common/interfaces/common.interface';
 import * as CommonRepo from '../../_common/repos/_common.repo';
-import * as PostCommentsRepo from '../repos/post-comments.repo';
 import {
   user_attrs_slim
 } from '../../_common/common.chamber';
-import { PostComments, PostCommentReactions } from '../models/post.model';
 import { Users } from '../../_common/models/user.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
+
+import * as PostCommentsRepo from '../repos/post-comments.repo';
+import { PostComments, PostCommentReactions } from '../models/post.model';
 
 export class PostCommentsService {
   /** Request Handlers */
@@ -26,7 +27,7 @@ export class PostCommentsService {
     });
   }
 
-  static async get_comment_by_id(request: Request, response: Response) {
+  static async get_post_comment_by_id(request: Request, response: Response) {
     const comment_model = response.locals.comment_model;
     return response.status(HttpStatusCode.OK).json({
       data: comment_model

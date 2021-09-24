@@ -20,7 +20,7 @@ CommentsRouter.get('/count', PostCommentsService.get_post_comments_count);
 CommentsRouter.get('/all', PostCommentsService.get_post_comments_all);
 
 CommentsRouter.get('/', PostCommentsService.get_post_comments);
-CommentsRouter.get('/:comment_id', PostCommentExists, PostCommentsService.get_post_comments);
+CommentsRouter.get('/:comment_id', PostCommentExists, PostCommentsService.get_post_comment_by_id);
 CommentsRouter.get('/:comment_id/user-reactions/count', PostCommentExists, PostCommentsService.get_comment_reactions_counts);
 CommentsRouter.get('/:comment_id/user-reactions/all', PostCommentExists, PostCommentsService.get_comment_reactions_all);
 CommentsRouter.get('/:comment_id/user-reactions', PostCommentExists, PostCommentsService.get_comment_reactions);

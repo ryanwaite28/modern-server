@@ -6,6 +6,7 @@ import {
 } from '../guards/post.guard';
 import {
   UserAuthorized,
+  UserAuthorizedSlim,
   UserExists
 } from '../../_common/guards/user.guard';
 import { CommentsRouter } from './post-comments.router';
