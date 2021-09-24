@@ -15,7 +15,6 @@ import {
 import { IUser } from "../_common/interfaces/common.interface";
 import { Users } from "../_common/models/user.model";
 import { DELIVERME_EVENT_TYPES } from "./enums/deliverme.enum";
-import { Delivery } from "./models/delivery.model";
 import { get_delivery_by_id, get_delivery_tracking_update_by_id } from "./repos/deliveries.repo";
 
 

@@ -128,6 +128,35 @@ export const ContenderInterviewQuestionComments = <MyModelStatic> sequelize.defi
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
+export const ContenderInterviewQuestionCommentsReactions = <MyModelStatic> sequelize.define('contender_interview_question_comment_reactions', {
+  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: ContenderInterviewQuestionComments, key: 'id' } },
+  reaction_id:         { type: Sequelize.INTEGER, allowNull: true },
+  reaction:            { type: Sequelize.STRING, allowNull: false },
+  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+export const ContenderInterviewQuestionCommentReplies = <MyModelStatic> sequelize.define('contender_interview_question_comment_replies', {
+  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: ContenderInterviewQuestionComments, key: 'id' } },
+  body:                { type: Sequelize.TEXT, allowNull: false },
+  last_edited:         { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
+  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+export const ContenderInterviewQuestionCommentReplyReactions = <MyModelStatic> sequelize.define('contender_interview_question_comment_reply_reactions', {
+  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  reply_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: ContenderInterviewQuestionCommentReplies, key: 'id' } },
+  reaction_id:         { type: Sequelize.INTEGER, allowNull: true },
+  reaction:            { type: Sequelize.STRING, allowNull: false },
+  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
 
 
 

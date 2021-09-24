@@ -38,6 +38,8 @@ AppsRouter.use('/deliverme', bodyParser.json(), corsMiddleware, DeliverMeRouter)
 AppsRouter.use('/travellrs', bodyParser.json(), corsMiddleware, TravellrsRouter);
 AppsRouter.use('/worldnews', bodyParser.json(), corsMiddleware, WorldNewsRouter);
 AppsRouter.use('/contender', bodyParser.json(), corsMiddleware, ContenderRouter);
+AppsRouter.use('/myfavors', bodyParser.json(), corsMiddleware, MyfavorsRouter);
+AppsRouter.use('/blueworld', bodyParser.json(), corsMiddleware, BlueworldRouter);
 
 
 
@@ -120,7 +122,5 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
 Deactivated/Disabled apps
 ---
 
-AppsRouter.use('/myfavors', MyfavorsRouter);
-AppsRouter.use('/blueworld', BlueworldRouter);
 
 */
