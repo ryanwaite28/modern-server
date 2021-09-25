@@ -60,9 +60,8 @@ export class SocketsService {
       }
       console.log(`socket origin (${socket.handshake.headers.origin}) is valid; listening to socket events...`);
 
-      const socket_id = socket.id;
-      console.log('new socket:', socket_id, '\n');
-      io.to(socket_id).emit(`socket_id`, socket_id);
+      console.log('new socket:', socket.id, '\n');
+      // io.to(socket_id).emit(`socket_id`, socket_id);
       
       /** Pass io, socket and state to each handler for app specific events */
 

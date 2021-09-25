@@ -8,10 +8,12 @@ import {
 
 
 
-export function createGenericRepliesRouter (params: {
+export interface ICreateGenericRepliesRouter {
   replyGuardsOpts: ICreateModelGuardParams,
   repliesService: any,
-}) {
+}
+
+export function createGenericRepliesRouter (params: ICreateGenericRepliesRouter) {
   const RepliesRouter: Router = Router({ mergeParams: true });
 
   const routeGuards = createModelRouteGuards(params.replyGuardsOpts);

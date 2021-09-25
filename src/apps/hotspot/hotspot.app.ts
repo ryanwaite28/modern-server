@@ -3,12 +3,16 @@ import { CliquesRouter } from './routers/cliques.router';
 import { PostsRouter } from './routers/posts.router';
 import { ResourcesRouter } from './routers/resources.router';
 import { UsersRouter } from './routers/users.router';
+import { corsMiddleware } from '../_common/common.chamber';
+import * as bodyParser from 'body-parser';
 
 export const HotspotRouter: Router = Router({ mergeParams: true });
+HotspotRouter.use(bodyParser.json());
+HotspotRouter.options(`*`, corsMiddleware);
 
 /** Mount Routers */
 
-HotspotRouter.use('/users', UsersRouter);
-HotspotRouter.use('/resources', ResourcesRouter);
-HotspotRouter.use('/cliques', CliquesRouter);
-HotspotRouter.use('/posts', PostsRouter);
+HotspotRouter.use('/users', corsMiddleware, UsersRouter);
+HotspotRouter.use('/resources', corsMiddleware, ResourcesRouter);
+HotspotRouter.use('/cliques', corsMiddleware, CliquesRouter);
+HotspotRouter.use('/posts', corsMiddleware, PostsRouter);

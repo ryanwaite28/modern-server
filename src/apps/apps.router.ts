@@ -22,24 +22,25 @@ import { create_notification } from './_common/repos/notifications.repo';
 import { populate_deliverme_notification_obj } from './deliver-me/deliverme.chamber';
 import { CommonSocketEventsHandler } from './_common/services/socket-events-handlers-by-app/common.socket-event-handler';
 import { send_sms } from '../sms-client';
+import { HttpStatusCode } from './_common/enums/http-codes.enum';
 
 
 // create main apps router
 
 export const AppsRouter: Router = Router({ mergeParams: true });
-AppsRouter.options(`*`, corsMiddleware);
+// AppsRouter.options('*', corsMiddleware);
 
 // Mount Apps
 
-AppsRouter.use('/common', bodyParser.json(), corsMiddleware, CommonRouter);
+AppsRouter.use('/common', CommonRouter);
 
-AppsRouter.use('/hotspot', bodyParser.json(), corsMiddleware, HotspotRouter);
-AppsRouter.use('/deliverme', bodyParser.json(), corsMiddleware, DeliverMeRouter);
-AppsRouter.use('/travellrs', bodyParser.json(), corsMiddleware, TravellrsRouter);
-AppsRouter.use('/worldnews', bodyParser.json(), corsMiddleware, WorldNewsRouter);
-AppsRouter.use('/contender', bodyParser.json(), corsMiddleware, ContenderRouter);
-AppsRouter.use('/myfavors', bodyParser.json(), corsMiddleware, MyfavorsRouter);
-AppsRouter.use('/blueworld', bodyParser.json(), corsMiddleware, BlueworldRouter);
+AppsRouter.use('/hotspot', HotspotRouter);
+AppsRouter.use('/deliverme', DeliverMeRouter);
+AppsRouter.use('/travellrs', TravellrsRouter);
+AppsRouter.use('/worldnews', WorldNewsRouter);
+AppsRouter.use('/contender', ContenderRouter);
+AppsRouter.use('/myfavors', MyfavorsRouter);
+AppsRouter.use('/blueworld', BlueworldRouter);
 
 
 
@@ -78,6 +79,7 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
               const data = await get_delivery_by_id(userPaymentIntentObj.target_id);
               const deliveryObj: any = data!.toJSON();
 
+              // notify carrier
               create_notification({
                 from_id: deliveryObj.owner_id,
                 to_id: deliveryObj.carrier_id,
@@ -106,6 +108,38 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
                   });
                 }
               });
+
+              // charge carrier for piece of their income
+              // const chargeFeeData = StripeService.add_on_stripe_processing_fee(deliveryObj.payout);
+              // const createChargeObj = {
+              //   amount: Math.round(chargeFeeData.app_fee),
+              //   currency: 'usd',
+              //   source: deliveryObj.carrier.stripe_account_id,
+              //   description: `Delivery listing: ${deliveryObj.title}`,
+              //   // receipt_email: you.email,
+              //   // metadata: {
+              //   //   carrier_id: you.id,
+              //   //   ...chargeFeeData
+              //   // }
+              // };
+              // console.log({ createChargeObj });
+              // const chargeObj = await StripeService.stripe.charges.create(createChargeObj)
+              //   .catch((err: any) => {
+              //     console.log(`stripe charge error:`, err);
+              //     return {
+              //       err
+              //     };
+              //   });
+
+              // if (chargeObj.err) {
+              //   return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+              //     error: true,
+              //     message: `Could not create charge`,
+              //     event,
+              //     delivery_id: userPaymentIntentObj.target_id
+              //   });
+              // }
+
             }
           }
         }

@@ -26,6 +26,10 @@ import { ICreateDeliveryProps, ICreateDeliveryTrackingUpdateProps } from '../int
 import { DeliverMeUserProfileSettings } from '../models/deliverme.model';
 
 
+export const deliveryOrderBy: Order = [
+  ['id', 'DESC']
+];
+
 export const deliveryTrackingOrderBy: Order = [
   [DeliveryTrackingUpdates, 'id', 'DESC']
 ];

@@ -11,16 +11,19 @@ import { createGenericRepliesRouter } from './create-model-comment-replies-route
 
 
 
-export function createGenericCommentsRouter (params: {
+
+export interface ICreateGenericCommentsRouter {
+  generateRepliesRouter: boolean,
+
   commentsService: any,
   commentGuardsOpts: ICreateModelGuardParams,
+
   repliesService?: any,
   replyGuardsOpts?: ICreateModelGuardParams,
+}
 
-  generateRepliesRouter: boolean,
-}) {
+export function createGenericCommentsRouter (params: ICreateGenericCommentsRouter) {
   const CommentsRouter: Router = Router({ mergeParams: true });
-
   const routeGuards = createModelRouteGuards(params.commentGuardsOpts);
 
   // GET Routes
@@ -53,6 +56,11 @@ export function createGenericCommentsRouter (params: {
 
   if (!params.generateRepliesRouter) {
     return CommentsRouter;
+  }
+
+  if (!params.repliesService || !params.replyGuardsOpts) {
+    console.log(params);
+    throw new TypeError(`createGenericCommentsRouter error: generateRepliesRouter is true but missing required reply props...`);
   }
 
   const RepliesRouter = createGenericRepliesRouter({

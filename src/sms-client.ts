@@ -52,16 +52,17 @@ export function send_sms(params: {
 
     try {
       nexmo.message.sendSms(from, to_number, message, smsOpts, (err, result) => {
-        console.log(`send sms reaults:`, { from, to_number, err, result });
+        // console.log(`send sms reaults:`, { from, to_number, err, result });
         if (err || (<any> result).messages[0]['error-text']) {
+          console.log(err || (<any> result).messages[0]);
           reject(err);
         } else {
-          console.log(result.messages);
+          // console.log(result.messages);
           resolve(result);
         }
       });
     } catch (e) {
-      console.log(`COULD NOT INITIALIZE NEXMO...`, e);
+      // console.log(`COULD NOT INITIALIZE NEXMO...`, e);
       return reject(e);
     }
   });

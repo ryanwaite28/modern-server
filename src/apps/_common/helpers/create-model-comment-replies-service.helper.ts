@@ -21,11 +21,15 @@ import {
 } from '../models/common.model-types';
 
 
-export function createCommonGenericModelCommentRepliesService (params: {
+export interface ICreateCommonGenericModelCommentRepliesService {
   model_name: string,
   reply_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
   reply_reaction_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
-}) {
+}
+
+export function createCommonGenericModelCommentRepliesService (
+  params: ICreateCommonGenericModelCommentRepliesService
+) {
   return class {
     /** Request Handlers */
   

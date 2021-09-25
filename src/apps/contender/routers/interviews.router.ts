@@ -35,10 +35,12 @@ const InterviewCommentRepliesService = createCommonGenericModelCommentRepliesSer
 });
 
 const InterviewCommentsRouter = createGenericCommentsRouter({
-  // comment
+  generateRepliesRouter: true,
+
+  // comments router config
   commentsService: InterviewCommentsService,
   commentGuardsOpts: {
-    get_model_fn: (id) => {
+    get_model_fn: (id: number) => {
       return ContenderInterviewComments.findOne({
         where: { id },
         include: [{
@@ -52,10 +54,11 @@ const InterviewCommentsRouter = createGenericCommentsRouter({
     model_owner_field: 'owner_id',
     request_param_id_name: 'comment_id',
   },
-  // reply
+
+  // reply router config
   repliesService: InterviewCommentRepliesService,
   replyGuardsOpts: {
-    get_model_fn: (id) => {
+    get_model_fn: (id: number) => {
       return ContenderInterviewCommentReplies.findOne({
         where: { id },
         include: [{
@@ -69,8 +72,6 @@ const InterviewCommentsRouter = createGenericCommentsRouter({
     model_owner_field: 'owner_id',
     request_param_id_name: 'reply_id',
   },
-
-  generateRepliesRouter: true,
 });
 
 

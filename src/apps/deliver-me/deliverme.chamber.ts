@@ -87,6 +87,51 @@ export const create_delivery_required_props: { field: string; name: string; vali
   { field: 'penalty', name: 'Penalty', validator: numberValidator },
 ];
 
+export const update_delivery_required_props: { field: string; name: string; validator: (arg: any) => boolean }[] = [
+  { field: 'title', name: 'Title', validator: genericTextValidator },
+  { field: 'description', name: 'Description', validator: genericTextValidator },
+
+  { field: 'from_location', name: 'From Location', validator: genericTextValidator },
+  { field: 'from_address', name: 'From Address', validator: genericTextValidator },
+  { field: 'from_street', name: 'From Street', validator: (arg) => (/^[a-zA-Z0-9\s]+$/).test(arg) },
+  { field: 'from_city', name: 'From City', validator: (arg) => cities_map.has(arg) },
+  { field: 'from_state', name: 'From State', validator: (arg) => states_map.has(arg) },
+  { field: 'from_zipcode', name: 'From Zipcode', validator: (arg) => zipcodes_map.has(arg) },
+  { field: 'from_country', name: 'From Country', validator: (arg) => countries_by_name_map.has(arg && arg.toLowerCase()) },
+  { field: 'from_place_id', name: 'From Place ID', validator: genericTextValidator },
+  { field: 'from_lat', name: 'From Latitude', validator: numberValidator },
+  { field: 'from_lng', name: 'From Longitude', validator: numberValidator },
+  { field: 'from_person', name: 'From Person', validator: validatePersonName },
+  { field: 'from_person_phone', name: 'From Person Phone', validator: (arg: any) => arg === '' || phoneValidator(arg) },
+  { field: 'from_person_email', name: 'From Person Email', validator: (arg: any) => arg === '' ||  validateEmail(arg) },
+  { field: 'from_person_id_required', name: 'From Person ID Required', validator: booleanValidator },
+  { field: 'from_person_sig_required', name: 'From Person Signature Required', validator: booleanValidator },
+
+  { field: 'to_location', name: 'To Location', validator: genericTextValidator },
+  { field: 'to_address', name: 'To Address', validator: genericTextValidator },
+  { field: 'to_street', name: 'To Street', validator: (arg) => (/^[a-zA-Z0-9\s]+$/).test(arg) },
+  { field: 'to_city', name: 'To City', validator: (arg) => cities_map.has(arg) },
+  { field: 'to_state', name: 'To State', validator: (arg) => states_map.has(arg) },
+  { field: 'to_zipcode', name: 'To Zipcode', validator: (arg) => zipcodes_map.has(arg) },
+  { field: 'to_country', name: 'To Country', validator: (arg) => countries_by_name_map.has(arg && arg.toLowerCase()) },
+  { field: 'to_place_id', name: 'To Place ID', validator: genericTextValidator },
+  { field: 'to_lat', name: 'To Latitude', validator: numberValidator },
+  { field: 'to_lng', name: 'To Longitude', validator: numberValidator },
+  { field: 'to_person', name: 'To Person', validator: validatePersonName },
+  { field: 'to_person_phone', name: 'To Person Phone', validator: (arg: any) => arg === '' || phoneValidator(arg) },
+  { field: 'to_person_email', name: 'To Person Email', validator: (arg: any) => arg === '' ||  validateEmail(arg) },
+  { field: 'to_person_id_required', name: 'To Person ID Required', validator: booleanValidator },
+  { field: 'to_person_sig_required', name: 'To Person Signature Required', validator: booleanValidator },
+
+  { field: 'size', name: 'Size', validator: (arg: any) => sizes.includes(arg) },
+  { field: 'weight', name: 'Weight', validator: numberValidator },
+  { field: 'distance_miles', name: 'Distance (Miles)', validator: numberValidator },
+  { field: 'auto_accept_anyone', name: 'Auto-Accept Anyone', validator: booleanValidator },
+  { field: 'urgent', name: 'Urgent', validator: booleanValidator },
+  { field: 'payout', name: 'Payout', validator: (arg) => numberValidator(arg) && arg > payout_min },
+  { field: 'penalty', name: 'Penalty', validator: numberValidator },
+];
+
 export const create_delivery_tracking_update_required_props: { field: string; name: string; validator: (arg: any) => boolean }[] = [
   { field: 'message', name: 'Message', validator: genericTextValidator },
   { field: 'carrier_lat', name: 'Carrier\'s Latitude', validator: numberValidator },

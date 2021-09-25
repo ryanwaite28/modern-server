@@ -22,11 +22,17 @@ import {
 
 
 
-export function createCommonGenericModelCommentsService(params: {
+export interface ICreateCommonGenericModelCommentsService {
   model_name: string,
   comment_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
   comment_reaction_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
-}) {
+}
+
+export function createCommonGenericModelCommentsService(
+  params: ICreateCommonGenericModelCommentsService
+) {
+  const model_id_field = params.model_name + '_id';
+
   return class {
     /** Request Handlers */
   
@@ -44,19 +50,19 @@ export function createCommonGenericModelCommentsService(params: {
     }
   
     static async get_comments_count(request: Request, response: Response) {
-      const post_id: number = parseInt(request.params.post_id, 10);
-      const comments_count = await params.comment_model.count({ where: { post_id } });
+      const model_id: number = parseInt(request.params[model_id_field], 10);
+      const comments_count = await params.comment_model.count({ where: { [model_id_field]: model_id } });
       return response.status(HttpStatusCode.OK).json({
         data: comments_count
       });
     }
   
     static async get_comments_all(request: Request, response: Response) {
-      const post_id: number = parseInt(request.params.post_id, 10);
+      const model_id: number = parseInt(request.params[model_id_field], 10);
       const comments = await CommonRepo.getAll(
         params.comment_model,
-        params.model_name + '_id',
-        post_id,
+        model_id_field,
+        model_id,
         [{
           model: Users,
           as: 'owner',
@@ -69,12 +75,12 @@ export function createCommonGenericModelCommentsService(params: {
     }
   
     static async get_comments(request: Request, response: Response) {
-      const post_id: number = parseInt(request.params.post_id, 10);
+      const model_id: number = parseInt(request.params[model_id_field], 10);
       const comment_id = parseInt(request.params.comment_id, 10) || undefined;
       const comments = await CommonRepo.paginateTable(
         params.comment_model,
-        params.model_name + '_id',
-        post_id,
+        model_id_field,
+        model_id,
         comment_id,
         [{
           model: Users,
@@ -217,14 +223,14 @@ export function createCommonGenericModelCommentsService(params: {
   
     static async create_comment(request: Request, response: Response) {
       const you: IUser = response.locals.you;
-      const post_id: number = parseInt(request.params.post_id, 10);
+      const model_id: number = parseInt(request.params[model_id_field], 10);
       let body: string = request.body.body;
       if (!body) {
         return response.status(HttpStatusCode.BAD_REQUEST).json({
           message: `Comment body is required`
         });
       }
-      const comment_model = await params.comment_model.create({ body, post_id, owner_id: you.id });
+      const comment_model = await params.comment_model.create({ body, [model_id_field]: model_id, owner_id: you.id });
       const comment = await params.comment_model.findOne({
         where: { id: comment_model.get('id') },
         include: [{

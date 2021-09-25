@@ -40,7 +40,8 @@ import { SocketsService } from '../../_common/services/sockets.service';
 import {
   Delivery,
   DeliveryMessages,
-  DeliveryTrackingUpdates
+  DeliveryTrackingUpdates,
+  DeliveryTransactions
 } from '../models/delivery.model';
 import { IMyModel } from '../../_common/models/common.model-types';
 import {
@@ -48,15 +49,18 @@ import {
   create_delivery_tracking_update_required_props,
   deliveryme_user_settings_required_props,
   delivery_search_attrs,
-  populate_deliverme_notification_obj
+  populate_deliverme_notification_obj,
+  update_delivery_required_props
 } from '../deliverme.chamber';
 import {
   ICreateDeliveryProps,
   ICreateDeliveryTrackingUpdateProps
 } from '../interfaces/deliverme.interface';
 import { UploadedFile } from 'express-fileupload';
-import { store_image } from '../../../cloudinary-manager';
+import { delete_cloudinary_image, store_image } from '../../../cloudinary-manager';
 import {
+  DELIVERME_DELIVERY_TRANSACTION_STATUS,
+  DELIVERME_DELIVERY_TRANSACTION_TYPES,
   DELIVERME_EVENT_TYPES,
   DELIVERME_NOTIFICATION_TARGET_TYPES
 } from '../enums/deliverme.enum';
@@ -64,7 +68,7 @@ import { CommonSocketEventsHandler } from '../../_common/services/socket-events-
 import { DeliverMeUserProfileSettings } from '../models/deliverme.model';
 import { send_sms } from '../../../sms-client';
 import { GoogleService } from '../../_common/services/google.service';
-import { StripeService } from '../../_common/services/stripe.service';
+import { DELIVERME_APP_FEE, StripeService } from '../../_common/services/stripe.service';
 
 export class DeliveriesService {
 
@@ -201,8 +205,6 @@ export class DeliveriesService {
       to_city,
       to_state,
     } = request.body;
-
-    // console.log(request.body);
 
     const fromValid = from_city && from_state;
     const toValid = to_city && to_state;
@@ -348,7 +350,7 @@ export class DeliveriesService {
       undefined,
       undefined,
       undefined,
-      DeliveryRepo.deliveryOrderBy
+      DeliveryRepo.deliveryTrackingOrderBy
     );
     return response.status(HttpStatusCode.OK).json({
       data: results
@@ -367,7 +369,7 @@ export class DeliveriesService {
       undefined,
       undefined,
       undefined,
-      DeliveryRepo.deliveryOrderBy
+      DeliveryRepo.deliveryTrackingOrderBy
     );
     return response.status(HttpStatusCode.OK).json({
       data: results
@@ -385,7 +387,7 @@ export class DeliveriesService {
       undefined,
       undefined,
       { completed: true },
-      DeliveryRepo.deliveryOrderBy
+      DeliveryRepo.deliveryTrackingOrderBy
     );
     return response.status(HttpStatusCode.OK).json({
       data: results
@@ -407,7 +409,7 @@ export class DeliveriesService {
       undefined,
       undefined,
       { completed: true },
-      DeliveryRepo.deliveryOrderBy
+      DeliveryRepo.deliveryTrackingOrderBy
     );
     return response.status(HttpStatusCode.OK).json({
       data: results
@@ -416,13 +418,13 @@ export class DeliveriesService {
 
   static async get_user_delivering(request: Request, response: Response) {
     const you_id: number = parseInt(request.params.you_id, 10);
-    const result = await Delivery.findAll({
+    const result = await Delivery.findOne({
       where: {
         carrier_id: you_id,
         completed: false
       },
       include: DeliveryRepo.deliveryMasterIncludes,
-      order: DeliveryRepo.deliveryOrderBy
+      order: DeliveryRepo.deliveryTrackingOrderBy
     });
     return response.status(HttpStatusCode.OK).json({
       data: result
@@ -439,8 +441,8 @@ export class DeliveriesService {
       const data: PlainObject = JSON.parse(request.body.payload);
       const delivery_image: UploadedFile | undefined = request.files && (<UploadedFile> request.files.delivery_image);
 
-      console.log(`request.body`, request.body);
-      console.log(`data`, data);
+      // console.log(`request.body`, request.body);
+      // console.log(`data`, data);
 
       for (const prop of create_delivery_required_props) {
         if (!data.hasOwnProperty(prop.field)) {
@@ -480,9 +482,50 @@ export class DeliveriesService {
         createObj.item_image_link = results.result.secure_url
       }
 
-      console.log(`createObj`, createObj);
+      // console.log(`createObj`, createObj);
+
+      const chargeFeeData = StripeService.add_on_stripe_processing_fee(data.payout);
+      const createChargeObj = {
+        amount: chargeFeeData.new_total,
+        currency: 'usd',
+        source: you.stripe_account_id,
+        description: `Delivery listing: ${createObj.title}`,
+        receipt_email: you.email,
+        metadata: {
+          owner_id: you.id,
+          ...chargeFeeData
+        }
+      };
+      console.log({ createChargeObj });
+      const chargeObj = await StripeService.stripe.charges.create(createChargeObj)
+        .catch((err: any) => {
+          console.log(`stripe charge error:`, err);
+          if (createObj.item_image_id) {
+            delete_cloudinary_image(createObj.item_image_id);
+          }
+          return {
+            err
+          };
+        });
+
+      if (chargeObj.err) {
+        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+          error: true,
+          message: `Could not create listing: ${(<any> chargeObj.err)?.message}`
+        });
+      }
 
       const new_delivery_model = await DeliveryRepo.create_delivery(createObj as ICreateDeliveryProps);
+
+      const new_delivery_transaction_model = await DeliveryTransactions.create({
+        delivery_id: new_delivery_model.get('id'),
+        action_type: DELIVERME_DELIVERY_TRANSACTION_TYPES.CHARGE,
+        action_id: chargeObj.id,
+        status: DELIVERME_DELIVERY_TRANSACTION_STATUS.COMPLETED,
+      });
+
+      console.log({ new_delivery_transaction_model: new_delivery_transaction_model.toJSON() });
+
       return response.status(HttpStatusCode.OK).json({
         message: `New Delivery Created!`,
         data: new_delivery_model
@@ -502,7 +545,7 @@ export class DeliveriesService {
       owner_id: you.id
     };
 
-    for (const prop of create_delivery_required_props) {
+    for (const prop of update_delivery_required_props) {
       if (!request.body.hasOwnProperty(prop.field)) {
         return response.status(HttpStatusCode.BAD_REQUEST).json({
           message: `${prop.name} is required.`
@@ -528,6 +571,7 @@ export class DeliveriesService {
   static async delete_delivery(request: Request, response: Response) {
     const you = response.locals.you;
     const delivery_model = response.locals.delivery_model;
+    const delivery_id = delivery_model.get('id');
 
     if (!!delivery_model.get('carrier_id')) {
       return response.status(HttpStatusCode.BAD_REQUEST).json({
@@ -535,9 +579,41 @@ export class DeliveriesService {
       });
     }
 
-    const deletes = await DeliveryRepo.delete_delivery(delivery_model.get('id'));
+    const delivery_charge_model = await DeliveryTransactions.findOne({
+      where: {
+        delivery_id,
+        action_type: DELIVERME_DELIVERY_TRANSACTION_TYPES.CHARGE
+      }
+    });  
+    
+    if (!delivery_charge_model) {
+      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+        message: `Delivery CHARGE transaction could not be found...`,
+      });
+    }
+
+    const charge = await StripeService.stripe.charges.retrieve(delivery_charge_model.get('action_id')); 
+
+    const refundObj = await StripeService.stripe.refunds.create({
+      charge: delivery_charge_model.get('action_id'),
+      metadata: {
+        delivery_id,
+        owner_id: you.id
+      }
+    });
+    
+    const delivery_refund_model = await DeliveryTransactions.create({
+      delivery_id,
+      action_type: DELIVERME_DELIVERY_TRANSACTION_TYPES.REFUND,
+      action_id: refundObj.id,
+      status: DELIVERME_DELIVERY_TRANSACTION_STATUS.COMPLETED,
+    });
+
+    console.log({ delivery_refund_model });
+
+    const deletes = await DeliveryRepo.delete_delivery(delivery_id);
     return response.status(HttpStatusCode.OK).json({
-      message: `Delivery Deleted!`,
+      message: `Delivery Deleted and refunded!`,
       data: deletes
     });
   }
@@ -1241,12 +1317,11 @@ export class DeliveriesService {
     let paymentIntent;
     
     try {
-      const chargeFeeData = StripeService.add_on_stripe_processing_fee(deliveryObj.payout);
       paymentIntent = await StripeService.stripe.paymentIntents.create({
         payment_method_types: ['card'],
-        amount: chargeFeeData.new_total,
+        amount: parseFloat(deliveryObj.payout + '00'),
         currency: 'usd',
-        application_fee_amount: chargeFeeData.app_fee, // free, for now
+        application_fee_amount: 0, // free, for now
         transfer_data: {
           destination: deliveryObj.carrier.stripe_account_id,
         },
