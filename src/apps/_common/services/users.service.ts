@@ -1106,16 +1106,21 @@ export class UsersService {
     const refresh_url = `${useHost}/modern/users/${you.id}/settings`;
     const return_url = `${useHost}/modern/users/${you.id}/verify-stripe-account`;
 
-    const account = await StripeService.stripe.accounts.create({
-      type: 'express',
-      email: you.email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      }
-    });
+    let account, updates;
 
-    const updates = await you_model!.update({ stripe_account_id: account.id });
+    if (!you.stripe_account_id) {
+      account = await StripeService.stripe.accounts.create({
+        type: 'express',
+        email: you.email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        }
+      });
+      updates = await you_model!.update({ stripe_account_id: account.id });
+    } else {
+      account = await StripeService.stripe.accounts.retrieve(you.stripe_account_id);
+    }
 
     // https://stripe.com/docs/connect/collect-then-transfer-guide
     const accountLinks = await StripeService.stripe.accountLinks.create({
