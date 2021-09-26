@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { Model } from 'sequelize/types';
 import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
 import { IMyModel, MyModelStatic, MyModelStaticGeneric } from '../../_common/models/common.model-types';
+import { ExpressMiddlewareFn } from '../types/common.types';
 
 
 
@@ -12,7 +13,15 @@ export interface ICreateModelGuardParams {
   request_param_id_name: string;
 }
 
-export function createModelRouteGuards <T = IMyModel> (params: ICreateModelGuardParams) {
+export interface IModelGuards {
+  existsGuard: ExpressMiddlewareFn,
+  isOwnerGuard: ExpressMiddlewareFn,
+  isNotOwnerGuard: ExpressMiddlewareFn,
+}
+
+export function createModelRouteGuards <T = IMyModel> (
+  params: ICreateModelGuardParams
+): IModelGuards {
   const ModelExists = async(
     request: Request,
     response: Response,
