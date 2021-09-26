@@ -4,16 +4,17 @@ import {
   ICreateModelGuardParams,
   createModelRouteGuards,
 } from './create-model-guards.helper';
+import { createCommonGenericModelReactionsRouter } from './create-model-reactions-router.helper.';
 
 
 
 
-export interface ICreateGenericRepliesRouter {
+export interface ICreateGenericCommentRepliesRouter {
   replyGuardsOpts: ICreateModelGuardParams,
   repliesService: any,
 }
 
-export function createGenericRepliesRouter (params: ICreateGenericRepliesRouter) {
+export function createGenericCommentRepliesRouter (params: ICreateGenericCommentRepliesRouter) {
   const RepliesRouter: Router = Router({ mergeParams: true });
 
   const routeGuards = createModelRouteGuards(params.replyGuardsOpts);
@@ -38,12 +39,13 @@ export function createGenericRepliesRouter (params: ICreateGenericRepliesRouter)
   
 
   // Reactions
-  RepliesRouter.get('/:reply_id/user-reactions/count', routeGuards.existsGuard, params.repliesService.get_reply_reactions_counts);
-  RepliesRouter.get('/:reply_id/user-reactions/all', routeGuards.existsGuard, params.repliesService.get_reply_reactions_all);
-  RepliesRouter.get('/:reply_id/user-reactions', routeGuards.existsGuard, params.repliesService.get_reply_reactions);
-  RepliesRouter.get('/:reply_id/user-reactions/:reaction_id', routeGuards.existsGuard, params.repliesService.get_reply_reactions);
-  RepliesRouter.get('/:reply_id/user-reaction/:user_id', UserExists, routeGuards.existsGuard, params.repliesService.get_user_reaction);
-  RepliesRouter.put('/:reply_id/user-reaction/user/:you_id', UserAuthorized, routeGuards.existsGuard, params.repliesService.toggle_user_reaction);
+  const ReactionsRouter = createCommonGenericModelReactionsRouter({
+    base_model_name: 'reply',
+    makeGuard: false,
+    modelGuardsOpts: routeGuards,
+    reactionService: params.repliesService.reactionService,
+  });
+  RepliesRouter.use(ReactionsRouter);
 
   return RepliesRouter;
 }

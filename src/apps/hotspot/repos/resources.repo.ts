@@ -6,10 +6,10 @@ import {
 } from 'sequelize';
 import { user_attrs_slim } from '../../_common/common.chamber';
 import { Users } from '../../_common/models/user.model';
-import { Resources, ResourceInterests } from '../models/resource.model';
+import { HotspotResources, HotspotResourceInterests } from '../models/resource.model';
 
 export async function get_resource_by_id(id: number) {
-  const resource = await Resources.findOne({
+  const resource = await HotspotResources.findOne({
     where: { id },
     attributes: {
       include: [
@@ -21,11 +21,11 @@ export async function get_resource_by_id(id: number) {
       as: 'owner',
       attributes: user_attrs_slim
     }, {
-      model: ResourceInterests,
+      model: HotspotResourceInterests,
       as: 'interests',
       attributes: [],
     }],
-    group: ['resources.id', 'owner.id']
+    group: ['HotspotResources.id', 'owner.id']
   });
   return resource;
 }
@@ -42,7 +42,7 @@ export async function create_resource(
     icon_id?: string;
   }
 ) {
-  const resource = await Resources.create(<any> params);
+  const resource = await HotspotResources.create(<any> params);
   return resource;
 }
 
@@ -59,7 +59,7 @@ export async function update_resource(
   whereClause: WhereOptions
 ) {
   try {
-    const resource_update = await Resources.update(
+    const resource_update = await HotspotResources.update(
       newState,
       { where: whereClause }
     );
@@ -79,7 +79,7 @@ export async function delete_resource(
   whereClause: WhereOptions
 ) {
   try {
-    const resource_destroy = await Resources.destroy(
+    const resource_destroy = await HotspotResources.destroy(
       { where: whereClause }
     );
     return resource_destroy;

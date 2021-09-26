@@ -28,7 +28,7 @@ import {
   ConversationMessageSeens
 } from './conversations.model';
 
-import { Resources, ResourceInterests } from '../../hotspot/models/resource.model';
+import { HotspotResources, HotspotResourceInterests } from '../../hotspot/models/resource.model';
 import { Messagings, Messages } from './messages.model';
 
 
@@ -71,12 +71,7 @@ CliqueMemberRequests.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targe
 Cliques.hasMany(CliqueMemberRequests, { as: 'member_requests', foreignKey: 'clique_id', sourceKey: 'id' });
 CliqueMemberRequests.belongsTo(Cliques, { as: 'clique', foreignKey: 'clique_id', targetKey: 'id' });
 
-Users.hasMany(Resources, { as: 'resources', foreignKey: 'owner_id', sourceKey: 'id' });
-Resources.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
-Resources.hasMany(ResourceInterests, { as: 'interests', foreignKey: 'resource_id', sourceKey: 'id' });
-ResourceInterests.belongsTo(Resources, { as: 'resource', foreignKey: 'resource_id', targetKey: 'id' });
-Users.hasMany(ResourceInterests, { as: 'resource_interests', foreignKey: 'user_id', sourceKey: 'id' });
-ResourceInterests.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
+
 
 Users.hasMany(Recipes, { as: 'user_recipes', foreignKey: 'creator_id', sourceKey: 'id' });
 Users.hasMany(Recipes, { as: 'user_helping', foreignKey: 'helper_id', sourceKey: 'id' });

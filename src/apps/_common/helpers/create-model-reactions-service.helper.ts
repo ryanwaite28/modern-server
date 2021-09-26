@@ -19,10 +19,19 @@ import {
   MyModelStatic,
   MyModelStaticGeneric
 } from '../models/common.model-types';
+import { ExpressRouteEndHandler } from '../types/common.types';
 
 export interface ICreateCommonGenericModelReactionsService {
   base_model_name: string,
   reaction_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
+}
+
+export interface IGenericModelReactionsService {
+  get_user_reaction: ExpressRouteEndHandler,
+  toggle_user_reaction: ExpressRouteEndHandler,
+  get_model_reactions_counts: ExpressRouteEndHandler,
+  get_model_reactions_all: ExpressRouteEndHandler,
+  get_model_reactions: ExpressRouteEndHandler,
 }
 
 export function createCommonGenericModelReactionsService (
@@ -158,5 +167,5 @@ export function createCommonGenericModelReactionsService (
         data: model_reactions
       });
     }
-  }
+  } as IGenericModelReactionsService;
 }

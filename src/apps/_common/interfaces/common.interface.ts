@@ -239,3 +239,13 @@ export interface IToken extends ICommonModel {
   date_created:            string;
   date_last_used:          string;
 }
+
+/**
+ * @description 
+ * Interface for validating data from requests
+ */
+export interface IModelValidator {
+  field: string;
+  name: string;
+  validator: (arg: any) => boolean
+}

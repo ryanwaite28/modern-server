@@ -14,31 +14,31 @@ import { Photos } from '../../_common/models/photo.model';
 import { Videos } from '../../_common/models/video.model';
 import { user_attrs_slim } from '../../_common/common.chamber';
 import { Users } from '../../_common/models/user.model';
-import { PostCommentAudios, PostCommentPhotos, PostComments, PostCommentVideos } from '../models/post.model';
+import { HotspotPostCommentAudios, HotspotPostCommentPhotos, HotspotPostComments, HotspotPostCommentVideos } from '../models/post.model';
 
 export async function get_comment_by_id(id: number) {
-  const comment = await PostComments.findOne({
+  const comment = await HotspotPostComments.findOne({
     where: { id },
     include: [{
       model: Users,
       as: 'owner',
       attributes: user_attrs_slim
     }, {
-      model: PostCommentPhotos,
+      model: HotspotPostCommentPhotos,
       as: 'photos',
       include: [{
         model: Photos,
         as: 'photo',
       }]
     }, {
-      model: PostCommentVideos,
+      model: HotspotPostCommentVideos,
       as: 'videos',
       include: [{
         model: Videos,
         as: 'video',
       }]
     }, {
-      model: PostCommentAudios,
+      model: HotspotPostCommentAudios,
       as: 'audios',
       include: [{
         model: Audios,
@@ -54,7 +54,7 @@ export async function create_comment(createObj: {
   post_id: number,
   body: string,
 }) {
-  const new_comment_model = await PostComments.create(<any> {
+  const new_comment_model = await HotspotPostComments.create(<any> {
     post_id: createObj.post_id,
     owner_id: createObj.owner_id,
     body: createObj.body,
@@ -69,13 +69,13 @@ export async function update_comment(
   },
   id: number
 ) {
-  const updates = await PostComments.update({
+  const updates = await HotspotPostComments.update({
     body: updatesObj.body,
   }, { where: { id } });
   return updates;
 }
 
 export async function delete_comment(id: number) {
-  const deletes = await PostComments.destroy({ where: { id } });
+  const deletes = await HotspotPostComments.destroy({ where: { id } });
   return deletes;
 }

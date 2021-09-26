@@ -22,8 +22,6 @@ import * as UserRepo from '../repos/users.repo';
 import * as EmailVerfRepo from '../repos/email-verification.repo';
 import * as PhoneVerfRepo from '../repos/phone-verification.repo';
 import { TokensService } from './tokens.service';
-import { Cliques, CliqueInterests, CliqueMembers } from '../../hotspot/models/clique.model';
-import { Resources, ResourceInterests } from '../../hotspot/models/resource.model';
 import { get_clique_member_requests_count } from '../../hotspot/repos/clique-members.repo';
 import {
   AuthorizeJWT,
@@ -169,110 +167,6 @@ export class UsersService {
     return response.status(HttpStatusCode.OK).json({
       data: users
     });
-  }
-
-  static async get_random_models(request: Request, response: Response) {
-    const you: IUser = response.locals.you;
-
-    const tag = String(request.query.tag || '');
-    const tag_like = { [Op.like]: '%' + tag + '%' };
-
-    const model_name = String(request.query.model_name || '');
-    if (!model_name) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `model_name query param is required`
-      });
-    }
-
-    const limit = request.query.limit || '';
-    const limitIsValid = (/[0-9]+/).test(<string> limit);
-    const useLimit = limitIsValid
-      ? parseInt(request.params.limit, 10)
-      : 10;
-    let results;
-
-    switch (model_name) {
-      case 'users': {
-        results = await Users.findAll({
-          where: {
-            tags: tag_like,
-            id: { [Op.ne]: you.id }
-          },
-          limit: useLimit,
-          order: [fn( 'RANDOM' )],
-          attributes: user_attrs_slim
-        });
-        break;
-      }
-      case 'cliques': {
-        results = await Cliques.findAll({
-          where: { tags: tag_like, creator_id: { [Op.ne]: you.id } },
-          limit: useLimit,
-          order: [fn( 'RANDOM' )],
-          include: [{
-            model: Users,
-            as: 'creator',
-            attributes: user_attrs_slim,
-          }, {
-            model: CliqueInterests,
-            as: 'interests',
-            duplicating: false,
-            attributes: [],
-          }, {
-            model: CliqueMembers,
-            as: 'members',
-            duplicating: false,
-            attributes: [],
-          }],
-          attributes: {
-            include: [
-              [cast(fn('COUNT', col('interests.clique_id')), 'integer') ,'interests_count'],
-              [cast(fn('COUNT', col('members.clique_id')), 'integer') ,'members_count'],
-            ]
-          },
-          group: ['cliques.id', 'creator.id']
-        });
-        break;
-      }
-      case 'resources': {
-        results = await Resources.findAll({
-          where: { tags: tag_like, owner_id: { [Op.ne]: you.id } },
-          limit: useLimit,
-          order: [fn( 'RANDOM' )],
-          include: [{
-            model: Users,
-            as: 'owner',
-            attributes: user_attrs_slim
-          }, {
-            model: ResourceInterests,
-            as: 'interests',
-            duplicating: false,
-            attributes: [],
-          }],
-          attributes: {
-            include: [
-              [cast(fn('COUNT', col('interests.resource_id')), 'integer') ,'interests_count']
-            ]
-          },
-          group: ['resources.id', 'owner.id']
-        });
-        break;
-      }
-      default: {
-        results = null;
-      }
-    }
-
-    if (results) {
-      return response.status(HttpStatusCode.OK).json({
-        data: results
-      });
-    } else {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `model_name query param is invalid`
-      });
-    }
-    
   }
 
   static async sign_up(request: Request, response: Response) {

@@ -12,7 +12,7 @@ import {
   getUserFullName,
   user_attrs_slim,
 } from "../_common/common.chamber";
-import { IUser } from "../_common/interfaces/common.interface";
+import { IModelValidator, IUser } from "../_common/interfaces/common.interface";
 import { Users } from "../_common/models/user.model";
 import { DELIVERME_EVENT_TYPES } from "./enums/deliverme.enum";
 import { get_delivery_by_id, get_delivery_tracking_update_by_id } from "./repos/deliveries.repo";
@@ -42,7 +42,7 @@ export const sizes = [
 
 const payout_min = 3;
 
-export const create_delivery_required_props: { field: string; name: string; validator: (arg: any) => boolean }[] = [
+export const create_delivery_required_props: IModelValidator[] = [
   { field: 'title', name: 'Title', validator: genericTextValidator },
   { field: 'description', name: 'Description', validator: genericTextValidator },
 
@@ -87,7 +87,7 @@ export const create_delivery_required_props: { field: string; name: string; vali
   { field: 'penalty', name: 'Penalty', validator: numberValidator },
 ];
 
-export const update_delivery_required_props: { field: string; name: string; validator: (arg: any) => boolean }[] = [
+export const update_delivery_required_props: IModelValidator[] = [
   { field: 'title', name: 'Title', validator: genericTextValidator },
   { field: 'description', name: 'Description', validator: genericTextValidator },
 

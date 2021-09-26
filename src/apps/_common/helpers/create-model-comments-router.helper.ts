@@ -7,18 +7,19 @@ import {
   ICreateModelGuardParams,
   createModelRouteGuards
 } from './create-model-guards.helper';
-import { createGenericRepliesRouter } from './create-model-comment-replies-router.helper';
+import { createGenericCommentRepliesRouter } from './create-model-comment-replies-router.helper';
+import { createCommonGenericModelReactionsRouter } from './create-model-reactions-router.helper.';
+import { IGenericCommentRepliesService } from './create-model-comment-replies-service.helper';
+import { IGenericCommentsService } from './create-model-comments-service.helper';
 
 
 
 
 export interface ICreateGenericCommentsRouter {
-  generateRepliesRouter: boolean,
-
-  commentsService: any,
+  commentsService: IGenericCommentsService,
   commentGuardsOpts: ICreateModelGuardParams,
 
-  repliesService?: any,
+  repliesService?: IGenericCommentRepliesService,
   replyGuardsOpts?: ICreateModelGuardParams,
 }
 
@@ -46,31 +47,13 @@ export function createGenericCommentsRouter (params: ICreateGenericCommentsRoute
 
 
   // Reactions
-  CommentsRouter.get('/:comment_id/user-reactions/count', routeGuards.existsGuard, params.commentsService.get_comment_reactions_counts);
-  CommentsRouter.get('/:comment_id/user-reactions/all', routeGuards.existsGuard, params.commentsService.get_comment_reactions_all);
-  CommentsRouter.get('/:comment_id/user-reactions', routeGuards.existsGuard, params.commentsService.get_comment_reactions);
-  CommentsRouter.get('/:comment_id/user-reactions/:reaction_id', routeGuards.existsGuard, params.commentsService.get_comment_reactions);
-  CommentsRouter.get('/:comment_id/user-reaction/:user_id', UserExists, routeGuards.existsGuard, params.commentsService.get_user_reaction);
-  CommentsRouter.put('/:comment_id/user-reaction/user/:you_id', UserAuthorized, routeGuards.existsGuard, params.commentsService.toggle_user_reaction);
-
-
-  // Sub-Routes
-
-  if (!params.generateRepliesRouter) {
-    return CommentsRouter;
-  }
-
-  if (!params.repliesService || !params.replyGuardsOpts) {
-    console.log(params);
-    throw new TypeError(`createGenericCommentsRouter error: generateRepliesRouter is true but missing required reply props...`);
-  }
-
-  const RepliesRouter = createGenericRepliesRouter({
-    repliesService: params.repliesService!,
-    replyGuardsOpts: params.replyGuardsOpts!,
+  const ReactionsRouter = createCommonGenericModelReactionsRouter({
+    base_model_name: 'comment',
+    makeGuard: false,
+    modelGuardsOpts: routeGuards,
+    reactionService: params.repliesService!.reactionsService,
   });
-
-  CommentsRouter.use(`/:comment_id/replies`, RepliesRouter);
+  CommentsRouter.use(ReactionsRouter);
 
   return CommentsRouter;
 }

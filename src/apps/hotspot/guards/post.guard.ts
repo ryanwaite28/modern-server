@@ -4,7 +4,7 @@ import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
 import { IMyModel } from '../../_common/models/common.model-types';
 
 
-export async function PostExists(
+export async function HotspotPostExists(
   request: Request,
   response: Response,
   next: NextFunction
@@ -20,7 +20,7 @@ export async function PostExists(
   return next();
 }
 
-export async function IsPostOwner(
+export async function IsHotspotPostOwner(
   request: Request,
   response: Response,
   next: NextFunction
@@ -35,7 +35,7 @@ export async function IsPostOwner(
   return next();
 }
 
-export async function IsNotPostOwner(
+export async function IsNotHotspotPostOwner(
   request: Request,
   response: Response,
   next: NextFunction

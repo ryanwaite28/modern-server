@@ -13,41 +13,56 @@ import {
   user_attrs_slim
 } from '../../_common/common.chamber';
 import { Users } from '../../_common/models/user.model';
-import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
 import {
   IMyModel,
   MyModelStatic,
   MyModelStaticGeneric
 } from '../models/common.model-types';
-import { createCommonGenericModelReactionsService } from './create-model-reactions-service.helper';
+import { createCommonGenericModelReactionsService, IGenericModelReactionsService } from './create-model-reactions-service.helper';
+import { ExpressRouteEndHandler } from '../types/common.types';
 
 
 
 export interface ICreateCommonGenericModelCommentsService {
   model_name: string,
+  create_reactions_service?: boolean,
   comment_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
-  comment_reaction_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
+  comment_reaction_model?: MyModelStatic | MyModelStaticGeneric<IMyModel>,
+}
+
+export interface IGenericCommentsService {
+  reactionsService?: IGenericModelReactionsService;
+
+  get_comment_by_id: ExpressRouteEndHandler,
+  get_comments_count: ExpressRouteEndHandler,
+  get_comments_all: ExpressRouteEndHandler,
+  get_comments: ExpressRouteEndHandler,
+  create_comment: ExpressRouteEndHandler,
+  update_comment: ExpressRouteEndHandler,
+  delete_comment: ExpressRouteEndHandler,
+
+  get_user_reaction: ExpressRouteEndHandler,
+  toggle_user_reaction: ExpressRouteEndHandler,
+  get_comment_reactions_counts: ExpressRouteEndHandler,
+  get_comment_reactions_all: ExpressRouteEndHandler,
+  get_comment_reactions: ExpressRouteEndHandler,
 }
 
 export function createCommonGenericModelCommentsService(
   params: ICreateCommonGenericModelCommentsService
 ) {
   const model_id_field = params.model_name + '_id';
-  const reactionsService = createCommonGenericModelReactionsService({
-    base_model_name: 'comment',
-    reaction_model: params.comment_reaction_model
-  });
+  const reactionsService = params.create_reactions_service
+    ? createCommonGenericModelReactionsService({
+        base_model_name: 'comment',
+        reaction_model: params.comment_reaction_model!
+      })
+    : {} as IGenericModelReactionsService;
 
   return class {
     static readonly reactionsService = reactionsService;
     
     /** Request Handlers */
-  
-    static async main(request: Request, response: Response) {
-      return response.status(HttpStatusCode.OK).json({
-        msg: `${params.model_name} comments router`
-      });
-    }
   
     static async get_comment_by_id(request: Request, response: Response) {
       const comment_model = response.locals.comment_model;
@@ -170,5 +185,5 @@ export function createCommonGenericModelCommentsService(
     static get_comment_reactions_all = reactionsService.get_model_reactions_all;
   
     static get_comment_reactions = reactionsService.get_model_reactions;
-  }
+  } as IGenericCommentsService;
 }

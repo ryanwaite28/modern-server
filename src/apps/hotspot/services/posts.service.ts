@@ -10,25 +10,19 @@ import {
   IUser, PlainObject,
 } from '../../_common/interfaces/common.interface';
 import * as CommonRepo from '../../_common/repos/_common.repo';
-import * as PostsRepo from '../repos/posts.repo';
+import * as HotspotPostsRepo from '../repos/posts.repo';
 import {
   user_attrs_slim,
   allowedImages
 } from '../../_common/common.chamber';
 import { IStoreImage, store_image } from '../../../cloudinary-manager';
 import { Photos } from '../../_common/models/photo.model';
-import { Posts, PostPhotos, PostReactions } from '../models/post.model';
+import { HotspotPosts, HotspotPostPhotos, HotspotPostReactions } from '../models/post.model';
 import { Users } from '../../_common/models/user.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
 
-export class PostsService {
+export class HotspotPostsService {
   /** Request Handlers */
-
-  static async main(request: Request, response: Response) {
-    return response.status(HttpStatusCode.OK).json({
-      msg: 'posts router'
-    });
-  }
 
   static async get_post_by_id(request: Request, response: Response) {
     const post_model = response.locals.post_model;
@@ -40,7 +34,7 @@ export class PostsService {
   static async get_user_posts_all(request: Request, response: Response) {
     const user_id: number = parseInt(request.params.user_id, 10);
     const posts = await CommonRepo.getAll(
-      Posts,
+      HotspotPosts,
       'owner_id',
       user_id,
       [{
@@ -48,7 +42,7 @@ export class PostsService {
         as: 'owner',
         attributes: user_attrs_slim
       }, {
-        model: PostPhotos,
+        model: HotspotPostPhotos,
         as: 'photos',
         include: [{
           model: Photos,
@@ -65,7 +59,7 @@ export class PostsService {
     const user_id: number = parseInt(request.params.user_id, 10);
     const post_id = parseInt(request.params.post_id, 10);
     const posts = await CommonRepo.paginateTable(
-      Posts,
+      HotspotPosts,
       'owner_id',
       user_id,
       post_id,
@@ -74,7 +68,7 @@ export class PostsService {
         as: 'owner',
         attributes: user_attrs_slim
       }, {
-        model: PostPhotos,
+        model: HotspotPostPhotos,
         as: 'photos',
         include: [{
           model: Photos,
@@ -84,134 +78,6 @@ export class PostsService {
     );
     return response.status(HttpStatusCode.OK).json({
       data: posts
-    });
-  }
-
-  static async get_user_reaction(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const post_id: number = parseInt(request.params.post_id, 10);
-    const post_reaction = await PostReactions.findOne({
-      where: {
-        post_id,
-        owner_id: user_id
-      }
-    });
-    return response.status(HttpStatusCode.OK).json({
-      data: post_reaction
-    });
-  }
-
-  static async toggle_user_reaction(request: Request, response: Response) {
-    const you: IUser = response.locals.you;
-    const post_id: number = parseInt(request.params.post_id, 10);
-
-    const reaction = request.body.reaction;
-    if (!reaction) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Reaction type is required`
-      });
-    }
-    if (!(typeof (reaction) === 'string')) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Reaction type is invalid`
-      });
-    }
-    if (!(reaction in COMMON_REACTION_TYPES)) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Reaction type is invalid`
-      });
-    }
-
-    let post_reaction = await PostReactions.findOne({
-      where: {
-        post_id,
-        owner_id: you.id
-      }
-    });
-
-    if (!post_reaction) {
-      // user has no reaction to post; create it
-      post_reaction = await PostReactions.create(<any> {
-        reaction,
-        post_id,
-        owner_id: you.id
-      });
-    } else if (post_reaction.get('reaction') === reaction) {
-      // user's reaction is same to request; they intended to undo the reaction
-      await post_reaction.destroy();
-      post_reaction = null;
-    } else {
-      // user's reaction is different to request; they intended to change the reaction
-      post_reaction.reaction = reaction;
-      await post_reaction.save({ fields: ['reaction'] });
-    }
-
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Toggled post reaction`,
-      data: post_reaction
-    });
-  }
-
-  static async get_post_reactions_counts(request: Request, response: Response) {
-    const post_id: number = parseInt(request.params.post_id, 10);
-
-    const like_count = await PostReactions.count({ where: { post_id, reaction: COMMON_REACTION_TYPES.LIKE } });
-    const love_count = await PostReactions.count({ where: { post_id, reaction: COMMON_REACTION_TYPES.LOVE } });
-    const idea_count = await PostReactions.count({ where: { post_id, reaction: COMMON_REACTION_TYPES.IDEA } });
-    const confused_count = await PostReactions.count({ where: { post_id, reaction: COMMON_REACTION_TYPES.CONFUSED } });
-
-    const total_count: number = [
-      like_count,
-      love_count,
-      idea_count,
-      confused_count,
-    ].reduce((acc, cur) => (acc + cur));
-
-    return response.status(HttpStatusCode.OK).json({
-      data: {
-        total_count,
-        like_count,
-        love_count,
-        idea_count,
-        confused_count,
-      }
-    });
-  }
-
-  static async get_post_reactions_all(request: Request, response: Response) {
-    const post_id: number = parseInt(request.params.post_id, 10);
-    const post_reactions = await CommonRepo.getAll(
-      PostReactions,
-      'post_id',
-      post_id,
-      [{
-        model: Users,
-        as: 'owner',
-        attributes: user_attrs_slim
-      }]
-    );
-    return response.status(HttpStatusCode.OK).json({
-      data: post_reactions
-    });
-  }
-
-  static async get_post_reactions(request: Request, response: Response) {
-    const post_id = parseInt(request.params.post_id, 10);
-    const post_reaction_id: number = parseInt(request.params.post_reaction_id, 10);
-    const post_reactions = await CommonRepo.paginateTable(
-      PostReactions,
-      'post_id',
-      post_id,
-      post_reaction_id,
-      [{
-        model: Users,
-        as: 'owner',
-        attributes: user_attrs_slim
-      }]
-    );
-    return response.status(HttpStatusCode.OK).json({
-      data: post_reactions
     });
   }
 
@@ -233,12 +99,12 @@ export class PostsService {
     // });
 
     // return response.status(HttpStatusCode.BAD_REQUEST).json({
-    //   message: `Post body is required`
+    //   message: `HotspotPost body is required`
     // });
 
     if (!body) {
       return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Post body is required`
+        message: `HotspotPost body is required`
       });
     }
     if (!tags) {
@@ -295,7 +161,7 @@ export class PostsService {
       }
     }
 
-    const post_model = await PostsRepo.create_post({
+    const post_model = await HotspotPostsRepo.create_post({
       body,
       industry,
       tags,
@@ -304,7 +170,7 @@ export class PostsService {
     });
 
     return response.status(HttpStatusCode.OK).json({
-      message: `Post created successfully`,
+      message: `HotspotPost created successfully`,
       data: post_model
     });
   }
@@ -317,7 +183,7 @@ export class PostsService {
     let industry: string[] = request.body.industry;
     if (!body) {
       return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Post body is required`
+        message: `HotspotPost body is required`
       });
     }
     if (!tags) {
@@ -341,10 +207,10 @@ export class PostsService {
         });
       }
     }
-    const updates = await PostsRepo.update_post({ body, industry, tags }, post_id);
-    const post = await PostsRepo.get_post_by_id(post_id);
+    const updates = await HotspotPostsRepo.update_post({ body, industry, tags }, post_id);
+    const post = await HotspotPostsRepo.get_post_by_id(post_id);
     return response.status(HttpStatusCode.OK).json({
-      message: `Post updated successfully`,
+      message: `HotspotPost updated successfully`,
       updates: updates,
       data: post
     });
@@ -352,10 +218,142 @@ export class PostsService {
 
   static async delete_post(request: Request, response: Response) {
     const post_id = parseInt(request.params.post_id, 10);
-    const deletes = await PostsRepo.delete_post(post_id);
+    const deletes = await HotspotPostsRepo.delete_post(post_id);
     return response.status(HttpStatusCode.OK).json({
-      message: `Post deleted successfully`,
+      message: `HotspotPost deleted successfully`,
       deletes
+    });
+  }
+
+
+
+  // reactions methods
+
+  static async get_user_reaction(request: Request, response: Response) {
+    const user_id: number = parseInt(request.params.user_id, 10);
+    const post_id: number = parseInt(request.params.post_id, 10);
+    const post_reaction = await HotspotPostReactions.findOne({
+      where: {
+        post_id,
+        owner_id: user_id
+      }
+    });
+    return response.status(HttpStatusCode.OK).json({
+      data: post_reaction
+    });
+  }
+
+  static async toggle_user_reaction(request: Request, response: Response) {
+    const you: IUser = response.locals.you;
+    const post_id: number = parseInt(request.params.post_id, 10);
+
+    const reaction = request.body.reaction;
+    if (!reaction) {
+      return response.status(HttpStatusCode.BAD_REQUEST).json({
+        message: `Reaction type is required`
+      });
+    }
+    if (!(typeof (reaction) === 'string')) {
+      return response.status(HttpStatusCode.BAD_REQUEST).json({
+        message: `Reaction type is invalid`
+      });
+    }
+    if (!(reaction in COMMON_REACTION_TYPES)) {
+      return response.status(HttpStatusCode.BAD_REQUEST).json({
+        message: `Reaction type is invalid`
+      });
+    }
+
+    let post_reaction = await HotspotPostReactions.findOne({
+      where: {
+        post_id,
+        owner_id: you.id
+      }
+    });
+
+    if (!post_reaction) {
+      // user has no reaction to post; create it
+      post_reaction = await HotspotPostReactions.create(<any> {
+        reaction,
+        post_id,
+        owner_id: you.id
+      });
+    } else if (post_reaction.get('reaction') === reaction) {
+      // user's reaction is same to request; they intended to undo the reaction
+      await post_reaction.destroy();
+      post_reaction = null;
+    } else {
+      // user's reaction is different to request; they intended to change the reaction
+      post_reaction.reaction = reaction;
+      await post_reaction.save({ fields: ['reaction'] });
+    }
+
+
+    return response.status(HttpStatusCode.OK).json({
+      message: `Toggled post reaction`,
+      data: post_reaction
+    });
+  }
+
+  static async get_post_reactions_counts(request: Request, response: Response) {
+    const post_id: number = parseInt(request.params.post_id, 10);
+
+    const like_count = await HotspotPostReactions.count({ where: { post_id, reaction: COMMON_REACTION_TYPES.LIKE } });
+    const love_count = await HotspotPostReactions.count({ where: { post_id, reaction: COMMON_REACTION_TYPES.LOVE } });
+    const idea_count = await HotspotPostReactions.count({ where: { post_id, reaction: COMMON_REACTION_TYPES.IDEA } });
+    const confused_count = await HotspotPostReactions.count({ where: { post_id, reaction: COMMON_REACTION_TYPES.CONFUSED } });
+
+    const total_count: number = [
+      like_count,
+      love_count,
+      idea_count,
+      confused_count,
+    ].reduce((acc, cur) => (acc + cur));
+
+    return response.status(HttpStatusCode.OK).json({
+      data: {
+        total_count,
+        like_count,
+        love_count,
+        idea_count,
+        confused_count,
+      }
+    });
+  }
+
+  static async get_post_reactions_all(request: Request, response: Response) {
+    const post_id: number = parseInt(request.params.post_id, 10);
+    const post_reactions = await CommonRepo.getAll(
+      HotspotPostReactions,
+      'post_id',
+      post_id,
+      [{
+        model: Users,
+        as: 'owner',
+        attributes: user_attrs_slim
+      }]
+    );
+    return response.status(HttpStatusCode.OK).json({
+      data: post_reactions
+    });
+  }
+
+  static async get_post_reactions(request: Request, response: Response) {
+    const post_id = parseInt(request.params.post_id, 10);
+    const post_reaction_id: number = parseInt(request.params.post_reaction_id, 10);
+    const post_reactions = await CommonRepo.paginateTable(
+      HotspotPostReactions,
+      'post_id',
+      post_id,
+      post_reaction_id,
+      [{
+        model: Users,
+        as: 'owner',
+        attributes: user_attrs_slim
+      }]
+    );
+    return response.status(HttpStatusCode.OK).json({
+      data: post_reactions
     });
   }
 }

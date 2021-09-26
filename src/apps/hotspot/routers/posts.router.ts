@@ -1,9 +1,5 @@
 import { Router } from 'express';
-import { PostsService } from '../services/posts.service';
-import {
-  PostExists,
-  IsPostOwner
-} from '../guards/post.guard';
+import { HotspotPostsService } from '../services/posts.service';
 import {
   UserAuthorized,
   UserAuthorizedSlim,
@@ -14,59 +10,72 @@ import { createCommonGenericModelCommentRepliesService } from '../../../apps/_co
 import { createGenericCommentsRouter } from '../../../apps/_common/helpers/create-model-comments-router.helper';
 import { createCommonGenericModelCommentsService } from '../../../apps/_common/helpers/create-model-comments-service.helper';
 import { Users } from '../../../apps/_common/models/user.model';
-import { PostComments, PostCommentReactions, PostCommentReplies, PostCommentReplyReactions } from '../models/post.model';
+import { HotspotPostComments, HotspotPostCommentReactions, HotspotPostCommentReplies, HotspotPostCommentReplyReactions, HotspotPostReactions } from '../models/post.model';
+import { createGenericCommentRepliesRouter } from 'src/apps/_common/helpers/create-model-comment-replies-router.helper';
+import { createCommonGenericModelReactionsRouter } from 'src/apps/_common/helpers/create-model-reactions-router.helper.';
+import { createCommonGenericModelReactionsService } from 'src/apps/_common/helpers/create-model-reactions-service.helper';
+import { createModelRouteGuards } from 'src/apps/_common/helpers/create-model-guards.helper';
+import { get_post_by_id } from '../repos/posts.repo';
 
 
 
 export const PostsRouter: Router = Router({ mergeParams: true });
 
-// GET Routes
+const postRouteGuards = createModelRouteGuards({
+  get_model_fn: get_post_by_id,
+  model_name: 'post',
+  model_owner_field: 'owner_id',
+  request_param_id_name: 'post_id',
+});
 
-PostsRouter.get('/:post_id', PostExists, PostsService.get_post_by_id);
-PostsRouter.get('/:post_id/user-reactions/count', PostExists, PostsService.get_post_reactions_counts);
-PostsRouter.get('/:post_id/user-reactions/all', PostExists, PostsService.get_post_reactions_all);
-PostsRouter.get('/:post_id/user-reactions', PostExists, PostsService.get_post_reactions);
-PostsRouter.get('/:post_id/user-reactions/:post_reaction_id', PostExists, PostsService.get_post_reactions);
-PostsRouter.get('/:post_id/user-reaction/:user_id', UserExists, PostExists, PostsService.get_user_reaction);
+
+
+// GET Routes
+PostsRouter.get('/:post_id', postRouteGuards.existsGuard, HotspotPostsService.get_post_by_id);
+
 
 // POST Routes
+PostsRouter.post('/owner/:you_id', UserAuthorized, HotspotPostsService.create_post);
 
-PostsRouter.post('/owner/:you_id', UserAuthorized, PostsService.create_post);
 
 // PUT Routes
+PostsRouter.put('/:post_id/owner/:you_id', UserAuthorized, postRouteGuards.existsGuard, postRouteGuards.isOwnerGuard, HotspotPostsService.update_post);
+PostsRouter.put('/:post_id/user-reaction/user/:you_id', UserAuthorized, postRouteGuards.existsGuard, HotspotPostsService.toggle_user_reaction);
 
-PostsRouter.put('/:post_id/owner/:you_id', UserAuthorized, PostExists, IsPostOwner, PostsService.update_post);
-PostsRouter.put('/:post_id/user-reaction/user/:you_id', UserAuthorized, PostExists, PostsService.toggle_user_reaction);
 
 // DELETE Routes
+PostsRouter.delete('/:post_id/owner/:you_id', UserAuthorized, postRouteGuards.existsGuard, postRouteGuards.isOwnerGuard, HotspotPostsService.delete_post);
 
-PostsRouter.delete('/:post_id/owner/:you_id', UserAuthorized, PostExists, IsPostOwner, PostsService.delete_post);
 
 
+/* --- Reactions --- */
+
+const postReactionsService = createCommonGenericModelReactionsService({
+  base_model_name: 'post',
+  reaction_model: HotspotPostReactions
+})
+const ReactionsRouter = createCommonGenericModelReactionsRouter({
+  base_model_name: 'post',
+  makeGuard: false,
+  modelGuardsOpts: postRouteGuards,
+  reactionService: postReactionsService,
+});
+PostsRouter.use(ReactionsRouter);
 
 
 
 /* --- Comments --- */
 
 const PostCommentsService = createCommonGenericModelCommentsService({
-  model_name: 'Post',
-  comment_model: PostComments,
-  comment_reaction_model: PostCommentReactions
+  model_name: 'post',
+  comment_model: HotspotPostComments,
+  comment_reaction_model: HotspotPostCommentReactions
 });
-const PostCommentRepliesService = createCommonGenericModelCommentRepliesService({
-  model_name: 'Post',
-  reply_model: PostCommentReplies,
-  reply_reaction_model: PostCommentReplyReactions
-});
-
 const PostCommentsRouter = createGenericCommentsRouter({
-  generateRepliesRouter: true,
-
-  // comments router config
   commentsService: PostCommentsService,
   commentGuardsOpts: {
     get_model_fn: (id: number) => {
-      return PostComments.findOne({
+      return HotspotPostComments.findOne({
         where: { id },
         include: [{
           model: Users,
@@ -79,12 +88,22 @@ const PostCommentsRouter = createGenericCommentsRouter({
     model_owner_field: 'owner_id',
     request_param_id_name: 'comment_id',
   },
+});
+PostsRouter.use(`/:post_id/comments`, PostCommentsRouter);
 
-  // reply router config
+
+
+/* --- Comment Replies --- */
+
+const PostCommentRepliesService = createCommonGenericModelCommentRepliesService({
+  comment_reply_model: HotspotPostCommentReplies,
+  comment_reply_reaction_model: HotspotPostCommentReplyReactions
+});
+const RepliesRouter = createGenericCommentRepliesRouter({
   repliesService: PostCommentRepliesService,
   replyGuardsOpts: {
-    get_model_fn: (id) => {
-      return PostCommentReplies.findOne({
+    get_model_fn: (id: number) => {
+      return HotspotPostCommentReplies.findOne({
         where: { id },
         include: [{
           model: Users,
@@ -98,6 +117,4 @@ const PostCommentsRouter = createGenericCommentsRouter({
     request_param_id_name: 'reply_id',
   },
 });
-
-
-PostsRouter.use(`/:post_id/comments`, PostCommentsRouter);
+RepliesRouter.use(`/:post_id/comments/:comment_id/replies`, RepliesRouter);

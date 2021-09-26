@@ -19,13 +19,31 @@ import {
   MyModelStatic,
   MyModelStaticGeneric
 } from '../models/common.model-types';
-import { createCommonGenericModelReactionsService } from './create-model-reactions-service.helper';
+import { createCommonGenericModelReactionsService, IGenericModelReactionsService } from './create-model-reactions-service.helper';
+import { ExpressRouteEndHandler } from '../types/common.types';
 
 
 export interface ICreateCommonGenericModelCommentRepliesService {
-  model_name: string,
-  reply_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
-  reply_reaction_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
+  comment_reply_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
+  comment_reply_reaction_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
+}
+
+export interface IGenericCommentRepliesService {
+  reactionsService: IGenericModelReactionsService;
+
+  get_comment_reply_by_id: ExpressRouteEndHandler,
+  get_comment_replies_count: ExpressRouteEndHandler,
+  get_comment_replies_all: ExpressRouteEndHandler,
+  get_comment_replies: ExpressRouteEndHandler,
+  create_comment_reply: ExpressRouteEndHandler,
+  update_comment_reply: ExpressRouteEndHandler,
+  delete_comment_reply: ExpressRouteEndHandler,
+
+  get_user_reaction: ExpressRouteEndHandler,
+  toggle_user_reaction: ExpressRouteEndHandler,
+  get_comment_reply_reactions_counts: ExpressRouteEndHandler,
+  get_comment_reply_reactions_all: ExpressRouteEndHandler,
+  get_comment_reply_reactions: ExpressRouteEndHandler,
 }
 
 export function createCommonGenericModelCommentRepliesService (
@@ -33,21 +51,16 @@ export function createCommonGenericModelCommentRepliesService (
 ) {
   const reactionsService = createCommonGenericModelReactionsService({
     base_model_name: 'reply',
-    reaction_model: params.reply_reaction_model
+    reaction_model: params.comment_reply_reaction_model
   });
+
   return class {
     static readonly reactionsService = reactionsService;
 
     /** Request Handlers */
   
-    static async main(request: Request, response: Response) {
-      return response.status(HttpStatusCode.OK).json({
-        msg: `${params.model_name} comment replies router`
-      });
-    }
-  
-    static async get_reply_by_id(request: Request, response: Response) {
-      const reply_model = response.locals.reply_model;
+    static async get_comment_reply_by_id(request: Request, response: Response) {
+      const reply_model = response.locals.comment_reply_model;
       return response.status(HttpStatusCode.OK).json({
         data: reply_model
       });
@@ -55,7 +68,7 @@ export function createCommonGenericModelCommentRepliesService (
   
     static async get_comment_replies_count(request: Request, response: Response) {
       const comment_id: number = parseInt(request.params.comment_id, 10);
-      const replies_count = await params.reply_model.count({ where: { comment_id } });
+      const replies_count = await params.comment_reply_model.count({ where: { comment_id } });
       return response.status(HttpStatusCode.OK).json({
         data: replies_count
       });
@@ -64,7 +77,7 @@ export function createCommonGenericModelCommentRepliesService (
     static async get_comment_replies_all(request: Request, response: Response) {
       const comment_id: number = parseInt(request.params.comment_id, 10);
       const replys = await CommonRepo.getAll(
-        params.reply_model,
+        params.comment_reply_model,
         'comment_id',
         comment_id,
         [{
@@ -82,7 +95,7 @@ export function createCommonGenericModelCommentRepliesService (
       const comment_id: number = parseInt(request.params.comment_id, 10);
       const reply_id = parseInt(request.params.reply_id, 10);
       const businesses = await CommonRepo.paginateTable(
-        params.reply_model,
+        params.comment_reply_model,
         'comment_id',
         comment_id,
         reply_id,
@@ -97,7 +110,7 @@ export function createCommonGenericModelCommentRepliesService (
       });
     }
   
-    static async create_reply(request: Request, response: Response) {
+    static async create_comment_reply(request: Request, response: Response) {
       const you: IUser = response.locals.you;
       const comment_id: number = parseInt(request.params.comment_id, 10);
       let body: string = request.body.body;
@@ -106,8 +119,8 @@ export function createCommonGenericModelCommentRepliesService (
           message: `Reply body is required`
         });
       }
-      const reply_model = await params.reply_model.create({ body, comment_id, owner_id: you.id });
-      const reply = await params.reply_model.findOne({
+      const reply_model = await params.comment_reply_model.create({ body, comment_id, owner_id: you.id });
+      const reply = await params.comment_reply_model.findOne({
         where: { id: reply_model.get('id') },
         include: [{
           model: Users,
@@ -121,7 +134,7 @@ export function createCommonGenericModelCommentRepliesService (
       });
     }
   
-    static async update_reply(request: Request, response: Response) {
+    static async update_comment_reply(request: Request, response: Response) {
       const you: IUser = response.locals.you; 
       let body: string = request.body.body;
       const reply_id = parseInt(request.params.reply_id, 10);
@@ -130,8 +143,8 @@ export function createCommonGenericModelCommentRepliesService (
           message: `Reply body is required`
         });
       }
-      const updates = await params.reply_model.update({ body }, { where: { id: reply_id } });
-      const reply = await params.reply_model.findOne({
+      const updates = await params.comment_reply_model.update({ body }, { where: { id: reply_id } });
+      const reply = await params.comment_reply_model.findOne({
         where: { id: reply_id },
         include: [{
           model: Users,
@@ -146,9 +159,9 @@ export function createCommonGenericModelCommentRepliesService (
       });
     }
   
-    static async delete_reply(request: Request, response: Response) {
+    static async delete_comment_reply(request: Request, response: Response) {
       const reply_id = parseInt(request.params.reply_id, 10);
-      const deletes = await params.reply_model.destroy({ where: { id: reply_id } });
+      const deletes = await params.comment_reply_model.destroy({ where: { id: reply_id } });
       return response.status(HttpStatusCode.OK).json({
         message: `Reply deleted successfully`,
         deletes
@@ -163,10 +176,10 @@ export function createCommonGenericModelCommentRepliesService (
   
     static toggle_user_reaction = reactionsService.toggle_user_reaction;
   
-    static get_reply_reactions_counts = reactionsService.get_model_reactions_counts;
+    static get_comment_reply_reactions_counts = reactionsService.get_model_reactions_counts;
   
-    static get_reply_reactions_all = reactionsService.get_model_reactions_all;
+    static get_comment_reply_reactions_all = reactionsService.get_model_reactions_all;
   
-    static get_reply_reactions = reactionsService.get_model_reactions;
-  }
+    static get_comment_reply_reactions = reactionsService.get_model_reactions;
+  } as IGenericCommentRepliesService;
 }
