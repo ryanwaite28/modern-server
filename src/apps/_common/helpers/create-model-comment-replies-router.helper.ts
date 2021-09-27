@@ -3,21 +3,24 @@ import { UserAuthorized, UserExists } from '../guards/user.guard';
 import {
   ICreateModelGuardParams,
   createModelRouteGuards,
+  IModelGuards,
 } from './create-model-guards.helper';
-import { createCommonGenericModelReactionsRouter } from './create-model-reactions-router.helper.';
 
 
 
 
 export interface ICreateGenericCommentRepliesRouter {
-  replyGuardsOpts: ICreateModelGuardParams,
+  makeGuard?: boolean,
+  replyGuardsOpts: IModelGuards | ICreateModelGuardParams,
   repliesService: any,
 }
 
 export function createGenericCommentRepliesRouter (params: ICreateGenericCommentRepliesRouter) {
   const RepliesRouter: Router = Router({ mergeParams: true });
 
-  const routeGuards = createModelRouteGuards(params.replyGuardsOpts);
+  const routeGuards: IModelGuards = params.makeGuard
+    ? createModelRouteGuards(params.replyGuardsOpts as ICreateModelGuardParams)
+    : params.replyGuardsOpts as IModelGuards;
 
   // GET Routes
   RepliesRouter.get('/count', params.repliesService.get_comment_replies_count);
@@ -38,14 +41,6 @@ export function createGenericCommentRepliesRouter (params: ICreateGenericComment
   RepliesRouter.delete('/:reply_id/owner/:you_id', UserAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.repliesService.delete_reply);
   
 
-  // Reactions
-  const ReactionsRouter = createCommonGenericModelReactionsRouter({
-    base_model_name: 'reply',
-    makeGuard: false,
-    modelGuardsOpts: routeGuards,
-    reactionService: params.repliesService.reactionService,
-  });
-  RepliesRouter.use(ReactionsRouter);
 
   return RepliesRouter;
 }

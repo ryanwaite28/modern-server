@@ -5,27 +5,25 @@ import {
 } from '../guards/user.guard';
 import {
   ICreateModelGuardParams,
-  createModelRouteGuards
+  createModelRouteGuards,
+  IModelGuards
 } from './create-model-guards.helper';
-import { createGenericCommentRepliesRouter } from './create-model-comment-replies-router.helper';
-import { createCommonGenericModelReactionsRouter } from './create-model-reactions-router.helper.';
-import { IGenericCommentRepliesService } from './create-model-comment-replies-service.helper';
 import { IGenericCommentsService } from './create-model-comments-service.helper';
 
 
 
 
 export interface ICreateGenericCommentsRouter {
+  makeGuard?: boolean,
   commentsService: IGenericCommentsService,
-  commentGuardsOpts: ICreateModelGuardParams,
-
-  repliesService?: IGenericCommentRepliesService,
-  replyGuardsOpts?: ICreateModelGuardParams,
+  commentGuardsOpts: IModelGuards | ICreateModelGuardParams,
 }
 
 export function createGenericCommentsRouter (params: ICreateGenericCommentsRouter) {
   const CommentsRouter: Router = Router({ mergeParams: true });
-  const routeGuards = createModelRouteGuards(params.commentGuardsOpts);
+  const routeGuards: IModelGuards = params.makeGuard
+    ? createModelRouteGuards(params.commentGuardsOpts as ICreateModelGuardParams)
+    : params.commentGuardsOpts as IModelGuards;
 
   // GET Routes
   CommentsRouter.get('/count', params.commentsService.get_comments_count);
@@ -46,14 +44,6 @@ export function createGenericCommentsRouter (params: ICreateGenericCommentsRoute
   CommentsRouter.delete('/:comment_id/owner/:you_id', UserAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.commentsService.delete_comment);
 
 
-  // Reactions
-  const ReactionsRouter = createCommonGenericModelReactionsRouter({
-    base_model_name: 'comment',
-    makeGuard: false,
-    modelGuardsOpts: routeGuards,
-    reactionService: params.repliesService!.reactionsService,
-  });
-  CommentsRouter.use(ReactionsRouter);
 
   return CommentsRouter;
 }

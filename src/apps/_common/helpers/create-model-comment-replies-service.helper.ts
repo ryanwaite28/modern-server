@@ -21,16 +21,19 @@ import {
 } from '../models/common.model-types';
 import { createCommonGenericModelReactionsService, IGenericModelReactionsService } from './create-model-reactions-service.helper';
 import { ExpressRouteEndHandler } from '../types/common.types';
+import { create_notification } from '../repos/notifications.repo';
+import { CommonSocketEventsHandler } from '../services/socket-events-handlers-by-app/common.socket-event-handler';
 
 
 export interface ICreateCommonGenericModelCommentRepliesService {
+  micro_app: string,
+  create_model_event: string,
+  target_type: string,
+  populate_notification_fn: (notification: IMyModel) => any;
   comment_reply_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
-  comment_reply_reaction_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
 }
 
 export interface IGenericCommentRepliesService {
-  reactionsService: IGenericModelReactionsService;
-
   get_comment_reply_by_id: ExpressRouteEndHandler,
   get_comment_replies_count: ExpressRouteEndHandler,
   get_comment_replies_all: ExpressRouteEndHandler,
@@ -38,29 +41,16 @@ export interface IGenericCommentRepliesService {
   create_comment_reply: ExpressRouteEndHandler,
   update_comment_reply: ExpressRouteEndHandler,
   delete_comment_reply: ExpressRouteEndHandler,
-
-  get_user_reaction: ExpressRouteEndHandler,
-  toggle_user_reaction: ExpressRouteEndHandler,
-  get_comment_reply_reactions_counts: ExpressRouteEndHandler,
-  get_comment_reply_reactions_all: ExpressRouteEndHandler,
-  get_comment_reply_reactions: ExpressRouteEndHandler,
 }
 
 export function createCommonGenericModelCommentRepliesService (
   params: ICreateCommonGenericModelCommentRepliesService
 ) {
-  const reactionsService = createCommonGenericModelReactionsService({
-    base_model_name: 'reply',
-    reaction_model: params.comment_reply_reaction_model
-  });
-
   return class {
-    static readonly reactionsService = reactionsService;
-
     /** Request Handlers */
   
     static async get_comment_reply_by_id(request: Request, response: Response) {
-      const reply_model = response.locals.comment_reply_model;
+      const reply_model = response.locals.reply_model;
       return response.status(HttpStatusCode.OK).json({
         data: reply_model
       });
@@ -113,6 +103,7 @@ export function createCommonGenericModelCommentRepliesService (
     static async create_comment_reply(request: Request, response: Response) {
       const you: IUser = response.locals.you;
       const comment_id: number = parseInt(request.params.comment_id, 10);
+      const comment_model = response.locals.comment_model as IMyModel;
       let body: string = request.body.body;
       if (!body) {
         return response.status(HttpStatusCode.BAD_REQUEST).json({
@@ -128,6 +119,28 @@ export function createCommonGenericModelCommentRepliesService (
           attributes: user_attrs_slim
         }]
       });
+
+      create_notification({
+        from_id: you.id,
+        to_id: comment_model.get('owner_id'),
+        micro_app: params.micro_app,
+        event: params.create_model_event,
+        target_type: params.target_type,
+        target_id: reply_model.get('id'),
+      }).then(async (notification_model) => {
+        const notification = await params.populate_notification_fn(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: comment_model.get('owner_id'),
+          event: params.create_model_event,
+          data: {
+            data: reply,
+            message: `New reply`,
+            user: you,
+            notification,
+          }
+        });
+      });
+
       return response.status(HttpStatusCode.OK).json({
         message: `Reply created successfully`,
         data: reply
@@ -167,19 +180,5 @@ export function createCommonGenericModelCommentRepliesService (
         deletes
       });
     }
-
-
-
-    // Reply Reactions
-
-    static get_user_reaction = reactionsService.get_user_reaction;
-  
-    static toggle_user_reaction = reactionsService.toggle_user_reaction;
-  
-    static get_comment_reply_reactions_counts = reactionsService.get_model_reactions_counts;
-  
-    static get_comment_reply_reactions_all = reactionsService.get_model_reactions_all;
-  
-    static get_comment_reply_reactions = reactionsService.get_model_reactions;
   } as IGenericCommentRepliesService;
 }

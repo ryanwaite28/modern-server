@@ -16,12 +16,15 @@ import { createCommonGenericModelReactionsRouter } from 'src/apps/_common/helper
 import { createCommonGenericModelReactionsService } from 'src/apps/_common/helpers/create-model-reactions-service.helper';
 import { createModelRouteGuards } from 'src/apps/_common/helpers/create-model-guards.helper';
 import { get_post_by_id } from '../repos/posts.repo';
+import { MODERN_APP_NAMES } from 'src/apps/_common/enums/common.enum';
+import { HOTSPOT_EVENT_TYPES, HOTSPOT_NOTIFICATION_TARGET_TYPES } from '../enums/hotspot.enum';
+import { populate_hotspot_notification_obj } from '../hotspot.chamber';
 
 
 
 export const PostsRouter: Router = Router({ mergeParams: true });
 
-const postRouteGuards = createModelRouteGuards({
+const PostRouteGuards = createModelRouteGuards({
   get_model_fn: get_post_by_id,
   model_name: 'post',
   model_owner_field: 'owner_id',
@@ -31,7 +34,7 @@ const postRouteGuards = createModelRouteGuards({
 
 
 // GET Routes
-PostsRouter.get('/:post_id', postRouteGuards.existsGuard, HotspotPostsService.get_post_by_id);
+PostsRouter.get('/:post_id', PostRouteGuards.existsGuard, HotspotPostsService.get_post_by_id);
 
 
 // POST Routes
@@ -39,82 +42,146 @@ PostsRouter.post('/owner/:you_id', UserAuthorized, HotspotPostsService.create_po
 
 
 // PUT Routes
-PostsRouter.put('/:post_id/owner/:you_id', UserAuthorized, postRouteGuards.existsGuard, postRouteGuards.isOwnerGuard, HotspotPostsService.update_post);
-PostsRouter.put('/:post_id/user-reaction/user/:you_id', UserAuthorized, postRouteGuards.existsGuard, HotspotPostsService.toggle_user_reaction);
+PostsRouter.put('/:post_id/owner/:you_id', UserAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, HotspotPostsService.update_post);
+PostsRouter.put('/:post_id/user-reaction/user/:you_id', UserAuthorized, PostRouteGuards.existsGuard, HotspotPostsService.toggle_user_reaction);
 
 
 // DELETE Routes
-PostsRouter.delete('/:post_id/owner/:you_id', UserAuthorized, postRouteGuards.existsGuard, postRouteGuards.isOwnerGuard, HotspotPostsService.delete_post);
+PostsRouter.delete('/:post_id/owner/:you_id', UserAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, HotspotPostsService.delete_post);
 
 
 
-/* --- Reactions --- */
 
-const postReactionsService = createCommonGenericModelReactionsService({
+
+/* --- Post Reactions --- */
+
+const PostReactionsService = createCommonGenericModelReactionsService({
   base_model_name: 'post',
+  micro_app: MODERN_APP_NAMES.HOTSPOT,
+  reactionEvents: {
+    REACTED: HOTSPOT_EVENT_TYPES.NEW_POST_REACTION,
+    UNREACTED: HOTSPOT_EVENT_TYPES.NEW_POST_UNREACTION,
+    CHANGE_REACTED: HOTSPOT_EVENT_TYPES.NEW_POST_CHANGED_REACTION,
+  },
+  target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.POST,
+  populate_notification_fn: populate_hotspot_notification_obj,
   reaction_model: HotspotPostReactions
-})
-const ReactionsRouter = createCommonGenericModelReactionsRouter({
-  base_model_name: 'post',
-  makeGuard: false,
-  modelGuardsOpts: postRouteGuards,
-  reactionService: postReactionsService,
 });
-PostsRouter.use(ReactionsRouter);
+const PostReactionsRouter = createCommonGenericModelReactionsRouter({
+  reactionService: PostReactionsService,
+});
+PostsRouter.use('/:post_id', PostRouteGuards.existsGuard, PostReactionsRouter);
 
 
 
-/* --- Comments --- */
+/* --- Post Comments --- */
 
 const PostCommentsService = createCommonGenericModelCommentsService({
-  model_name: 'post',
+  base_model_name: 'post',
+  micro_app: MODERN_APP_NAMES.HOTSPOT,
+  create_model_event: HOTSPOT_EVENT_TYPES.NEW_POST_COMMENT,
+  target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.POST,
+  populate_notification_fn: populate_hotspot_notification_obj,
   comment_model: HotspotPostComments,
-  comment_reaction_model: HotspotPostCommentReactions
+});
+const PostCommentsGuard = createModelRouteGuards({
+  get_model_fn: (id: number) => {
+    return HotspotPostComments.findOne({
+      where: { id },
+      include: [{
+        model: Users,
+        as: 'owner',
+        attributes: user_attrs_slim
+      }]
+    })
+  },
+  model_name: 'comment',
+  model_owner_field: 'owner_id',
+  request_param_id_name: 'comment_id',
 });
 const PostCommentsRouter = createGenericCommentsRouter({
   commentsService: PostCommentsService,
-  commentGuardsOpts: {
-    get_model_fn: (id: number) => {
-      return HotspotPostComments.findOne({
-        where: { id },
-        include: [{
-          model: Users,
-          as: 'owner',
-          attributes: user_attrs_slim
-        }]
-      })
-    },
-    model_name: 'comment',
-    model_owner_field: 'owner_id',
-    request_param_id_name: 'comment_id',
-  },
+  commentGuardsOpts: PostCommentsGuard,
 });
-PostsRouter.use(`/:post_id/comments`, PostCommentsRouter);
+PostsRouter.use(`/:post_id/comments`, PostRouteGuards.existsGuard, PostCommentsRouter);
 
 
 
-/* --- Comment Replies --- */
+/* --- Post Comment Reactions --- */
+
+const PostCommentReactionsService = createCommonGenericModelReactionsService({
+  base_model_name: 'post',
+  micro_app: MODERN_APP_NAMES.HOTSPOT,
+  reactionEvents: {
+    REACTED: HOTSPOT_EVENT_TYPES.NEW_POST_COMMENT_REACTION,
+    UNREACTED: HOTSPOT_EVENT_TYPES.NEW_POST_COMMENT_UNREACTION,
+    CHANGE_REACTED: HOTSPOT_EVENT_TYPES.NEW_POST_COMMENT_CHANGED_REACTION,
+  },
+  target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.POST_COMMENT,
+  populate_notification_fn: populate_hotspot_notification_obj,
+  reaction_model: HotspotPostCommentReactions
+});
+const PostCommentReactionsRouter = createCommonGenericModelReactionsRouter({
+  reactionService: PostCommentReactionsService,
+});
+PostsRouter.use(`/:post_id/comments/:comment_id`, PostRouteGuards.existsGuard, PostCommentsGuard.existsGuard, PostCommentReactionsRouter);
+
+
+
+
+/* --- Post Comment Replies --- */
 
 const PostCommentRepliesService = createCommonGenericModelCommentRepliesService({
+  micro_app: MODERN_APP_NAMES.HOTSPOT,
+  create_model_event: HOTSPOT_EVENT_TYPES.NEW_POST_COMMENT_REPLY,
+  target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.POST_COMMENT_REPLY,
+  populate_notification_fn: populate_hotspot_notification_obj,
   comment_reply_model: HotspotPostCommentReplies,
-  comment_reply_reaction_model: HotspotPostCommentReplyReactions
 });
-const RepliesRouter = createGenericCommentRepliesRouter({
-  repliesService: PostCommentRepliesService,
-  replyGuardsOpts: {
-    get_model_fn: (id: number) => {
-      return HotspotPostCommentReplies.findOne({
-        where: { id },
-        include: [{
-          model: Users,
-          as: 'owner',
-          attributes: user_attrs_slim
-        }]
-      })
-    },
-    model_name: 'reply',
-    model_owner_field: 'owner_id',
-    request_param_id_name: 'reply_id',
+const PostCommentReplyGuard = createModelRouteGuards({
+  get_model_fn: (id: number) => {
+    return HotspotPostCommentReplies.findOne({
+      where: { id },
+      include: [{
+        model: Users,
+        as: 'owner',
+        attributes: user_attrs_slim
+      }]
+    })
   },
+  model_name: 'reply',
+  model_owner_field: 'owner_id',
+  request_param_id_name: 'reply_id',
 });
-RepliesRouter.use(`/:post_id/comments/:comment_id/replies`, RepliesRouter);
+const PostCommentRepliesRouter = createGenericCommentRepliesRouter({
+  repliesService: PostCommentRepliesService,
+  replyGuardsOpts: PostCommentReplyGuard,
+});
+PostsRouter.use(`/:post_id/comments/:comment_id/replies`, PostRouteGuards.existsGuard, PostCommentsGuard.existsGuard, PostCommentRepliesRouter);
+
+
+
+/* --- Post Comment Reply Reactions --- */
+
+const PostCommentReplyReactionsService = createCommonGenericModelReactionsService({
+  base_model_name: 'post',
+  micro_app: MODERN_APP_NAMES.HOTSPOT,
+  reactionEvents: {
+    REACTED: HOTSPOT_EVENT_TYPES.NEW_POST_COMMENT_REPLY_REACTION,
+    UNREACTED: HOTSPOT_EVENT_TYPES.NEW_POST_COMMENT_REPLY_UNREACTION,
+    CHANGE_REACTED: HOTSPOT_EVENT_TYPES.NEW_POST_COMMENT_REPLY_CHANGED_REACTION,
+  },
+  target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.POST_COMMENT_REPLY,
+  populate_notification_fn: populate_hotspot_notification_obj,
+  reaction_model: HotspotPostCommentReplyReactions
+});
+const PostCommentReplyReactionsRouter = createCommonGenericModelReactionsRouter({
+  reactionService: PostCommentReplyReactionsService,
+});
+PostsRouter.use(
+  `/:post_id/comments/:comment_id/replies/:reply_id`, 
+  PostRouteGuards.existsGuard, 
+  PostCommentsGuard.existsGuard, 
+  PostCommentReplyGuard.existsGuard, 
+  PostCommentReplyReactionsRouter
+);
