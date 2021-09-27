@@ -1,7 +1,23 @@
-
+import { Request, Response } from 'express';
+import { DelivermeStripeWebhookHandlerService } from 'src/apps/deliver-me/services/deliverme-stripe-webhook-handler.service';
+import { MODERN_APP_NAMES } from '../enums/common.enum';
+import { HttpStatusCode } from '../enums/http-codes.enum';
+import { UserPaymentIntents } from '../models/user.model';
 
 export class StripeWebhookEventsHandlerService {
-  static async handleEvent(event: any) {
+  /**
+   * @description
+   * Main stripe webhook atrium method.
+   * 
+   * Sends event to proper micro app delegate. The order:
+   * event.type > micro app > target type
+   * 
+   * @param event 
+   * @param request 
+   * @param response 
+   * @returns 
+   */
+  static async handleEvent(event: any, request: Request, response: Response) {
     switch (event.type) {
       case 'account.updated': {
         var account = event.data.object;
@@ -420,10 +436,21 @@ export class StripeWebhookEventsHandlerService {
         var paymentIntent = event.data.object;
         // Then define and call a function to handle the event payment_intent.requires_action
         break;
-      case 'payment_intent.succeeded':
-        var paymentIntent = event.data.object;
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object;
         // Then define and call a function to handle the event payment_intent.succeeded
+        const userPaymentIntent = await UserPaymentIntents.findOne({ where: { payment_intent_id: paymentIntent.id } });
+        if (userPaymentIntent) {
+          const userPaymentIntentObj: any = userPaymentIntent.toJSON();
+          switch (userPaymentIntentObj.micro_app) {
+            case MODERN_APP_NAMES.DELIVERME: {
+              DelivermeStripeWebhookHandlerService.payment_intent_succeeded(userPaymentIntentObj);
+              break;
+            }
+          }
+        }
         break;
+      }
       case 'payment_method.attached':
         var paymentMethod = event.data.object;
         // Then define and call a function to handle the event payment_method.attached
@@ -716,5 +743,7 @@ export class StripeWebhookEventsHandlerService {
       default:
         console.log(`Unhandled event type ${event.type}`);
     }
+
+    return response.status(HttpStatusCode.OK).json({ received: true });
   }
 }

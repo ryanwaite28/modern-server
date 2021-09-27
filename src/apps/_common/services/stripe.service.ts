@@ -1,9 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
 import { HttpStatusCode } from '../enums/http-codes.enum';
-
 
 const stripe = require("stripe")(process.env.STRIPE_SK);
 export const DELIVERME_APP_FEE = 0.08;
