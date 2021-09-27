@@ -2,10 +2,10 @@ import {
   Request,
   Response,
 } from 'express';
-import * as ResourceInterestsRepo from '../repos/resource-interests.repo';
+import * as HotspotResourceInterestsRepo from '../repos/resource-interests.repo';
 import * as CommonRepo from '../../_common/repos/_common.repo';
 import { Op } from 'sequelize';
-import { ResourceInterests, Resources } from '../models/resource.model';
+import { HotspotResourceInterests, HotspotResources } from '../models/resource.model';
 import {
   user_attrs_slim
 } from '../../_common/common.chamber';
@@ -26,12 +26,12 @@ export class ResourceInterestsService {
     const user_id = parseInt(request.params.user_id, 10);
     const interest_id = parseInt(request.params.interest_id, 10);
     const resource_interests_models = await CommonRepo.paginateTable(
-      ResourceInterests,
+      HotspotResourceInterests,
       'user_id',
       user_id,
       interest_id,
       [{
-        model: Resources,
+        model: HotspotResources,
         as: 'resource',
         include: [{
           model: Users,
@@ -43,7 +43,7 @@ export class ResourceInterestsService {
     const new_list: any[] = [];
     for (const resource_interest_model of resource_interests_models) {
       const interest: PlainObject = resource_interest_model.toJSON();
-      const interests_count = await ResourceInterestsRepo.get_resource_interests_count(
+      const interests_count = await HotspotResourceInterestsRepo.get_resource_interests_count(
         interest.resource_id
       );
       interest.resource.interests_count = interests_count;
@@ -57,11 +57,11 @@ export class ResourceInterestsService {
   static async get_user_resource_interests_all(request: Request, response: Response) {
     const user_id: number = parseInt(request.params.user_id, 10);
     const resource_interests = await CommonRepo.getAll(
-      ResourceInterests,
+      HotspotResourceInterests,
       'user_id',
       user_id,
       [{
-        model: Resources,
+        model: HotspotResources,
         as: 'resource',
       }]
     );
@@ -72,7 +72,7 @@ export class ResourceInterestsService {
 
   static async get_resource_interests_all(request: Request, response: Response) {
     const resource_id: number = parseInt(request.params.resource_id, 10);
-    const resource_interests_models = await ResourceInterests.findAll({
+    const resource_interests_models = await HotspotResourceInterests.findAll({
       where: { resource_id },
       include: [{
         model: Users,
@@ -91,7 +91,7 @@ export class ResourceInterestsService {
     const whereClause: PlainObject = interest_id
       ? { resource_id, id: { [Op.lt]: interest_id } }
       : { resource_id };
-    const resource_interests_models = await ResourceInterests.findAll({
+    const resource_interests_models = await HotspotResourceInterests.findAll({
       where: whereClause,
       include: [{
         model: Users,
@@ -110,7 +110,7 @@ export class ResourceInterestsService {
     const you_id: number = parseInt(request.params.you_id, 10);
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
-    const interest_model = await ResourceInterests.findOne({
+    const interest_model = await HotspotResourceInterests.findOne({
       where: {
         resource_id,
         user_id: you_id
@@ -125,7 +125,7 @@ export class ResourceInterestsService {
     const you_id: number = parseInt(request.params.you_id, 10);
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
-    const interest_model = await ResourceInterests.findOne({
+    const interest_model = await HotspotResourceInterests.findOne({
       where: {
         resource_id,
         user_id: you_id
@@ -138,7 +138,7 @@ export class ResourceInterestsService {
       });
     }
 
-    const new_interest_model = await ResourceInterests.create({
+    const new_interest_model = await HotspotResourceInterests.create({
       resource_id,
       user_id: you_id
     });
@@ -172,7 +172,7 @@ export class ResourceInterestsService {
     const you_id: number = parseInt(request.params.you_id, 10);
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
-    const interest_model = await ResourceInterests.findOne({
+    const interest_model = await HotspotResourceInterests.findOne({
       where: {
         resource_id,
         user_id: you_id

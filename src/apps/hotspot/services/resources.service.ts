@@ -8,7 +8,7 @@ import {
 import * as UserRepo from '../../_common/repos/users.repo';
 import * as EmailVerfRepo from '../../_common/repos/email-verification.repo';
 import * as PhoneVerfRepo from '../../_common/repos/phone-verification.repo';
-import * as ResourceRepo from '../../hotspot/repos/resources.repo';
+import * as HotspotResourceRepo from '../../hotspot/repos/resources.repo';
 import * as CommonRepo from '../../_common/repos/_common.repo';
 import { fn, col, cast, Op } from 'sequelize';
 import { URL_REGEX, allowedImages, user_attrs_slim } from '../../_common/common.chamber';
@@ -16,7 +16,7 @@ import { store_image } from '../../../cloudinary-manager';
 import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
 import { IUser, PlainObject } from '../../_common/interfaces/common.interface';
 import { Users } from '../../_common/models/user.model';
-import { Resources, ResourceInterests } from '../models/resource.model';
+import { HotspotResources, HotspotResourceInterests } from '../models/resource.model';
 import { HOTSPOT_RESOURCE_TYPES } from '../enums/hotspot.enum';
 
 export class ResourcesService {
@@ -102,12 +102,12 @@ export class ResourcesService {
       createObj.icon_link = results.result.secure_url
     }
 
-    const new_resource_model = await ResourceRepo.create_resource(createObj);
-    const resource_model = await ResourceRepo.get_resource_by_id(
+    const new_resource_model = await HotspotResourceRepo.create_resource(createObj);
+    const resource_model = await HotspotResourceRepo.get_resource_by_id(
       new_resource_model.getDataValue('id')
     );
     return response.status(HttpStatusCode.OK).json({
-      message: `Resource created successfully!`,
+      message: `HotspotResource created successfully!`,
       data: resource_model!.toJSON()
     });
   }
@@ -180,12 +180,12 @@ export class ResourcesService {
     }
 
     const where = { id: resource_id, owner_id: you.id };
-    const updates = await ResourceRepo.update_resource(updateObj, where);
-    const resource_model = await ResourceRepo.get_resource_by_id(resource_id);
+    const updates = await HotspotResourceRepo.update_resource(updateObj, where);
+    const resource_model = await HotspotResourceRepo.get_resource_by_id(resource_id);
 
     return response.status(HttpStatusCode.OK).json({
       updates,
-      message: `Resource updated successfully!`,
+      message: `HotspotResource updated successfully!`,
       data: resource_model!.toJSON()
     });
   }
@@ -197,7 +197,7 @@ export class ResourcesService {
     
     return response.status(HttpStatusCode.OK).json({
       deletes,
-      message: `Resource deleted successfully!`,
+      message: `HotspotResource deleted successfully!`,
     });
   }
 
@@ -205,7 +205,7 @@ export class ResourcesService {
     const you: IUser = response.locals.you; 
     const resource_id = parseInt(request.params.resource_id, 10);
     const resources = await CommonRepo.paginateTable(
-      Resources,
+      HotspotResources,
       'owner_id',
       you.id,
       resource_id,
@@ -223,7 +223,7 @@ export class ResourcesService {
   static async get_user_resources_all(request: Request, response: Response) {
     const user_id: number = parseInt(request.params.user_id, 10);
     const resources = await CommonRepo.getAll(
-      Resources,
+      HotspotResources,
       'owner_id',
       user_id,
       [{
@@ -231,7 +231,7 @@ export class ResourcesService {
         as: 'owner',
         attributes: user_attrs_slim
       }, {
-        model: ResourceInterests,
+        model: HotspotResourceInterests,
         as: 'interests',
         attributes: [],
       }],

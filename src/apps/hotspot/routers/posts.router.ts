@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { HotspotPostsService } from '../services/posts.service';
+import { PostsService } from '../services/posts.service';
 import {
   UserAuthorized,
   UserAuthorizedSlim,
@@ -11,12 +11,12 @@ import { createGenericCommentsRouter } from '../../../apps/_common/helpers/creat
 import { createCommonGenericModelCommentsService } from '../../../apps/_common/helpers/create-model-comments-service.helper';
 import { Users } from '../../../apps/_common/models/user.model';
 import { HotspotPostComments, HotspotPostCommentReactions, HotspotPostCommentReplies, HotspotPostCommentReplyReactions, HotspotPostReactions } from '../models/post.model';
-import { createGenericCommentRepliesRouter } from 'src/apps/_common/helpers/create-model-comment-replies-router.helper';
-import { createCommonGenericModelReactionsRouter } from 'src/apps/_common/helpers/create-model-reactions-router.helper.';
-import { createCommonGenericModelReactionsService } from 'src/apps/_common/helpers/create-model-reactions-service.helper';
-import { createModelRouteGuards } from 'src/apps/_common/helpers/create-model-guards.helper';
+import { createGenericCommentRepliesRouter } from '../../../apps/_common/helpers/create-model-comment-replies-router.helper';
+import { createCommonGenericModelReactionsRouter } from '../../../apps/_common/helpers/create-model-reactions-router.helper.';
+import { createCommonGenericModelReactionsService } from '../../../apps/_common/helpers/create-model-reactions-service.helper';
+import { createModelRouteGuards } from '../../../apps/_common/helpers/create-model-guards.helper';
 import { get_post_by_id } from '../repos/posts.repo';
-import { MODERN_APP_NAMES } from 'src/apps/_common/enums/common.enum';
+import { MODERN_APP_NAMES } from '../../../apps/_common/enums/common.enum';
 import { HOTSPOT_EVENT_TYPES, HOTSPOT_NOTIFICATION_TARGET_TYPES } from '../enums/hotspot.enum';
 import { populate_hotspot_notification_obj } from '../hotspot.chamber';
 
@@ -34,20 +34,20 @@ const PostRouteGuards = createModelRouteGuards({
 
 
 // GET Routes
-PostsRouter.get('/:post_id', PostRouteGuards.existsGuard, HotspotPostsService.get_post_by_id);
+PostsRouter.get('/:post_id', PostRouteGuards.existsGuard, PostsService.get_post_by_id);
 
 
 // POST Routes
-PostsRouter.post('/owner/:you_id', UserAuthorized, HotspotPostsService.create_post);
+PostsRouter.post('/owner/:you_id', UserAuthorized, PostsService.create_post);
 
 
 // PUT Routes
-PostsRouter.put('/:post_id/owner/:you_id', UserAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, HotspotPostsService.update_post);
-PostsRouter.put('/:post_id/user-reaction/user/:you_id', UserAuthorized, PostRouteGuards.existsGuard, HotspotPostsService.toggle_user_reaction);
+PostsRouter.put('/:post_id/owner/:you_id', UserAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, PostsService.update_post);
+PostsRouter.put('/:post_id/user-reaction/user/:you_id', UserAuthorized, PostRouteGuards.existsGuard, PostsService.toggle_user_reaction);
 
 
 // DELETE Routes
-PostsRouter.delete('/:post_id/owner/:you_id', UserAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, HotspotPostsService.delete_post);
+PostsRouter.delete('/:post_id/owner/:you_id', UserAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, PostsService.delete_post);
 
 
 

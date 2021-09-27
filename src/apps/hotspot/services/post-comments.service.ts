@@ -15,8 +15,8 @@ import {
 import { Users } from '../../_common/models/user.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
 
-import * as PostCommentsRepo from '../repos/post-comments.repo';
-import { PostComments, PostCommentReactions } from '../models/post.model';
+import * as HotspotPostCommentsRepo from '../repos/post-comments.repo';
+import { HotspotPostComments, HotspotPostCommentReactions } from '../models/post.model';
 
 export class PostCommentsService {
   /** Request Handlers */
@@ -36,7 +36,7 @@ export class PostCommentsService {
 
   static async get_post_comments_count(request: Request, response: Response) {
     const post_id: number = parseInt(request.params.post_id, 10);
-    const comments_count = await PostComments.count({ where: { post_id } });
+    const comments_count = await HotspotPostComments.count({ where: { post_id } });
     return response.status(HttpStatusCode.OK).json({
       data: comments_count
     });
@@ -45,7 +45,7 @@ export class PostCommentsService {
   static async get_post_comments_all(request: Request, response: Response) {
     const post_id: number = parseInt(request.params.post_id, 10);
     const comments = await CommonRepo.getAll(
-      PostComments,
+      HotspotPostComments,
       'post_id',
       post_id,
       [{
@@ -63,7 +63,7 @@ export class PostCommentsService {
     const post_id: number = parseInt(request.params.post_id, 10);
     const comment_id = parseInt(request.params.comment_id, 10) || undefined;
     const comments = await CommonRepo.paginateTable(
-      PostComments,
+      HotspotPostComments,
       'post_id',
       post_id,
       comment_id,
@@ -81,7 +81,7 @@ export class PostCommentsService {
   static async get_user_reaction(request: Request, response: Response) {
     const user_id: number = parseInt(request.params.user_id, 10);
     const comment_id: number = parseInt(request.params.comment_id, 10);
-    const comment_reaction = await PostCommentReactions.findOne({
+    const comment_reaction = await HotspotPostCommentReactions.findOne({
       where: {
         comment_id,
         owner_id: user_id
@@ -113,7 +113,7 @@ export class PostCommentsService {
       });
     }
 
-    let comment_reaction = await PostCommentReactions.findOne({
+    let comment_reaction = await HotspotPostCommentReactions.findOne({
       where: {
         comment_id,
         owner_id: you.id
@@ -122,7 +122,7 @@ export class PostCommentsService {
 
     if (!comment_reaction) {
       // user has no reaction to comment; create it
-      comment_reaction = await PostCommentReactions.create(<any> {
+      comment_reaction = await HotspotPostCommentReactions.create(<any> {
         reaction,
         comment_id,
         owner_id: you.id
@@ -147,10 +147,10 @@ export class PostCommentsService {
   static async get_comment_reactions_counts(request: Request, response: Response) {
     const comment_id: number = parseInt(request.params.comment_id, 10);
 
-    const like_count = await PostCommentReactions.count({ where: { comment_id, reaction: COMMON_REACTION_TYPES.LIKE } });
-    const love_count = await PostCommentReactions.count({ where: { comment_id, reaction: COMMON_REACTION_TYPES.LOVE } });
-    const idea_count = await PostCommentReactions.count({ where: { comment_id, reaction: COMMON_REACTION_TYPES.IDEA } });
-    const confused_count = await PostCommentReactions.count({ where: { comment_id, reaction: COMMON_REACTION_TYPES.CONFUSED } });
+    const like_count = await HotspotPostCommentReactions.count({ where: { comment_id, reaction: COMMON_REACTION_TYPES.LIKE } });
+    const love_count = await HotspotPostCommentReactions.count({ where: { comment_id, reaction: COMMON_REACTION_TYPES.LOVE } });
+    const idea_count = await HotspotPostCommentReactions.count({ where: { comment_id, reaction: COMMON_REACTION_TYPES.IDEA } });
+    const confused_count = await HotspotPostCommentReactions.count({ where: { comment_id, reaction: COMMON_REACTION_TYPES.CONFUSED } });
 
     const total_count: number = [
       like_count,
@@ -173,7 +173,7 @@ export class PostCommentsService {
   static async get_comment_reactions_all(request: Request, response: Response) {
     const comment_id: number = parseInt(request.params.comment_id, 10);
     const comment_reactions = await CommonRepo.getAll(
-      PostCommentReactions,
+      HotspotPostCommentReactions,
       'comment_id',
       comment_id,
       [{
@@ -191,7 +191,7 @@ export class PostCommentsService {
     const comment_id = parseInt(request.params.comment_id, 10);
     const comment_reaction_id: number = parseInt(request.params.comment_reaction_id, 10);
     const comment_reactions = await CommonRepo.paginateTable(
-      PostCommentReactions,
+      HotspotPostCommentReactions,
       'comment_id',
       comment_id,
       comment_reaction_id,
@@ -215,7 +215,7 @@ export class PostCommentsService {
         message: `Comment body is required`
       });
     }
-    const comment_model = await PostCommentsRepo.create_comment({ body, post_id, owner_id: you.id });
+    const comment_model = await HotspotPostCommentsRepo.create_comment({ body, post_id, owner_id: you.id });
     return response.status(HttpStatusCode.OK).json({
       message: `Comment created successfully`,
       data: comment_model
@@ -231,8 +231,8 @@ export class PostCommentsService {
         message: `Comment body is required`
       });
     }
-    const updates = await PostCommentsRepo.update_comment({ body }, comment_id);
-    const comment = await PostCommentsRepo.get_comment_by_id(comment_id);
+    const updates = await HotspotPostCommentsRepo.update_comment({ body }, comment_id);
+    const comment = await HotspotPostCommentsRepo.get_comment_by_id(comment_id);
     return response.status(HttpStatusCode.OK).json({
       message: `Comment updated successfully`,
       updates: updates,
@@ -242,7 +242,7 @@ export class PostCommentsService {
 
   static async delete_comment(request: Request, response: Response) {
     const comment_id = parseInt(request.params.comment_id, 10);
-    const deletes = await PostCommentsRepo.delete_comment(comment_id);
+    const deletes = await HotspotPostCommentsRepo.delete_comment(comment_id);
     return response.status(HttpStatusCode.OK).json({
       message: `Comment deleted successfully`,
       deletes

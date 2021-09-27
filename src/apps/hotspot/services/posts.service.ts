@@ -21,7 +21,7 @@ import { HotspotPosts, HotspotPostPhotos, HotspotPostReactions } from '../models
 import { Users } from '../../_common/models/user.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
 
-export class HotspotPostsService {
+export class PostsService {
   /** Request Handlers */
 
   static async get_post_by_id(request: Request, response: Response) {

@@ -9,8 +9,8 @@ import { IUser } from '../../_common/interfaces/common.interface';
 import { Photos } from '../../_common/models/photo.model';
 import { Users } from '../../_common/models/user.model';
 import { Cliques } from '../models/clique.model';
-import { Posts, PostPhotos } from '../models/post.model';
-import { Resources } from '../models/resource.model';
+import { HotspotPosts, HotspotPostPhotos } from '../models/post.model';
+import { HotspotResources } from '../models/resource.model';
 
 
 
@@ -85,7 +85,7 @@ export class HotspotUsersService {
         });
       }
       case 'resources': {
-        const results = await Resources.findAll({
+        const results = await HotspotResources.findAll({
           where: { 
             ...partialWhereClause,
             [Op.or]: [
@@ -160,7 +160,7 @@ export class HotspotUsersService {
         break;
       }
       case 'new-posts': {
-        results = await Posts.findAll({
+        results = await HotspotPosts.findAll({
           where: { ...partialWhere('owner_id'), ...useTagsOr },
           limit,
           include: [{
@@ -168,7 +168,7 @@ export class HotspotUsersService {
             as: 'owner',
             attributes: user_attrs_slim
           }, {
-            model: PostPhotos,
+            model: HotspotPostPhotos,
             as: 'photos',
             include: [{
               model: Photos,

@@ -20,7 +20,7 @@ import { Videos } from './video.model';
 import { Links } from './link.model';
 import { Recipes } from '../../chef-city/models/recipe.model';
 import { Notices } from '../../hotspot/models/notice.model';
-import { Posts } from '../../hotspot/models/post.model';
+import { HotspotPosts } from '../../hotspot/models/post.model';
 
 export const SharedPhotos = <MyModelStatic> sequelize.define('common_shared_photos', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
@@ -61,7 +61,7 @@ export const SharedLinks = <MyModelStatic> sequelize.define('common_shared_links
 export const SharedPosts = <MyModelStatic> sequelize.define('common_shared_posts', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
-  post_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Posts, key: 'id' } },
+  post_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotPosts, key: 'id' } },
   body:                { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }

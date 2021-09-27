@@ -19,7 +19,7 @@ import {
 import moment from 'moment';
 import { Cliques } from '../../hotspot/models/clique.model';
 import { NewsDataCache } from '../models/other.model';
-import { Resources } from '../../hotspot/models/resource.model';
+import { HotspotResources } from '../../hotspot/models/resource.model';
 import { v1 as uuidv1 } from 'uuid';
 
 const lessThanOneDayAgo = (date: any) => {
@@ -45,7 +45,7 @@ export class InfoService {
   }
 
   static async get_recent_activity(request: Request, response: Response) {
-    const resources = await Resources.findAll({
+    const resources = await HotspotResources.findAll({
       limit: 1,
       order: [['id', 'DESC']]
     });

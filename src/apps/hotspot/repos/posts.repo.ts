@@ -6,37 +6,37 @@ import { Videos } from '../../_common/models/video.model';
 import { Audios } from '../../_common/models/audio.model';
 import { Users } from '../../_common/models/user.model';
 import {
-  Posts,
-  PostPhotos,
-  PostVideos,
-  PostAudios
+  HotspotPosts,
+  HotspotPostPhotos,
+  HotspotPostVideos,
+  HotspotPostAudios
 } from '../models/post.model';
 
 export async function get_post_by_id(id: number, slim: boolean = false) {
   const post = slim 
-  ? await Posts.findByPk(id)
-  : await Posts.findOne({
+  ? await HotspotPosts.findByPk(id)
+  : await HotspotPosts.findOne({
       where: { id },
       include: [{
         model: Users,
         as: 'owner',
         attributes: user_attrs_slim
       }, {
-        model: PostPhotos,
+        model: HotspotPostPhotos,
         as: 'photos',
         include: [{
           model: Photos,
           as: 'photo',
         }]
       }, {
-        model: PostVideos,
+        model: HotspotPostVideos,
         as: 'videos',
         include: [{
           model: Videos,
           as: 'video',
         }]
       }, {
-        model: PostAudios,
+        model: HotspotPostAudios,
         as: 'audios',
         include: [{
           model: Audios,
@@ -54,7 +54,7 @@ export async function create_post(createObj: {
   industry: string[];
   uploadedPhotos: { fileInfo: PlainObject; results: IStoreImage }[];
 }) {
-  const new_post_model = await Posts.create(<any> {
+  const new_post_model = await HotspotPosts.create(<any> {
     owner_id: createObj.owner_id,
     body: createObj.body,
     tags: createObj.tags.join(`,`),
@@ -69,7 +69,7 @@ export async function create_post(createObj: {
       tags: uploadedPhoto.fileInfo.tags.join(',') || '',
       industry: uploadedPhoto.fileInfo.industry.join(',') || '',
     });
-    const post_photo_model = await PostPhotos.create({
+    const post_photo_model = await HotspotPostPhotos.create({
       post_id: new_post_model.get('id'),
       photo_id: photo_model.get('id'),
     });
@@ -86,7 +86,7 @@ export async function update_post(
   },
   id: number
 ) {
-  const updates = await Posts.update(<any> {
+  const updates = await HotspotPosts.update(<any> {
     body: updatesObj.body,
     tags: updatesObj.tags.join(`,`),
     industry: updatesObj.industry.join(`,`),
@@ -95,6 +95,6 @@ export async function update_post(
 }
 
 export async function delete_post(id: number) {
-  const deletes = await Posts.destroy({ where: { id } });
+  const deletes = await HotspotPosts.destroy({ where: { id } });
   return deletes;
 }

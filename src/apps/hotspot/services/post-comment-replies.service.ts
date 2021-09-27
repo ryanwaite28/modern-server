@@ -14,8 +14,8 @@ import {
   user_attrs_slim
 } from '../../_common/common.chamber';
 import {
-  PostCommentReplies,
-  PostCommentReplyReactions
+  HotspotPostCommentReplies,
+  HotspotPostCommentReplyReactions
 } from '../models/post.model';
 import { Users } from '../../_common/models/user.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
@@ -38,7 +38,7 @@ export class PostCommentRepliesService {
 
   static async get_comment_replies_count(request: Request, response: Response) {
     const comment_id: number = parseInt(request.params.comment_id, 10);
-    const replies_count = await PostCommentReplies.count({ where: { comment_id } });
+    const replies_count = await HotspotPostCommentReplies.count({ where: { comment_id } });
     return response.status(HttpStatusCode.OK).json({
       data: replies_count
     });
@@ -47,7 +47,7 @@ export class PostCommentRepliesService {
   static async get_comment_replies_all(request: Request, response: Response) {
     const comment_id: number = parseInt(request.params.comment_id, 10);
     const replys = await CommonRepo.getAll(
-      PostCommentReplies,
+      HotspotPostCommentReplies,
       'comment_id',
       comment_id,
       [{
@@ -65,7 +65,7 @@ export class PostCommentRepliesService {
     const comment_id: number = parseInt(request.params.comment_id, 10);
     const reply_id = parseInt(request.params.reply_id, 10);
     const businesses = await CommonRepo.paginateTable(
-      PostCommentReplies,
+      HotspotPostCommentReplies,
       'comment_id',
       comment_id,
       reply_id,
@@ -83,7 +83,7 @@ export class PostCommentRepliesService {
   static async get_user_reaction(request: Request, response: Response) {
     const user_id: number = parseInt(request.params.user_id, 10);
     const reply_id: number = parseInt(request.params.reply_id, 10);
-    const reply_reaction = await PostCommentReplyReactions.findOne({
+    const reply_reaction = await HotspotPostCommentReplyReactions.findOne({
       where: {
         reply_id,
         owner_id: user_id
@@ -115,7 +115,7 @@ export class PostCommentRepliesService {
       });
     }
 
-    let reply_reaction = await PostCommentReplyReactions.findOne({
+    let reply_reaction = await HotspotPostCommentReplyReactions.findOne({
       where: {
         reply_id,
         owner_id: you.id
@@ -124,7 +124,7 @@ export class PostCommentRepliesService {
 
     if (!reply_reaction) {
       // user has no reaction to reply; create it
-      reply_reaction = await PostCommentReplyReactions.create(<any> {
+      reply_reaction = await HotspotPostCommentReplyReactions.create(<any> {
         reaction,
         reply_id,
         owner_id: you.id
@@ -149,10 +149,10 @@ export class PostCommentRepliesService {
   static async get_reply_reactions_counts(request: Request, response: Response) {
     const reply_id: number = parseInt(request.params.reply_id, 10);
 
-    const like_count = await PostCommentReplyReactions.count({ where: { reply_id, reaction: COMMON_REACTION_TYPES.LIKE } });
-    const love_count = await PostCommentReplyReactions.count({ where: { reply_id, reaction: COMMON_REACTION_TYPES.LOVE } });
-    const idea_count = await PostCommentReplyReactions.count({ where: { reply_id, reaction: COMMON_REACTION_TYPES.IDEA } });
-    const confused_count = await PostCommentReplyReactions.count({ where: { reply_id, reaction: COMMON_REACTION_TYPES.CONFUSED } });
+    const like_count = await HotspotPostCommentReplyReactions.count({ where: { reply_id, reaction: COMMON_REACTION_TYPES.LIKE } });
+    const love_count = await HotspotPostCommentReplyReactions.count({ where: { reply_id, reaction: COMMON_REACTION_TYPES.LOVE } });
+    const idea_count = await HotspotPostCommentReplyReactions.count({ where: { reply_id, reaction: COMMON_REACTION_TYPES.IDEA } });
+    const confused_count = await HotspotPostCommentReplyReactions.count({ where: { reply_id, reaction: COMMON_REACTION_TYPES.CONFUSED } });
 
     const total_count: number = [
       like_count,
@@ -175,7 +175,7 @@ export class PostCommentRepliesService {
   static async get_reply_reactions_all(request: Request, response: Response) {
     const reply_id: number = parseInt(request.params.reply_id, 10);
     const reply_reactions = await CommonRepo.getAll(
-      PostCommentReplyReactions,
+      HotspotPostCommentReplyReactions,
       'reply_id',
       reply_id,
       [{
@@ -193,7 +193,7 @@ export class PostCommentRepliesService {
     const reply_id = parseInt(request.params.reply_id, 10);
     const reply_reaction_id: number = parseInt(request.params.reply_reaction_id, 10);
     const reply_reactions = await CommonRepo.paginateTable(
-      PostCommentReplyReactions,
+      HotspotPostCommentReplyReactions,
       'reply_id',
       reply_id,
       reply_reaction_id,
