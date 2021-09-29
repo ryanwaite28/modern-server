@@ -96,7 +96,7 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
   
     static async create_model(request: Request, response: Response) {
       const you: IUser = response.locals.you;
-      const data: PlainObject = JSON.parse(request.body.payload);
+      const data: any = request.body.payload ? JSON.parse(request.body.payload) : request.body;
       const createObj: any = {};
   
 
@@ -133,7 +133,7 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
       });
   
       return response.status(HttpStatusCode.OK).json({
-        message: `Post created successfully`,
+        message: `created successfully`,
         data: model
       });
     }
@@ -141,7 +141,7 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
     static async update_model(request: Request, response: Response) {
       const model = response.locals[params.model_name + '_model'] as IMyModel;
       const model_id = model.get('id');
-      const data = request.body;
+      const data: any = request.body.payload ? JSON.parse(request.body.payload) : request.body;
       const you: IUser = response.locals.you; 
       
       const updatesObj: any = {};

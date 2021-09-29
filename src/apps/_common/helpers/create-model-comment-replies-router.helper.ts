@@ -1,5 +1,8 @@
 import { Router } from 'express';
 import { UserAuthorized, UserExists } from '../guards/user.guard';
+import { createCommonGenericModelChildrenCrudRouter } from './create-model-children-crud-router.helper';
+import { ICommonGenericModelChildrenCrudService } from './create-model-children-crud-service.helper';
+import { IGenericCommentRepliesService } from './create-model-comment-replies-service.helper';
 import {
   ICreateModelGuardParams,
   createModelRouteGuards,
@@ -9,36 +12,33 @@ import {
 
 
 
-export interface ICreateGenericCommentRepliesRouter {
+export interface ICreateCommonGenericCommentRepliesRouter {
   makeGuard?: boolean,
   replyGuardsOpts: IModelGuards | ICreateModelGuardParams,
-  repliesService: any,
+  repliesService: IGenericCommentRepliesService,
 }
 
-export function createGenericCommentRepliesRouter (params: ICreateGenericCommentRepliesRouter) {
+export function createGenericCommentRepliesRouter (params: ICreateCommonGenericCommentRepliesRouter) {
   const RepliesRouter: Router = Router({ mergeParams: true });
 
-  const routeGuards: IModelGuards = params.makeGuard
-    ? createModelRouteGuards(params.replyGuardsOpts as ICreateModelGuardParams)
-    : params.replyGuardsOpts as IModelGuards;
+  const useClass = class {
+    static get_model_by_id = params.repliesService.get_comment_reply_by_id;
+    static get_models_count = params.repliesService.get_comment_replies_count;
+    static get_models_all = params.repliesService.get_comment_replies_all;
+    static get_models = params.repliesService.get_comment_replies;
+    static create_model = params.repliesService.create_comment_reply;
+    static update_model = params.repliesService.update_comment_reply;
+    static delete_model = params.repliesService.delete_comment_reply;
+  } as ICommonGenericModelChildrenCrudService;
 
-  // GET Routes
-  RepliesRouter.get('/count', params.repliesService.get_comment_replies_count);
-  RepliesRouter.get('/all', params.repliesService.get_comment_replies_all);
-  RepliesRouter.get('/', params.repliesService.get_comment_replies);
-  RepliesRouter.get('/:reply_id', routeGuards.existsGuard, params.repliesService.get_comment_replies);
-  
+  const ChildModelCrudRouter = createCommonGenericModelChildrenCrudRouter({
+    child_model_name: 'reply',
+    makeGuard: params.makeGuard,
+    childModelGuardsOpts: params.replyGuardsOpts,
+    childModelCrudService: useClass
+  });
 
-  // POST Routes
-  RepliesRouter.post('/owner/:you_id', UserAuthorized, params.repliesService.create_reply);
-  
-
-  // PUT Routes
-  RepliesRouter.put('/:reply_id/owner/:you_id', UserAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.repliesService.update_reply);
-  
-  
-  // DELETE Routes
-  RepliesRouter.delete('/:reply_id/owner/:you_id', UserAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.repliesService.delete_reply);
+  RepliesRouter.use(ChildModelCrudRouter);
   
 
 

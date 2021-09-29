@@ -33,7 +33,7 @@ export interface ICreateCommonGenericModelCommentsService {
   comment_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
 }
 
-export interface IGenericCommentsService {
+export interface ICommonGenericCommentsService {
 
   get_comment_by_id: ExpressRouteEndHandler,
   get_comments_count: ExpressRouteEndHandler,
@@ -186,5 +186,5 @@ export function createCommonGenericModelCommentsService(
         deletes
       });
     }
-  } as IGenericCommentsService;
+  } as ICommonGenericCommentsService;
 }
