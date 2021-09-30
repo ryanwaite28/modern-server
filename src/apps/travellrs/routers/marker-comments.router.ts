@@ -5,7 +5,7 @@ import {
   IsCommentOwner
 } from '../guards/comment.guard';
 import {
-  UserAuthorized,
+  YouAuthorized,
   UserExists
 } from '../../_common/guards/user.guard';
 import { RepliesRouter } from './marker-comment-replies.router';
@@ -29,16 +29,16 @@ CommentsRouter.get('/:comment_id/user-reaction/:user_id', UserExists, MarkerComm
 
 // POST Routes
 
-CommentsRouter.post('/owner/:you_id', UserAuthorized, MarkerCommentsService.create_comment);
+CommentsRouter.post('/owner/:you_id', YouAuthorized, MarkerCommentsService.create_comment);
 
 // PUT Routes
 
-CommentsRouter.put('/:comment_id/owner/:you_id', UserAuthorized, MarkerCommentExists, IsCommentOwner, MarkerCommentsService.update_comment);
-CommentsRouter.put('/:comment_id/user-reaction/user/:you_id', UserAuthorized, MarkerCommentExists, MarkerCommentsService.toggle_user_reaction);
+CommentsRouter.put('/:comment_id/owner/:you_id', YouAuthorized, MarkerCommentExists, IsCommentOwner, MarkerCommentsService.update_comment);
+CommentsRouter.put('/:comment_id/user-reaction/user/:you_id', YouAuthorized, MarkerCommentExists, MarkerCommentsService.toggle_user_reaction);
 
 // DELETE Routes
 
-CommentsRouter.delete('/:comment_id/owner/:you_id', UserAuthorized, MarkerCommentExists, IsCommentOwner, MarkerCommentsService.delete_comment);
+CommentsRouter.delete('/:comment_id/owner/:you_id', YouAuthorized, MarkerCommentExists, IsCommentOwner, MarkerCommentsService.delete_comment);
 
 // Sub-Routes
 

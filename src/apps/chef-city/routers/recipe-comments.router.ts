@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { IsCommentOwner } from '../../../apps/hotspot/guards/comment.guard';
-import { UserExists, UserAuthorized } from '../../_common/guards/user.guard';
+import { UserExists, YouAuthorized } from '../../_common/guards/user.guard';
 import { RecipeCommentExists } from '../guards/recipe.guard';
 import { RecipeCommentsService } from '../services/recipe-comments.service';
 import { RepliesRouter } from './recipe-comment-replies.router';
@@ -24,16 +24,16 @@ CommentsRouter.get('/:comment_id/user-reaction/:user_id', UserExists, RecipeComm
 
 // POST Routes
 
-CommentsRouter.post('/owner/:you_id', UserAuthorized, RecipeCommentsService.create_comment);
+CommentsRouter.post('/owner/:you_id', YouAuthorized, RecipeCommentsService.create_comment);
 
 // PUT Routes
 
-CommentsRouter.put('/:comment_id/owner/:you_id', UserAuthorized, RecipeCommentExists, IsCommentOwner, RecipeCommentsService.update_comment);
-CommentsRouter.put('/:comment_id/user-reaction/user/:you_id', UserAuthorized, RecipeCommentExists, RecipeCommentsService.toggle_user_reaction);
+CommentsRouter.put('/:comment_id/owner/:you_id', YouAuthorized, RecipeCommentExists, IsCommentOwner, RecipeCommentsService.update_comment);
+CommentsRouter.put('/:comment_id/user-reaction/user/:you_id', YouAuthorized, RecipeCommentExists, RecipeCommentsService.toggle_user_reaction);
 
 // DELETE Routes
 
-CommentsRouter.delete('/:comment_id/owner/:you_id', UserAuthorized, RecipeCommentExists, IsCommentOwner, RecipeCommentsService.delete_comment);
+CommentsRouter.delete('/:comment_id/owner/:you_id', YouAuthorized, RecipeCommentExists, IsCommentOwner, RecipeCommentsService.delete_comment);
 
 // Sub-Routes
 

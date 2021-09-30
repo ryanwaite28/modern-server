@@ -157,6 +157,7 @@ export const DeliveryDisputes = <MyModelStatic> sequelize.define('deliverme_deli
   delivery_id:     { type: Sequelize.INTEGER, allowNull: false, references: { model: Delivery, key: 'id' } },
   date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   title:           { type: Sequelize.STRING, allowNull: true },
+  status:          { type: Sequelize.STRING, allowNull: false },
   uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
@@ -165,6 +166,7 @@ export const DeliveryDisputeLogs = <MyModelStatic> sequelize.define('deliverme_d
   creator_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   user_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   delivery_id:     { type: Sequelize.INTEGER, allowNull: false, references: { model: Delivery, key: 'id' } },
+  body:            { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
   date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);

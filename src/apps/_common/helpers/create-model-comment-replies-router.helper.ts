@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UserAuthorized, UserExists } from '../guards/user.guard';
+import { YouAuthorized, UserExists } from '../guards/user.guard';
 import { createCommonGenericModelChildrenCrudRouter } from './create-model-children-crud-router.helper';
 import { ICommonGenericModelChildrenCrudService } from './create-model-children-crud-service.helper';
 import { IGenericCommentRepliesService } from './create-model-comment-replies-service.helper';

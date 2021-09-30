@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UserAuthorized, UserExists } from '../guards/user.guard';
+import { YouAuthorized, UserExists } from '../guards/user.guard';
 import { ICommonGenericModelChildrenCrudService } from './create-model-children-crud-service.helper';
 import {
   ICreateModelGuardParams,
@@ -32,15 +32,15 @@ export function createCommonGenericModelChildrenCrudRouter (params: ICreateCommo
   
 
   // POST Routes
-  ChildModelCrudRouter.post(`/owner/:you_id`, UserAuthorized, params.childModelCrudService.create_model);
+  ChildModelCrudRouter.post(`/owner/:you_id`, YouAuthorized, params.childModelCrudService.create_model);
   
 
   // PUT Routes
-  ChildModelCrudRouter.put(`/:${params.child_model_name}_id/owner/:you_id`, UserAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.childModelCrudService.update_model);
+  ChildModelCrudRouter.put(`/:${params.child_model_name}_id/owner/:you_id`, YouAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.childModelCrudService.update_model);
   
   
   // DELETE Routes
-  ChildModelCrudRouter.delete(`/:${params.child_model_name}_id/owner/:you_id`, UserAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.childModelCrudService.delete_model);
+  ChildModelCrudRouter.delete(`/:${params.child_model_name}_id/owner/:you_id`, YouAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.childModelCrudService.delete_model);
   
 
 

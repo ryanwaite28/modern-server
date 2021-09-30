@@ -5,7 +5,7 @@ import {
   IsReplyOwner
 } from '../guards/reply.guard';
 import {
-  UserAuthorized,
+  YouAuthorized,
   UserExists
 } from '../../_common/guards/user.guard';
 
@@ -28,13 +28,13 @@ RepliesRouter.get('/:reply_id/user-reaction/:user_id', UserExists, PostCommentRe
 
 // POST Routes
 
-RepliesRouter.post('/owner/:you_id', UserAuthorized, PostCommentRepliesService.create_reply);
+RepliesRouter.post('/owner/:you_id', YouAuthorized, PostCommentRepliesService.create_reply);
 
 // PUT Routes
 
-RepliesRouter.put('/:reply_id/owner/:you_id', UserAuthorized, PostCommentReplyExists, IsReplyOwner, PostCommentRepliesService.update_reply);
-RepliesRouter.put('/:reply_id/user-reaction/user/:you_id', UserAuthorized, PostCommentReplyExists, PostCommentRepliesService.toggle_user_reaction);
+RepliesRouter.put('/:reply_id/owner/:you_id', YouAuthorized, PostCommentReplyExists, IsReplyOwner, PostCommentRepliesService.update_reply);
+RepliesRouter.put('/:reply_id/user-reaction/user/:you_id', YouAuthorized, PostCommentReplyExists, PostCommentRepliesService.toggle_user_reaction);
 
 // DELETE Routes
 
-RepliesRouter.delete('/:reply_id/owner/:you_id', UserAuthorized, PostCommentReplyExists, IsReplyOwner, PostCommentRepliesService.delete_reply);
+RepliesRouter.delete('/:reply_id/owner/:you_id', YouAuthorized, PostCommentReplyExists, IsReplyOwner, PostCommentRepliesService.delete_reply);

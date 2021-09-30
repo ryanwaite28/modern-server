@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-  UserAuthorized,
+  YouAuthorized,
   UserExists
 } from '../guards/user.guard';
 
@@ -22,7 +22,7 @@ export function createCommonGenericModelReactionsRouter(
   ReactionsRouter.get(`/user-reactions/:reaction_id`, params.reactionService.get_model_reactions);
   ReactionsRouter.get(`/user-reaction/:user_id`, UserExists, params.reactionService.get_user_reaction);
   
-  ReactionsRouter.put(`/user-reaction/user/:you_id`, UserAuthorized, params.reactionService.toggle_user_reaction);
+  ReactionsRouter.put(`/user-reaction/user/:you_id`, YouAuthorized, params.reactionService.toggle_user_reaction);
 
   return ReactionsRouter;
 }

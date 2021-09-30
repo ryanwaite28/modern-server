@@ -37,7 +37,7 @@ export async function UserExists(
   return next();
 }
 
-export function UserAuthorized(
+export function YouAuthorized(
   request: Request,
   response: Response,
   next: NextFunction
@@ -49,7 +49,7 @@ export function UserAuthorized(
   response.locals.you = auth.you;
   return next();
 }
-export function UserAuthorizedSlim(
+export function YouAuthorizedSlim(
   request: Request,
   response: Response,
   next: NextFunction

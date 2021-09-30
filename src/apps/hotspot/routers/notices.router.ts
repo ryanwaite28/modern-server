@@ -5,7 +5,7 @@ import {
   IsNotNoticeOwner
 } from '../guards/notice.guard';
 import {
-  UserAuthorized,
+  YouAuthorized,
   UserExists
 } from '../../_common/guards/user.guard';
 import { NoticesService } from '../services/notices.service';
@@ -22,7 +22,7 @@ NoticesRouter.get('/:id', NoticeExists, NoticesService.get_notice_by_id);
 
 // POST Routes
 
-NoticesRouter.post('/owner/:you_id', UserAuthorized, NoticesService.create_notice);
+NoticesRouter.post('/owner/:you_id', YouAuthorized, NoticesService.create_notice);
 
 // PUT Routes
 
@@ -30,4 +30,4 @@ NoticesRouter.post('/owner/:you_id', UserAuthorized, NoticesService.create_notic
 
 // DELETE Routes
 
-NoticesRouter.delete('/:id', UserAuthorized, NoticeExists, IsNoticeOwner, NoticesService.delete_notice);
+NoticesRouter.delete('/:id', YouAuthorized, NoticeExists, IsNoticeOwner, NoticesService.delete_notice);

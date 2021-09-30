@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UserAuthorized, UserExists } from '../../_common/guards/user.guard';
+import { YouAuthorized, UserExists } from '../../_common/guards/user.guard';
 import { IsNewsPostOwner, NewsPostExists } from '../guards/newspost.guard';
 import { NewsPostsService } from '../services/newsposts.service';
 import { CommentsRouter } from './newspost-comments.router';
@@ -17,16 +17,16 @@ NewsPostsRouter.get('/:newspost_id/user-reaction/:user_id', UserExists, NewsPost
 
 // POST Routes
 
-NewsPostsRouter.post('/owner/:you_id', UserAuthorized, NewsPostsService.create_newspost);
+NewsPostsRouter.post('/owner/:you_id', YouAuthorized, NewsPostsService.create_newspost);
 
 // PUT Routes
 
-NewsPostsRouter.put('/:newspost_id/owner/:you_id', UserAuthorized, NewsPostExists, IsNewsPostOwner, NewsPostsService.update_newspost);
-NewsPostsRouter.put('/:newspost_id/user-reaction/user/:you_id', UserAuthorized, NewsPostExists, NewsPostsService.toggle_user_newspost_reaction);
+NewsPostsRouter.put('/:newspost_id/owner/:you_id', YouAuthorized, NewsPostExists, IsNewsPostOwner, NewsPostsService.update_newspost);
+NewsPostsRouter.put('/:newspost_id/user-reaction/user/:you_id', YouAuthorized, NewsPostExists, NewsPostsService.toggle_user_newspost_reaction);
 
 // DELETE Routes
 
-NewsPostsRouter.delete('/:newspost_id/owner/:you_id', UserAuthorized, NewsPostExists, IsNewsPostOwner, NewsPostsService.delete_newspost);
+NewsPostsRouter.delete('/:newspost_id/owner/:you_id', YouAuthorized, NewsPostExists, IsNewsPostOwner, NewsPostsService.delete_newspost);
 
 // Sub-Routes
 

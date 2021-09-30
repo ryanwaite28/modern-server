@@ -9,21 +9,23 @@ import {
   fn,
 } from 'sequelize';
 import * as CommonRepo from '../repos/_common.repo';
+import { HttpStatusCode } from '../enums/http-codes.enum';
+import { MODERN_APP_NAMES } from '../enums/common.enum';
+
 import {
   populate_common_notification_obj,
 } from '../common.chamber';
-import { TokensService } from './tokens.service';
-import { HttpStatusCode } from '../enums/http-codes.enum';
-
-import { Notifications, Users } from '../models/user.model';
-import { MODERN_APP_NAMES } from '../enums/common.enum';
 import { populate_deliverme_notification_obj } from '../../deliver-me/deliverme.chamber';
+import { populate_myfavors_notification_obj } from '../../my-favors/myfavors.chamber';
+import { TokensService } from './tokens.service';
+import { Notifications, Users } from '../models/user.model';
 
 
 export class NotificationsService {
   static notifications_populate_fn_by_app = {
     [MODERN_APP_NAMES.COMMON as string]: populate_common_notification_obj,
     [MODERN_APP_NAMES.DELIVERME as string]: populate_deliverme_notification_obj,
+    [MODERN_APP_NAMES.MYFAVORS as string]: populate_myfavors_notification_obj,
   };
   
   // request handlers

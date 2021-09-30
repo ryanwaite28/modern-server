@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { IsReplyOwner } from '../../../apps/hotspot/guards/reply.guard';
-import { UserExists, UserAuthorized } from '../../_common/guards/user.guard';
+import { UserExists, YouAuthorized } from '../../_common/guards/user.guard';
 import { RecipeCommentReplyExists } from '../guards/recipe.guard';
 import {
   RecipeCommentRepliesService
@@ -23,13 +23,13 @@ RepliesRouter.get('/:reply_id/user-reaction/:user_id', UserExists, RecipeComment
 
 // POST Routes
 
-RepliesRouter.post('/owner/:you_id', UserAuthorized, RecipeCommentRepliesService.create_reply);
+RepliesRouter.post('/owner/:you_id', YouAuthorized, RecipeCommentRepliesService.create_reply);
 
 // PUT Routes
 
-RepliesRouter.put('/:reply_id/owner/:you_id', UserAuthorized, RecipeCommentReplyExists, IsReplyOwner, RecipeCommentRepliesService.update_reply);
-RepliesRouter.put('/:reply_id/user-reaction/user/:you_id', UserAuthorized, RecipeCommentReplyExists, RecipeCommentRepliesService.toggle_user_reaction);
+RepliesRouter.put('/:reply_id/owner/:you_id', YouAuthorized, RecipeCommentReplyExists, IsReplyOwner, RecipeCommentRepliesService.update_reply);
+RepliesRouter.put('/:reply_id/user-reaction/user/:you_id', YouAuthorized, RecipeCommentReplyExists, RecipeCommentRepliesService.toggle_user_reaction);
 
 // DELETE Routes
 
-RepliesRouter.delete('/:reply_id/owner/:you_id', UserAuthorized, RecipeCommentReplyExists, IsReplyOwner, RecipeCommentRepliesService.delete_reply);
+RepliesRouter.delete('/:reply_id/owner/:you_id', YouAuthorized, RecipeCommentReplyExists, IsReplyOwner, RecipeCommentRepliesService.delete_reply);

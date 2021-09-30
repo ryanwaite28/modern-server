@@ -49,3 +49,24 @@ export async function IsNotFavorOwner(
   }
   return next();
 }
+
+export async function IsFavorActive(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const favor_model = <IMyModel> response.locals.favor_model;
+
+  if (favor_model.get('canceled')) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `Favor is canceled.`
+    });
+  }
+  if (favor_model.get('fulfilled')) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `Favor is fulfilled.`
+    });
+  }
+
+  return next();
+}

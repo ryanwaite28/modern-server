@@ -9,94 +9,208 @@ import {
   Favors,
   FavorPhotos,
   FavorVideos,
+  FavorUpdates,
+  FavorHelpers,
+  FavorMessages,
 } from '../models/favor.model';
 import { getRandomModels } from '../../_common/repos/_common.repo';
+import { ICreateFavorUpdateProps, ICreateUpdateFavor } from '../interfaces/myfavors.interface';
+import { Includeable } from 'sequelize/types';
+
+
+
+
+export const favorMasterIncludes: Includeable[] = [
+  {
+    model: Users,
+    as: 'owner',
+    attributes: user_attrs_slim,
+  },
+  {
+    model: FavorHelpers,
+    as: 'favor_helpers',
+    include: [{
+      model: Users,
+      as: 'helper',
+      attributes: user_attrs_slim,
+    }]
+  },
+  {
+    model: FavorUpdates,
+    as: 'myfavors_favor_updates',
+    include: [{
+      model: Users,
+      as: 'user',
+      attributes: user_attrs_slim,
+      order: [['id', 'DESC']]
+    }]
+  }, {
+    model: FavorMessages,
+    as: 'favor_messages',
+    include: [{
+      model: Users,
+      as: 'user',
+      attributes: user_attrs_slim,
+      order: [['id', 'DESC']]
+    }]
+  }, {
+    model: FavorPhotos,
+    as: 'photos',
+    include: [{
+      model: Photos,
+      as: 'photo',
+    }]
+  }, {
+    model: FavorVideos,
+    as: 'videos',
+    include: [{
+      model: Videos,
+      as: 'video',
+    }]
+  }
+]
 
 export async function get_favor_by_id(id: number, slim: boolean = false) {
   const favor = slim 
   ? await Favors.findByPk(id)
   : await Favors.findOne({
       where: { id },
-      include: [{
-        model: Users,
-        as: 'owner',
-        attributes: user_attrs_slim
-      }, {
-        model: FavorPhotos,
-        as: 'photos',
-        include: [{
-          model: Photos,
-          as: 'photo',
-        }]
-      }, {
-        model: FavorVideos,
-        as: 'videos',
-        include: [{
-          model: Videos,
-          as: 'video',
-        }]
-      }]
+      include: favorMasterIncludes
     });
   return favor;
 }
 
-export async function create_favor(createObj: {
-  owner_id: number,
-  title: string,
-  desc: string,
-  location: string,
-  category: string,
-  payout: number,
-  helpers_needed: number,
-  date_needed: Date | string,
-  uploadedPhotos: { fileInfo: PlainObject; results: IStoreImage }[];
-}) {
+export async function create_favor(createObj: ICreateUpdateFavor) {
   const {
     owner_id,
+
     title,
-    desc,
-    location,
+    description,
     category,
-    payout,
-    helpers_needed,
+    item_image_link,
+    item_image_id,
+    featured,
+    
+    location,
+    address,
+    street,
+    city,
+    state,
+    zipcode,
+    country,
+    place_id,
+    lat,
+    lng,
+
+    payout_per_helper,
+    helpers_wanted,
+    payment_session_id,
     date_needed,
   } = createObj;
+
   const new_favor_model = await Favors.create(<any> {
     owner_id,
+
     title,
-    desc,
-    location,
+    description,
     category,
-    payout,
-    helpers_needed,
+    item_image_link,
+    item_image_id,
+    featured,
+    
+    location,
+    address,
+    street,
+    city,
+    state,
+    zipcode,
+    country,
+    place_id,
+    lat,
+    lng,
+
+    payout_per_helper,
+    helpers_wanted,
+    payment_session_id,
     date_needed,
   });
-  for (const uploadedPhoto of createObj.uploadedPhotos) {
-    const photo_model = await Photos.create(<any> {
-      owner_id: createObj.owner_id,
-      caption: uploadedPhoto.fileInfo.caption || '',
-      photo_link: uploadedPhoto.results.result!.secure_url,
-      photo_id: uploadedPhoto.results.result!.public_id,
-      tags: uploadedPhoto.fileInfo.tags.join(',') || '',
-      industry: uploadedPhoto.fileInfo.industry.join(',') || '',
-    });
-    const favor_photo_model = await FavorPhotos.create({
-      favor_id: new_favor_model.get('id'),
-      photo_id: photo_model.get('id'),
-    });
+
+  if (createObj.uploadedPhotos) {
+    for (const uploadedPhoto of createObj.uploadedPhotos) {
+      const photo_model = await Photos.create(<any> {
+        owner_id: createObj.owner_id,
+        caption: uploadedPhoto.fileInfo.caption || '',
+        photo_link: uploadedPhoto.results.result!.secure_url,
+        photo_id: uploadedPhoto.results.result!.public_id,
+        tags: uploadedPhoto.fileInfo.tags.join(',') || '',
+        industry: uploadedPhoto.fileInfo.industry.join(',') || '',
+      });
+      const favor_photo_model = await FavorPhotos.create({
+        favor_id: new_favor_model.get('id'),
+        photo_id: photo_model.get('id'),
+      });
+    }
   }
+  
   const favor = await get_favor_by_id(new_favor_model.get('id'));
-  return favor;
+  return favor!;
 }
 
 export async function update_favor(
-  updatesObj: {
-    caption: string;
-  },
+  updatesObj: Partial<ICreateUpdateFavor>,
   id: number
 ) {
+  const {
+    owner_id,
+
+    title,
+    description,
+    category,
+    item_image_link,
+    item_image_id,
+    featured,
+    
+    location,
+    address,
+    street,
+    city,
+    state,
+    zipcode,
+    country,
+    place_id,
+    lat,
+    lng,
+
+    payout_per_helper,
+    helpers_wanted,
+    payment_session_id,
+    date_needed,
+  } = updatesObj;
   const updates = await Favors.update(<any> {
-    caption: updatesObj.caption,
+    owner_id,
+
+    title,
+    description,
+    category,
+    item_image_link,
+    item_image_id,
+    featured,
+    
+    location,
+    address,
+    street,
+    city,
+    state,
+    zipcode,
+    country,
+    place_id,
+    lat,
+    lng,
+
+    payout_per_helper,
+    helpers_wanted,
+    payment_session_id,
+    date_needed,
   }, { where: { id } });
   return updates;
 }
@@ -110,10 +224,44 @@ export async function get_random_favors(limit: number = 10) {
   return getRandomModels(
     Favors,
     limit,
-    [{
+    favorMasterIncludes
+  );
+}
+
+export async function get_favor_updates(favor_id: number) {
+  const favor_update = await FavorUpdates.findAll({
+    where: { favor_id },
+    include: [{
       model: Users,
-      as: 'owner',
+      as: 'user',
       attributes: user_attrs_slim,
     }]
-  );
+  });
+  return favor_update;
+}
+
+export async function get_favor_update_by_id(id: number) {
+  const favor_update = await FavorUpdates.findOne({
+    where: { id, deleted_at: null },
+    include: [{
+      model: Users,
+      as: 'user',
+      attributes: user_attrs_slim,
+    }]
+  });
+  return favor_update;
+}
+
+export async function create_favor_update(createObj: ICreateFavorUpdateProps) {
+  const new_favor_update_model = await FavorUpdates.create(<any> createObj);
+  const id = new_favor_update_model.get('id') as number;
+  const update = await FavorUpdates.findOne({
+    where: { id },
+    include: [{
+      model: Users,
+      as: 'user',
+      attributes: user_attrs_slim,
+    }]
+  });
+  return update!;
 }

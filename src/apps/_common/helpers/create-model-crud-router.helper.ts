@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-  UserAuthorized,
+  YouAuthorized,
   UserExists
 } from '../guards/user.guard';
 import { IGenericModelCrudService } from './create-model-crud-service.helper';
@@ -30,15 +30,15 @@ export function createCommonGenericModelCrudRouter(params: ICreateCommonGenericM
 
 
   // POST Routes
-  CrudRouter.post(`/owner/:you_id`, UserAuthorized, params.modelCrudService.create_model);
+  CrudRouter.post(`/owner/:you_id`, YouAuthorized, params.modelCrudService.create_model);
 
 
   // PUT Routes
-  CrudRouter.put(`/:${model_id_field}/owner/:you_id`, UserAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.modelCrudService.update_model);
+  CrudRouter.put(`/:${model_id_field}/owner/:you_id`, YouAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.modelCrudService.update_model);
 
 
   // DELETE Routes
-  CrudRouter.delete(`/:${model_id_field}/owner/:you_id`, UserAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.modelCrudService.delete_model);
+  CrudRouter.delete(`/:${model_id_field}/owner/:you_id`, YouAuthorized, routeGuards.existsGuard, routeGuards.isOwnerGuard, params.modelCrudService.delete_model);
 
 
   return CrudRouter;

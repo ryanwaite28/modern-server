@@ -1,7 +1,7 @@
-import { validatePhone } from "src/apps/_common/common.chamber";
-import { MODERN_APP_NAMES } from "src/apps/_common/enums/common.enum";
-import { create_notification } from "src/apps/_common/repos/notifications.repo";
-import { CommonSocketEventsHandler } from "src/apps/_common/services/socket-events-handlers-by-app/common.socket-event-handler";
+import { validatePhone } from "../../_common/common.chamber";
+import { MODERN_APP_NAMES } from "../../_common/enums/common.enum";
+import { create_notification } from "../../_common/repos/notifications.repo";
+import { CommonSocketEventsHandler } from "../../_common/services/socket-events-handlers-by-app/common.socket-event-handler";
 import { send_sms } from "src/sms-client";
 import { populate_deliverme_notification_obj } from "../deliverme.chamber";
 import { DELIVERME_NOTIFICATION_TARGET_TYPES, DELIVERME_EVENT_TYPES } from "../enums/deliverme.enum";
@@ -10,7 +10,7 @@ import { get_delivery_by_id } from "../repos/deliveries.repo";
 
 
 export class DelivermeStripeWebhookHandlerService {
-  static async payment_intent_succeeded(userPaymentIntentObj: any) {
+  static async payment_intent_succeeded(userPaymentIntentObj: any, stripePaymentIntent: any) {
     switch (userPaymentIntentObj.target_type) {
       case DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY: {
         const updates = await Delivery.update({ completed: true }, { where: { id: userPaymentIntentObj.target_id } });

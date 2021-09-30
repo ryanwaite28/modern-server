@@ -209,8 +209,14 @@ export class DeliveriesService {
     const fromAndToValid = fromValid && toValid;
 
     if (!fromValid && !toValid) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `from location and to location were invalid`
+      const results = await Delivery.findAll({
+        where: { completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
+        attributes: delivery_search_attrs,
+        limit: 5,
+        order: [fn('RANDOM')]
+      });
+      return response.status(HttpStatusCode.OK).json({
+        data: results
       });
     }
 
@@ -248,7 +254,7 @@ export class DeliveriesService {
       });
     }
 
-    return response.status(HttpStatusCode.BAD_GATEWAY).json({
+    return response.status(HttpStatusCode.BAD_REQUEST).json({
       message: `unhandled contition...`,
       fromValid, 
       toValid,

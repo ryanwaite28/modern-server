@@ -5,7 +5,7 @@ import {
   IsCommentOwner
 } from '../guards/comment.guard';
 import {
-  UserAuthorized,
+  YouAuthorized,
   UserExists
 } from '../../_common/guards/user.guard';
 import { RepliesRouter } from './post-comment-replies.router';
@@ -29,16 +29,16 @@ CommentsRouter.get('/:comment_id/user-reaction/:user_id', UserExists, PostCommen
 
 // POST Routes
 
-CommentsRouter.post('/owner/:you_id', UserAuthorized, PostCommentsService.create_comment);
+CommentsRouter.post('/owner/:you_id', YouAuthorized, PostCommentsService.create_comment);
 
 // PUT Routes
 
-CommentsRouter.put('/:comment_id/owner/:you_id', UserAuthorized, PostCommentExists, IsCommentOwner, PostCommentsService.update_comment);
-CommentsRouter.put('/:comment_id/user-reaction/user/:you_id', UserAuthorized, PostCommentExists, PostCommentsService.toggle_user_reaction);
+CommentsRouter.put('/:comment_id/owner/:you_id', YouAuthorized, PostCommentExists, IsCommentOwner, PostCommentsService.update_comment);
+CommentsRouter.put('/:comment_id/user-reaction/user/:you_id', YouAuthorized, PostCommentExists, PostCommentsService.toggle_user_reaction);
 
 // DELETE Routes
 
-CommentsRouter.delete('/:comment_id/owner/:you_id', UserAuthorized, PostCommentExists, IsCommentOwner, PostCommentsService.delete_comment);
+CommentsRouter.delete('/:comment_id/owner/:you_id', YouAuthorized, PostCommentExists, IsCommentOwner, PostCommentsService.delete_comment);
 
 // Sub-Routes
 

@@ -2,36 +2,45 @@ import { Router } from 'express';
 import { FavorsService } from '../services/favors.service';
 import {
   FavorExists,
-  IsFavorOwner
+  IsFavorOwner,
+  IsFavorActive,
 } from '../guards/favor.guard';
 import {
-  UserAuthorized,
+  YouAuthorized,
+  YouAuthorizedSlim,
   UserExists
 } from '../../_common/guards/user.guard';
 
 
 export const FavorsRouter: Router = Router();
 
-// GET Routes
 
-// FavorsRouter.get('/random', FavorExists, FavorsService.get_random_favors);
 
-// FavorsRouter.get('/:favor_id', FavorExists, FavorsService.get_favor_by_id);
-// FavorsRouter.get('/:favor_id/user-reactions/count', FavorExists, FavorsService.get_favor_reactions_counts);
-// FavorsRouter.get('/:favor_id/user-reactions/all', FavorExists, FavorsService.get_favor_reactions_all);
-// FavorsRouter.get('/:favor_id/user-reactions', FavorExists, FavorsService.get_favor_reactions);
-// FavorsRouter.get('/:favor_id/user-reactions/:favor_reaction_id', FavorExists, FavorsService.get_favor_reactions);
-// FavorsRouter.get('/:favor_id/user-reaction/:user_id', UserExists, FavorExists, FavorsService.get_user_reaction);
+/** GET */
 
-// // POST Routes
+FavorsRouter.get('/:favor_id', FavorExists, FavorsService.get_favor_by_id);
 
-// FavorsRouter.post('/owner/:you_id', UserAuthorized, FavorsService.create_favor);
 
-// // PUT Routes
 
-// FavorsRouter.put('/:favor_id/owner/:you_id', UserAuthorized, FavorExists, IsFavorOwner, FavorsService.update_favor);
-// FavorsRouter.put('/:favor_id/user-reaction/user/:you_id', UserAuthorized, FavorExists, FavorsService.toggle_user_reaction);
+/** POST */
 
-// // DELETE Routes
+FavorsRouter.post('/', YouAuthorizedSlim, FavorsService.create_favor);
+FavorsRouter.post('/search', YouAuthorizedSlim, FavorsService.search_favors);
+FavorsRouter.post('/:favor_id/message', YouAuthorizedSlim, FavorExists, IsFavorActive, FavorsService.send_favor_message);
 
-// FavorsRouter.delete('/:favor_id/owner/:you_id', UserAuthorized, FavorExists, IsFavorOwner, FavorsService.delete_favor);
+// FavorsRouter.post('/:favor_id/create-checkout-session', YouAuthorizedSlim, FavorExists, IsFavorOwner, FavorsService.create_checkout_session);
+FavorsRouter.post('/:favor_id/pay-helper/:user_id', YouAuthorizedSlim, UserExists, FavorExists, IsFavorOwner, FavorsService.pay_helper);
+
+FavorsRouter.post('/:favor_id/mark-helper-as-helped/:user_id', YouAuthorized, FavorExists, IsFavorOwner, IsFavorActive, FavorsService.mark_helper_as_helped);
+FavorsRouter.post('/:favor_id/mark-helper-as-unhelped/:user_id', YouAuthorized, FavorExists, IsFavorOwner, IsFavorActive, FavorsService.mark_helper_as_unhelped);
+
+
+/** PUT */
+
+// FavorsRouter.put('/:favor_id', YouAuthorizedSlim, FavorExists, IsDeliveryOwner, FavorsService.update_favor);
+
+
+
+/** DELETE */
+
+FavorsRouter.delete('/:favor_id', YouAuthorizedSlim, FavorExists, IsFavorOwner, IsFavorActive, FavorsService.delete_favor);

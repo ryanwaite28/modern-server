@@ -5,7 +5,7 @@ import {
   IsCommentOwner
 } from '../guards/comment.guard';
 import {
-  UserAuthorized,
+  YouAuthorized,
   UserExists
 } from '../../_common/guards/user.guard';
 import { RepliesRouter } from './newspost-comment-replies.router';
@@ -29,16 +29,16 @@ CommentsRouter.get('/:comment_id/user-reaction/:user_id', UserExists, NewsPostCo
 
 // POST Routes
 
-CommentsRouter.post('/owner/:you_id', UserAuthorized, NewsPostCommentsService.create_comment);
+CommentsRouter.post('/owner/:you_id', YouAuthorized, NewsPostCommentsService.create_comment);
 
 // PUT Routes
 
-CommentsRouter.put('/:comment_id/owner/:you_id', UserAuthorized, NewsPostCommentExists, IsCommentOwner, NewsPostCommentsService.update_comment);
-CommentsRouter.put('/:comment_id/user-reaction/user/:you_id', UserAuthorized, NewsPostCommentExists, NewsPostCommentsService.toggle_user_reaction);
+CommentsRouter.put('/:comment_id/owner/:you_id', YouAuthorized, NewsPostCommentExists, IsCommentOwner, NewsPostCommentsService.update_comment);
+CommentsRouter.put('/:comment_id/user-reaction/user/:you_id', YouAuthorized, NewsPostCommentExists, NewsPostCommentsService.toggle_user_reaction);
 
 // DELETE Routes
 
-CommentsRouter.delete('/:comment_id/owner/:you_id', UserAuthorized, NewsPostCommentExists, IsCommentOwner, NewsPostCommentsService.delete_comment);
+CommentsRouter.delete('/:comment_id/owner/:you_id', YouAuthorized, NewsPostCommentExists, IsCommentOwner, NewsPostCommentsService.delete_comment);
 
 // Sub-Routes
 

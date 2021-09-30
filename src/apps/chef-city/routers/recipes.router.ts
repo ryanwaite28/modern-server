@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UserExists, UserAuthorized } from '../../_common/guards/user.guard';
+import { UserExists, YouAuthorized } from '../../_common/guards/user.guard';
 import { RecipeExists, IsRecipeOwner } from '../../../apps/chef-city/guards/recipe.guard';
 import { RecipesService } from '../services/recipes.service';
 import { CommentsRouter } from './recipe-comments.router';
@@ -19,18 +19,18 @@ RecipesRouter.get('/:recipe_id/user-reaction/:user_id', UserExists, RecipeExists
 
 // POST Routes
 
-RecipesRouter.post('/owner/:you_id', UserAuthorized, RecipesService.create_recipe);
+RecipesRouter.post('/owner/:you_id', YouAuthorized, RecipesService.create_recipe);
 
 // PUT Routes
 
-RecipesRouter.put('/:recipe_id/owner/:you_id', UserAuthorized, RecipeExists, IsRecipeOwner, RecipesService.update_recipe);
-RecipesRouter.put('/:recipe_id/ingredients/:ingredient_id/owner/:you_id', UserAuthorized, RecipeExists, IsRecipeOwner, RecipesService.update_recipe_ingredient);
-RecipesRouter.put('/:recipe_id/user-reaction/user/:you_id', UserAuthorized, RecipeExists, RecipesService.toggle_user_reaction);
+RecipesRouter.put('/:recipe_id/owner/:you_id', YouAuthorized, RecipeExists, IsRecipeOwner, RecipesService.update_recipe);
+RecipesRouter.put('/:recipe_id/ingredients/:ingredient_id/owner/:you_id', YouAuthorized, RecipeExists, IsRecipeOwner, RecipesService.update_recipe_ingredient);
+RecipesRouter.put('/:recipe_id/user-reaction/user/:you_id', YouAuthorized, RecipeExists, RecipesService.toggle_user_reaction);
 
 // DELETE Routes
 
-RecipesRouter.delete('/:recipe_id/ingredients/:ingredient_id/owner/:you_id', UserAuthorized, RecipeExists, IsRecipeOwner, RecipesService.delete_recipe_ingredient);
-RecipesRouter.delete('/:recipe_id/owner/:you_id', UserAuthorized, RecipeExists, IsRecipeOwner, RecipesService.delete_recipe);
+RecipesRouter.delete('/:recipe_id/ingredients/:ingredient_id/owner/:you_id', YouAuthorized, RecipeExists, IsRecipeOwner, RecipesService.delete_recipe_ingredient);
+RecipesRouter.delete('/:recipe_id/owner/:you_id', YouAuthorized, RecipeExists, IsRecipeOwner, RecipesService.delete_recipe);
 
 // Sub-Routes
 

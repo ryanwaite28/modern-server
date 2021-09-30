@@ -5,7 +5,7 @@ import {
   IsMarkerOwner
 } from '../guards/marker.guard';
 import {
-  UserAuthorized,
+  YouAuthorized,
   UserExists
 } from '../../_common/guards/user.guard';
 import { CommentsRouter } from './marker-comments.router';
@@ -26,16 +26,16 @@ MarkersRouter.get('/:marker_id/user-reaction/:user_id', UserExists, MarkerExists
 
 // POST Routes
 
-MarkersRouter.post('/owner/:you_id', UserAuthorized, MarkersService.create_marker);
+MarkersRouter.post('/owner/:you_id', YouAuthorized, MarkersService.create_marker);
 
 // PUT Routes
 
-MarkersRouter.put('/:marker_id/owner/:you_id', UserAuthorized, MarkerExists, IsMarkerOwner, MarkersService.update_marker);
-MarkersRouter.put('/:marker_id/user-reaction/user/:you_id', UserAuthorized, MarkerExists, MarkersService.toggle_user_reaction);
+MarkersRouter.put('/:marker_id/owner/:you_id', YouAuthorized, MarkerExists, IsMarkerOwner, MarkersService.update_marker);
+MarkersRouter.put('/:marker_id/user-reaction/user/:you_id', YouAuthorized, MarkerExists, MarkersService.toggle_user_reaction);
 
 // DELETE Routes
 
-MarkersRouter.delete('/:marker_id/owner/:you_id', UserAuthorized, MarkerExists, IsMarkerOwner, MarkersService.delete_marker);
+MarkersRouter.delete('/:marker_id/owner/:you_id', YouAuthorized, MarkerExists, IsMarkerOwner, MarkersService.delete_marker);
 
 // Sub-Routes
 

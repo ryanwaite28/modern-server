@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { PostsService } from '../services/posts.service';
 import {
-  UserAuthorized,
-  UserAuthorizedSlim,
+  YouAuthorized,
+  YouAuthorizedSlim,
   UserExists
 } from '../../_common/guards/user.guard';
 import { user_attrs_slim } from '../../../apps/_common/common.chamber';
@@ -38,16 +38,16 @@ PostsRouter.get('/:post_id', PostRouteGuards.existsGuard, PostsService.get_post_
 
 
 // POST Routes
-PostsRouter.post('/owner/:you_id', UserAuthorized, PostsService.create_post);
+PostsRouter.post('/owner/:you_id', YouAuthorized, PostsService.create_post);
 
 
 // PUT Routes
-PostsRouter.put('/:post_id/owner/:you_id', UserAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, PostsService.update_post);
-PostsRouter.put('/:post_id/user-reaction/user/:you_id', UserAuthorized, PostRouteGuards.existsGuard, PostsService.toggle_user_reaction);
+PostsRouter.put('/:post_id/owner/:you_id', YouAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, PostsService.update_post);
+PostsRouter.put('/:post_id/user-reaction/user/:you_id', YouAuthorized, PostRouteGuards.existsGuard, PostsService.toggle_user_reaction);
 
 
 // DELETE Routes
-PostsRouter.delete('/:post_id/owner/:you_id', UserAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, PostsService.delete_post);
+PostsRouter.delete('/:post_id/owner/:you_id', YouAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, PostsService.delete_post);
 
 
 

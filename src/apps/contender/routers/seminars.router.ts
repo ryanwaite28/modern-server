@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UserAuthorized, UserAuthorizedSlim } from '../../_common/guards/user.guard';
+import { YouAuthorized, YouAuthorizedSlim } from '../../_common/guards/user.guard';
 import { ContenderSeminarExists } from '../guards/seminar.guard';
 import { ContenderSeminarsService } from '../services/seminars.service';
 

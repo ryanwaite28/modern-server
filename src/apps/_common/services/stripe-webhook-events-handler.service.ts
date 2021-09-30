@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { DelivermeStripeWebhookHandlerService } from 'src/apps/deliver-me/services/deliverme-stripe-webhook-handler.service';
+import { DelivermeStripeWebhookHandlerService } from '../../deliver-me/services/deliverme-stripe-webhook-handler.service';
+import { MyfavorsStripeWebhookHandlerService } from '../../my-favors/services/myfavors-stripe-webhook-handler.service';
 import { MODERN_APP_NAMES } from '../enums/common.enum';
 import { HttpStatusCode } from '../enums/http-codes.enum';
 import { UserPaymentIntents } from '../models/user.model';
@@ -437,14 +438,18 @@ export class StripeWebhookEventsHandlerService {
         // Then define and call a function to handle the event payment_intent.requires_action
         break;
       case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object;
+        const stripePaymentIntent = event.data.object;
         // Then define and call a function to handle the event payment_intent.succeeded
         const userPaymentIntent = await UserPaymentIntents.findOne({ where: { payment_intent_id: paymentIntent.id } });
         if (userPaymentIntent) {
           const userPaymentIntentObj: any = userPaymentIntent.toJSON();
           switch (userPaymentIntentObj.micro_app) {
             case MODERN_APP_NAMES.DELIVERME: {
-              DelivermeStripeWebhookHandlerService.payment_intent_succeeded(userPaymentIntentObj);
+              DelivermeStripeWebhookHandlerService.payment_intent_succeeded(userPaymentIntentObj, stripePaymentIntent);
+              break;
+            }
+            case MODERN_APP_NAMES.MYFAVORS: {
+              MyfavorsStripeWebhookHandlerService.payment_intent_succeeded(userPaymentIntentObj, stripePaymentIntent);
               break;
             }
           }
