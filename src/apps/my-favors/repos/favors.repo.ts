@@ -37,35 +37,38 @@ export const favorMasterIncludes: Includeable[] = [
   },
   {
     model: FavorUpdates,
-    as: 'myfavors_favor_updates',
+    as: 'favor_updates',
     include: [{
       model: Users,
       as: 'user',
       attributes: user_attrs_slim,
-      order: [['id', 'DESC']]
+      // order: [['id', 'DESC']]
     }]
-  }, {
+  }, 
+  {
     model: FavorMessages,
     as: 'favor_messages',
     include: [{
       model: Users,
       as: 'user',
       attributes: user_attrs_slim,
-      order: [['id', 'DESC']]
+      // order: [['id', 'DESC']]
     }]
-  }, {
+  }, 
+  {
     model: FavorPhotos,
-    as: 'photos',
+    as: 'favor_photos',
     include: [{
       model: Photos,
-      as: 'photo',
+      as: 'favor_photo',
     }]
-  }, {
+  }, 
+  {
     model: FavorVideos,
-    as: 'videos',
+    as: 'favor_videos',
     include: [{
       model: Videos,
-      as: 'video',
+      as: 'favor_video',
     }]
   }
 ]
@@ -87,6 +90,7 @@ export async function create_favor(createObj: ICreateUpdateFavor) {
     title,
     description,
     category,
+
     item_image_link,
     item_image_id,
     featured,
@@ -104,7 +108,6 @@ export async function create_favor(createObj: ICreateUpdateFavor) {
 
     payout_per_helper,
     helpers_wanted,
-    payment_session_id,
     date_needed,
   } = createObj;
 
@@ -131,7 +134,6 @@ export async function create_favor(createObj: ICreateUpdateFavor) {
 
     payout_per_helper,
     helpers_wanted,
-    payment_session_id,
     date_needed,
   });
 
@@ -151,6 +153,8 @@ export async function create_favor(createObj: ICreateUpdateFavor) {
       });
     }
   }
+
+  console.log(`--- new favor model created/inserted ---`);
   
   const favor = await get_favor_by_id(new_favor_model.get('id'));
   return favor!;

@@ -12,7 +12,7 @@ import { get_favor_by_id, get_favor_update_by_id } from "./repos/favors.repo";
 
 
 
-const date_needed_validator = (arg: any, required: boolean = false): boolean => {
+export const favor_date_needed_validator = (arg: any, required: boolean = false): boolean => {
   if (!arg && !required) {
     return true;
   }
@@ -22,6 +22,8 @@ const date_needed_validator = (arg: any, required: boolean = false): boolean => 
 
   const isValid = (
     (/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/).test(arg) ||
+    (/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/).test(arg) ||
+    (/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/).test(arg) ||
     (/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/).test(arg) ||
     (/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}).(\d{3}[a-zA-Z]Z)/).test(arg)
   );
@@ -36,26 +38,26 @@ export const create_update_favor_required_props: IModelValidator[] = [
   { field: 'description', name: 'Description', validator: genericTextValidator },
   { field: 'category', name: 'Category', validator: (arg: any) => arg === '' || genericTextValidator(arg) },
 
-  { field: 'location', name: 'From Location', validator: genericTextValidator },
-  { field: 'address', name: 'From Address', validator: genericTextValidator },
-  { field: 'street', name: 'From Street', validator: (arg) => (/^[a-zA-Z0-9\s]+$/).test(arg) },
-  { field: 'city', name: 'From City', validator: (arg) => cities_map.has(arg) },
-  { field: 'state', name: 'From State', validator: (arg) => states_map.has(arg) },
-  { field: 'zipcode', name: 'From Zipcode', validator: (arg) => zipcodes_map.has(arg) },
-  { field: 'country', name: 'From Country', validator: (arg) => countries_by_name_map.has(arg && arg.toLowerCase()) },
-  { field: 'place_id', name: 'From Place ID', validator: genericTextValidator },
-  { field: 'lat', name: 'From Latitude', validator: numberValidator },
-  { field: 'lng', name: 'From Longitude', validator: numberValidator },
+  { field: 'location', name: 'Location', validator: genericTextValidator },
+  { field: 'address', name: 'Address', validator: genericTextValidator },
+  { field: 'street', name: 'Street', validator: (arg) => (/^[a-zA-Z0-9\s]+$/).test(arg) },
+  { field: 'city', name: 'City', validator: (arg) => cities_map.has(arg) },
+  { field: 'state', name: 'State', validator: (arg) => states_map.has(arg) },
+  { field: 'zipcode', name: 'Zipcode', validator: (arg) => zipcodes_map.has(arg) },
+  { field: 'country', name: 'Country', validator: (arg) => countries_by_name_map.has(arg && arg.toLowerCase()) },
+  { field: 'place_id', name: 'Place ID', validator: genericTextValidator },
+  { field: 'lat', name: 'Latitude', validator: numberValidator },
+  { field: 'lng', name: 'Longitude', validator: numberValidator },
 
-  { field: 'payout_per_helper', name: 'Payout per helper', validator: (arg: any) => numberValidator(arg) && arg > payout_min },
+  { field: 'payout_per_helper', name: 'Payout per helper', validator: (arg: any) => numberValidator(arg) && arg >= payout_min },
   { field: 'helpers_wanted', name: 'Helpers needed', validator: (arg: any) => numberValidator(arg) && arg > 0 },
-  { field: 'date_needed', name: 'DateTime needed', validator: (arg: any) => date_needed_validator(arg) },
+  // { field: 'date_needed', name: 'DateTime needed', validator: (arg: any) => date_needed_validator(arg) },
 ];
 
 export const create_favor_update_required_props: { field: string; name: string; validator: (arg: any) => boolean }[] = [
   { field: 'message', name: 'Message', validator: genericTextValidator },
-  // { field: 'carrier_lat', name: 'Carrier\'s Latitude', validator: numberValidator },
-  // { field: 'carrier_lng', name: 'Carrier\'s Longitude', validator: numberValidator },
+  { field: 'helper_lat', name: 'Carrier\'s Latitude', validator: numberValidator },
+  { field: 'helper_lng', name: 'Carrier\'s Longitude', validator: numberValidator },
 ];
 
 export const myfavors_user_settings_required_props: { field: string; name: string; validator: (arg: any) => boolean }[] = [

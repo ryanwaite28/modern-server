@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { MODERN_APP_NAMES } from 'src/apps/_common/enums/common.enum';
-import { createGenericCommentRepliesRouter } from 'src/apps/_common/helpers/create-model-comment-replies-router.helper';
-import { createModelRouteGuards } from 'src/apps/_common/helpers/create-model-guards.helper';
-import { createCommonGenericModelReactionsRouter } from 'src/apps/_common/helpers/create-model-reactions-router.helper.';
-import { createCommonGenericModelReactionsService } from 'src/apps/_common/helpers/create-model-reactions-service.helper';
+import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
+import { createGenericCommentRepliesRouter } from '../../_common/helpers/create-model-comment-replies-router.helper';
+import { createModelRouteGuards } from '../../_common/helpers/create-model-guards.helper';
+import { createCommonGenericModelReactionsRouter } from '../../_common/helpers/create-model-reactions-router.helper.';
+import { createCommonGenericModelReactionsService } from '../../_common/helpers/create-model-reactions-service.helper';
 import { user_attrs_slim } from '../../../apps/_common/common.chamber';
 import { createCommonGenericModelCommentRepliesService } from '../../../apps/_common/helpers/create-model-comment-replies-service.helper';
 import { createGenericCommentsRouter } from '../../../apps/_common/helpers/create-model-comments-router.helper';

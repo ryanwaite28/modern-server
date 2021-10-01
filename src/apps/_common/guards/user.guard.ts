@@ -3,6 +3,7 @@ import { Users } from '../models/user.model';
 import { AuthorizeJWT, user_attrs_med } from '../common.chamber';
 import { HttpStatusCode } from '../enums/http-codes.enum';
 import { get_user_by_id } from '../repos/users.repo';
+import { IUser } from '../interfaces/common.interface';
 
 export async function YouExists(
   request: Request,
@@ -94,5 +95,33 @@ export async function UserIdsAreDifferentWithModel(
     attributes: user_attrs_med
   });
   response.locals.user = user_model && user_model.toJSON();
+  return next();
+}
+
+
+export async function YouHasStripeConnect(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const you = response.locals.you as IUser;
+  if (!you.stripe_account_verified) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `You do not have verified stripe account`
+    });
+  }
+  return next();
+}
+export async function UserHasStripeConnect(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const user = response.locals.user as IUser;
+  if (!user.stripe_account_verified) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `User does not have verified stripe account`
+    });
+  }
   return next();
 }

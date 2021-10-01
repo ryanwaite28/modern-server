@@ -49,11 +49,15 @@ export const Favors = <MyModelStatic> sequelize.define('myfavors_favors', {
   helpers_wanted:            { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
   payment_session_id:        { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
   payment_intent_id:         { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
-  
   auto_assign_lead_helper:   { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
-  started:                   { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
-  cancel:                    { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
-  fulfilled:                 { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+
+  // started:                   { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  // fulfilled:                 { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+
+  datetime_started:         { type: Sequelize.DATE, allowNull: true, },
+  datetime_fulfilled:       { type: Sequelize.DATE, allowNull: true, },
+  cancel:                      { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+
   fulfilled_image_link:      { type: Sequelize.STRING(500), allowNull: true, defaultValue: '' },
   fulfilled_image_id:        { type: Sequelize.STRING(500), allowNull: true, defaultValue: '' },
   date_needed:               { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
@@ -185,9 +189,9 @@ export const FavorDisputeLogs = <MyModelStatic> sequelize.define('myfavors_favor
 Users.hasMany(Favors, { as: 'myfavors_favors', foreignKey: 'owner_id', sourceKey: 'id' });
 Favors.belongsTo(Users, { as: 'owner', foreignKey: 'owner_id', targetKey: 'id' });
 
-Favors.hasMany(FavorUpdates, { as: 'myfavors_favor_tracking_updates', foreignKey: 'favor_id', sourceKey: 'id' });
+Favors.hasMany(FavorUpdates, { as: 'favor_updates', foreignKey: 'favor_id', sourceKey: 'id' });
 FavorUpdates.belongsTo(Favors, { as: 'favor', foreignKey: 'favor_id', targetKey: 'id' });
-Users.hasMany(FavorUpdates, { as: 'myfavors_user_tracking_updates', foreignKey: 'user_id', sourceKey: 'id' });
+Users.hasMany(FavorUpdates, { as: 'myfavors_user_favor_updates', foreignKey: 'user_id', sourceKey: 'id' });
 FavorUpdates.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
 
 
@@ -203,6 +207,18 @@ FavorCancellations.belongsTo(Favors, { as: 'favor', foreignKey: 'favor_id', targ
 
 Favors.hasMany(FavorHelpers, { as: 'favor_helpers', foreignKey: 'favor_id', sourceKey: 'id' });
 FavorHelpers.belongsTo(Favors, { as: 'favor', foreignKey: 'favor_id', targetKey: 'id' });
+
+Favors.hasMany(FavorPhotos, { as: 'favor_photos', foreignKey: 'favor_id', sourceKey: 'id' });
+FavorPhotos.belongsTo(Favors, { as: 'favor', foreignKey: 'favor_id', targetKey: 'id' });
+
+Favors.hasMany(FavorVideos, { as: 'favor_videos', foreignKey: 'favor_id', sourceKey: 'id' });
+FavorVideos.belongsTo(Favors, { as: 'favor', foreignKey: 'favor_id', targetKey: 'id' });
+
+FavorPhotos.belongsTo(Photos, { as: 'favor_photo', foreignKey: 'photo_id', targetKey: 'id' });
+// Videos.belongsTo(FavorVideos, { as: 'video_favor', foreignKey: 'video_id', targetKey: 'id' });
+
+FavorVideos.belongsTo(Videos, { as: 'favor_video', foreignKey: 'video_id', targetKey: 'id' });
+// FavorVideos.belongsTo(Favors, { as: 'favor', foreignKey: 'favor_id', targetKey: 'id' });
 
 Favors.hasMany(FavorAssignedCategories, { as: 'favor_assigned_categories', foreignKey: 'favor_id', sourceKey: 'id' });
 FavorAssignedCategories.belongsTo(Favors, { as: 'favor', foreignKey: 'favor_id', targetKey: 'id' });

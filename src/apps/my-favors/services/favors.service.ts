@@ -6,23 +6,23 @@ import { UploadedFile } from 'express-fileupload';
 import {
   fn, col, cast, Op
 } from 'sequelize';
-import { MODERN_APP_NAMES } from 'src/apps/_common/enums/common.enum';
-import { IRequest, PlainObject } from 'src/apps/_common/interfaces/common.interface';
-import { IMyModel } from 'src/apps/_common/models/common.model-types';
-import { create_notification } from 'src/apps/_common/repos/notifications.repo';
-import { getAll, paginateTable } from 'src/apps/_common/repos/_common.repo';
-import { GoogleService } from 'src/apps/_common/services/google.service';
-import { CommonSocketEventsHandler } from 'src/apps/_common/services/socket-events-handlers-by-app/common.socket-event-handler';
-import { StripeService } from 'src/apps/_common/services/stripe.service';
-import { store_image } from 'src/cloudinary-manager';
-import { send_sms } from 'src/sms-client';
+import { COMMON_TRANSACTION_STATUS, MODERN_APP_NAMES } from '../../_common/enums/common.enum';
+import { IRequest, PlainObject } from '../../_common/interfaces/common.interface';
+import { IMyModel } from '../../_common/models/common.model-types';
+import { create_notification } from '../../_common/repos/notifications.repo';
+import { getAll, paginateTable } from '../../_common/repos/_common.repo';
+import { GoogleService } from '../../_common/services/google.service';
+import { CommonSocketEventsHandler } from '../../_common/services/socket-events-handlers-by-app/common.socket-event-handler';
+import { StripeService } from '../../_common/services/stripe.service';
+import { store_image } from '../../../cloudinary-manager';
+import { send_sms } from '../../../sms-client';
 import { allowedImages, getUserFullName, user_attrs_slim, validatePhone } from '../../_common/common.chamber';
 import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
 import { UserPaymentIntents, Users } from '../../_common/models/user.model';
-import { FavorHelpers, FavorMessages, Favors, FavorUpdates } from '../models/favor.model';
+import { FavorCancellations, FavorHelpers, FavorMessages, Favors, FavorUpdates } from '../models/favor.model';
 import * as FavorsRepo from '../repos/favors.repo';
 import { MyfavorsUserProfileSettings } from '../models/myfavors.model';
-import { create_favor_update_required_props, create_update_favor_required_props, myfavors_user_settings_required_props, populate_myfavors_notification_obj } from '../myfavors.chamber';
+import { create_favor_update_required_props, create_update_favor_required_props, favor_date_needed_validator, myfavors_user_settings_required_props, populate_myfavors_notification_obj } from '../myfavors.chamber';
 import { ICreateUpdateFavor } from '../interfaces/myfavors.interface';
 import { MYFAVORS_EVENT_TYPES, MYFAVORS_NOTIFICATION_TARGET_TYPES } from '../enums/myfavors.enum';
 
@@ -33,6 +33,8 @@ const favorCommonFindCriteria = {
     {
       model: FavorHelpers,
       as: 'favor_helpers',
+      attributes: { exclude: ['id'] },
+      duplicating: false,
       include: [{
         model: Users,
         as: 'helper',
@@ -46,17 +48,18 @@ const favorCommonFindCriteria = {
     }
   ],
   where: {
-    fulfilled: false,
-    helpers_count: {
-      [Op.lte]: cast(col('myfavors_favors.helpers_wanted'), 'integer')
-    },
+    datetime_fulfilled: null,
+    // helpers_wanted: {
+    //   [Op.lte]: cast(col('myfavors_favors.helpers_wanted'), 'integer')
+    // },
   },
   attributes: {
     include: [
-      [cast(fn('COUNT', col('myfavors_favor_helpers.favor_id')), 'integer') ,'helpers_count'],
+      [cast(fn('COUNT', col('favor_helpers.favor_id')), 'integer') ,'helpers_count'],
     ]
   },
-  group: ['myfavors_favors.id'],
+  limit: 5,
+  group: ['favor_helpers.id', 'myfavors_favors.id', 'favor_helpers.helper.id', 'owner.id'],
   order: [fn('RANDOM')],
 };
 
@@ -64,8 +67,8 @@ export class FavorsService {
 
   static async search_favors(request: Request, response: Response) {
     const you = response.locals.you;
-    const city: string = request.params.city;
-    const state: string = request.params.state;
+    const city: string = request.body.city;
+    const state: string = request.body.state;
 
     const useFind = Object.assign({}, favorCommonFindCriteria);
     (<any> useFind.where)['city'] = city;
@@ -74,10 +77,35 @@ export class FavorsService {
       [Op.ne]: you.id
     };
 
-    const result = await Favors.findAll(<any> useFind);
+    const results: any = [];
+    const resultsMap: any = {};
+    const excludeIds: any = [];
+
+    while (results.length < 5) {
+      (<any> useFind.where)['id'] = {
+        [Op.notIn]: excludeIds
+      };
+      const query_results = await Favors.findAll(<any> useFind);
+      console.log({ query_results });
+      if (!query_results.length) {
+        break;
+      }
+      for (const favor_model of query_results) {
+        if (resultsMap[favor_model.get('id')]) {
+          continue;
+        }
+        const helpers_wanted = favor_model.get('helpers_wanted');
+        const helpers_count = favor_model.get('helpers_count');
+        if (helpers_count < helpers_wanted) {
+          results.push(favor_model);
+          excludeIds.push(favor_model.get('id'));
+          resultsMap[favor_model.get('id')] = true;
+        }
+      }
+    }
 
     return response.status(HttpStatusCode.OK).json({
-      data: result
+      data: results
     });
   }
 
@@ -243,7 +271,7 @@ export class FavorsService {
 
     if (favorObj.owner_id !== you.id) {
       // send to each helper
-      const other_helpers = data!.favor_helpers.filter((helper: any) => helper.user_id !== you.id).map((helper: any) => helper.helper);
+      const other_helpers = favorObj!.favor_helpers.filter((helper: any) => helper.user_id !== you.id).map((helper: any) => helper.helper);
       notify_users = [favorObj.owner, ...other_helpers];
     } else {
       // send to owner and every other helper
@@ -275,7 +303,7 @@ export class FavorsService {
   
         const owner_phone = favorObj.owner.phone;
         if (validatePhone(owner_phone)) {
-          GoogleService.getLocationFromCoordinates(createObj.carrier_lat, createObj.carrier_lng)
+          GoogleService.getLocationFromCoordinates(createObj.helper_lat, createObj.helper_lng)
             .then((placeData) => {
               const msg = `ModernApps ${MODERN_APP_NAMES.MYFAVORS} - Favor: new update for favor "${favorObj.title}"\n\n` +
               `${createObj.message}\n\n` +
@@ -353,7 +381,7 @@ export class FavorsService {
     });
   }
 
-  static async get_user_favor_helpings_all(request: Request, response: Response) {
+  static async get_user_favor_helpings_all_active(request: Request, response: Response) {
     const user_id: number = parseInt(request.params.user_id, 10);
     
     const results = await getAll(
@@ -363,11 +391,12 @@ export class FavorsService {
       [{
         model: Favors,
         as: 'favor',
-        include: FavorsRepo.favorMasterIncludes
+        include: FavorsRepo.favorMasterIncludes,
+        where: { datetime_fulfilled: null }
       }],
       undefined,
       undefined,
-      { completed: true },
+      undefined,
       [['id', 'DESC']]
     );
     return response.status(HttpStatusCode.OK).json({
@@ -375,7 +404,7 @@ export class FavorsService {
     });
   }
 
-  static async get_user_favor_helpings(request: Request, response: Response) {
+  static async get_user_favor_helpings_active(request: Request, response: Response) {
     const user_id: number = parseInt(request.params.user_id, 10);
     const favor_id: number | undefined = request.params.favor_id ? parseInt(request.params.favor_id, 10) : undefined;
 
@@ -389,11 +418,62 @@ export class FavorsService {
       [{
         model: Favors,
         as: 'favor',
-        include: FavorsRepo.favorMasterIncludes
+        include: FavorsRepo.favorMasterIncludes,
+        where: { datetime_fulfilled: null }
       }],
       undefined,
       undefined,
-      { completed: true },
+      undefined,
+      [['id', 'DESC']]
+    );
+    return response.status(HttpStatusCode.OK).json({
+      data: results
+    });
+  }
+
+  static async get_user_favor_helpings_all_past(request: Request, response: Response) {
+    const user_id: number = parseInt(request.params.user_id, 10);
+    
+    const results = await getAll(
+      FavorHelpers,
+      'user_id',
+      user_id,
+      [{
+        model: Favors,
+        as: 'favor',
+        include: FavorsRepo.favorMasterIncludes,
+        where: { datetime_fulfilled: { [Op.ne]: null } },
+      }],
+      undefined,
+      undefined,
+      undefined,
+      [['id', 'DESC']]
+    );
+    return response.status(HttpStatusCode.OK).json({
+      data: results
+    });
+  }
+
+  static async get_user_favor_helpings_past(request: Request, response: Response) {
+    const user_id: number = parseInt(request.params.user_id, 10);
+    const favor_id: number | undefined = request.params.favor_id ? parseInt(request.params.favor_id, 10) : undefined;
+
+    console.log({ user_id, favor_id, carrier: true });
+
+    const results = await paginateTable(
+      FavorHelpers,
+      'user_id',
+      user_id,
+      favor_id,
+      [{
+        model: Favors,
+        as: 'favor',
+        include: FavorsRepo.favorMasterIncludes,
+        where: { datetime_fulfilled: { [Op.ne]: null } }
+      }],
+      undefined,
+      undefined,
+      undefined,
       [['id', 'DESC']]
     );
     return response.status(HttpStatusCode.OK).json({
@@ -409,6 +489,25 @@ export class FavorsService {
       };
 
       const data: PlainObject = JSON.parse(request.body.payload);
+      let date_needed: any = data.date_needed;
+      let time_needed: any = data.time_needed;
+      const date_str = `${date_needed}T${time_needed}`;
+      let datetime_needed: Date | null = date_needed && time_needed && new Date(date_str);
+      console.log({ date_needed, time_needed, date_str, datetime_needed });
+      if (!datetime_needed) {
+        datetime_needed = null;
+      }
+      else {
+        const isValidDate = favor_date_needed_validator(date_str);
+        console.log({ isValidDate });
+        if (!isValidDate) {
+          return response.status(HttpStatusCode.BAD_REQUEST).json({
+            message: `Date Time is invalid.`
+          });
+        }
+        createObj['date_needed'] = datetime_needed.toISOString();
+      }
+
       const favor_image: UploadedFile | undefined = request.files && (<UploadedFile> request.files.favor_image);
 
       console.log(`request.body`, request.body);
@@ -455,11 +554,14 @@ export class FavorsService {
       console.log(`createObj`, createObj);
 
       const new_favor_model = await FavorsRepo.create_favor(createObj as ICreateUpdateFavor);
+      console.log({new_favor_model});
+
       return response.status(HttpStatusCode.OK).json({
         message: `New Favor Created!`,
         data: new_favor_model
       });
     } catch (e) {
+      console.log(e);
       return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
         message: `Could not create new favor`,
         error: e
@@ -561,8 +663,11 @@ export class FavorsService {
       });
     }
 
+    // the lead helper is sent when there are no other helpers
+    const is_lead = !favorObj.favor_helpers.length
+
     let new_helper_model = await FavorHelpers.create({ 
-      favor_id: favorObj.id, user_id: you.id
+      favor_id: favorObj.id, user_id: you.id, is_lead
     });
     const new_helper = await new_helper_model.get();
 
@@ -699,7 +804,7 @@ export class FavorsService {
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
 
-    if (favorObj.started) {
+    if (favorObj.datetime_started) {
       return response.status(HttpStatusCode.OK).json({
         message: `Favor is already started.`,
       });
@@ -722,8 +827,8 @@ export class FavorsService {
       }
     }
 
-    favor_model.started = true;
-    const updates = await favor_model.save({ fields: ['started'] });
+    favor_model.datetime_started = fn('NOW');
+    const updates = await favor_model.save({ fields: ['datetime_started'] });
     
     const data = await FavorsRepo.get_favor_by_id(favorObj.id);
 
@@ -783,7 +888,7 @@ export class FavorsService {
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
 
-    if (favorObj.fulfilled) {
+    if (favorObj.datetime_fulfilled) {
       return response.status(HttpStatusCode.OK).json({
         message: `Favor is already fulfilled.`,
       });
@@ -806,8 +911,8 @@ export class FavorsService {
       }
     }
 
-    favor_model.fulfilled = true;
-    const updates = await favor_model.save({ fields: ['fulfilled'] });
+    favor_model.datetime_fulfilled = fn('NOW');
+    const updates = await favor_model.save({ fields: ['datetime_fulfilled'] });
     
     const data = await FavorsRepo.get_favor_by_id(favorObj.id);
 
@@ -839,7 +944,7 @@ export class FavorsService {
           event,
           data: {
             data,
-            message: `Favor "${favorObj.title}" was canceled`,
+            message: `Favor "${favorObj.title}" was fulfilled`,
             user: you,
             // notification,
           }
@@ -891,8 +996,9 @@ export class FavorsService {
     }
 
     favor_model.canceled = true;
-    favor_model.started = false;
+    favor_model.datetime_started = null;
     const updates = await favor_model.save({ fields: ['canceled', 'started'] });
+
     const trackingDeletes = await FavorUpdates.destroy({ 
       where: { favor_id: favorObj.id }
     });
@@ -902,7 +1008,11 @@ export class FavorsService {
     const helpersDelete = await FavorHelpers.destroy({ 
       where: { favor_id: favorObj.id }
     });
-    
+    const cancellation = await FavorCancellations.create({
+      favor_id: favorObj.id,
+      reason: request.body.reason || ''
+    });
+
     const data = await FavorsRepo.get_favor_by_id(favorObj.id);
 
     let notify_users = [];
@@ -955,6 +1065,25 @@ export class FavorsService {
       updates,
     });
   }
+  static async mark_favor_as_uncanceled(request: Request, response: Response) {
+    const you = response.locals.you;
+    const favor_model: IMyModel = response.locals.favor_model;
+    const favorObj: any = favor_model.toJSON();
+
+    if (!favorObj.canceled) {
+      return response.status(HttpStatusCode.OK).json({
+        message: `Favor is not canceled.`,
+      });
+    }
+
+    favor_model.canceled = false;
+    const updates = await favor_model.save({ fields: ['canceled'] });
+
+    return response.status(HttpStatusCode.OK).json({
+      message: `Favor uncanceled!`,
+      updates,
+    });
+  }
 
   static async mark_helper_as_helped(request: Request, response: Response) {
     const you = response.locals.you;
@@ -986,49 +1115,40 @@ export class FavorsService {
     
     const data = await FavorsRepo.get_favor_by_id(favorObj.id);
 
-    // let notify_users = [];
+    let notify_users = favorObj.favor_helpers.map((helper: any) => helper.helper);
 
-    // if (favorObj.owner_id !== you.id) {
-    //   // send to each helper
-    //   const other_helpers = favorObj.favor_helpers.filter((helper: any) => helper.user_id !== you.id).map((helper: any) => helper.helper);
-    //   notify_users = [favorObj.owner, ...other_helpers];
-    // } else {
-    //   // send to owner and every other helper
-    //   notify_users = favorObj.favor_helpers.map((helper: any) => helper.helper);
-    // }
+    const event = MYFAVORS_EVENT_TYPES.FAVOR_HELPER_HELPED;
 
-    // const event = MYFAVORS_EVENT_TYPES.FAVOR_CANCELED;
-
-    // for (const user of notify_users) {
-    //   create_notification({
-    //     from_id: you.id,
-    //     to_id: user.id,
-    //     event,
-    //     micro_app: MODERN_APP_NAMES.MYFAVORS,
-    //     target_type: MYFAVORS_NOTIFICATION_TARGET_TYPES.FAVOR,
-    //     target_id: favorObj.id
-    //   }).then(async (notification_model) => {
-    //     // const notification = await populate_myfavors_notification_obj(notification_model);
-    //     CommonSocketEventsHandler.emitEventToUserSockets({
-    //       user_id: user.id,
-    //       event,
-    //       data: {
-    //         data,
-    //         message: `Favor "${favorObj.title}" was canceled`,
-    //         user: you,
-    //         // notification,
-    //       }
-    //     });
+    for (const user of notify_users) {
+      const msg = `${getUserFullName(user)} was marked as helped for Favor "${favorObj.title}"`;
+      create_notification({
+        from_id: you.id,
+        to_id: user.id,
+        event,
+        micro_app: MODERN_APP_NAMES.MYFAVORS,
+        target_type: MYFAVORS_NOTIFICATION_TARGET_TYPES.FAVOR,
+        target_id: favorObj.id
+      }).then(async (notification_model) => {
+        // const notification = await populate_myfavors_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: user.id,
+          event,
+          data: {
+            data,
+            message: msg,
+            // notification,
+          }
+        });
   
-    //     const to_phone_number = user.phone;
-    //     if (validatePhone(to_phone_number)) {
-    //       send_sms({
-    //         to_phone_number,
-    //         message: `ModernApps ${MODERN_APP_NAMES.MYFAVORS}: Favor "${favorObj.title}" was canceled`,
-    //       });
-    //     }
-    //   });
-    // }
+        const to_phone_number = user.phone;
+        if (validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.MYFAVORS}: ${msg}`,
+          });
+        }
+      });
+    }
 
     return response.status(HttpStatusCode.OK).json({
       message: `Favor helper marked as helped!`,
@@ -1061,55 +1181,46 @@ export class FavorsService {
       });
     }
 
-    const updates = await FavorHelpers.update({ helped: false }, { 
+    const updates = await FavorHelpers.update({ helped: true }, { 
       where: { favor_id: favorObj.id, user_id }
     });
     
     const data = await FavorsRepo.get_favor_by_id(favorObj.id);
 
-    // let notify_users = [];
+    let notify_users = favorObj.favor_helpers.map((helper: any) => helper.helper);
 
-    // if (favorObj.owner_id !== you.id) {
-    //   // send to each helper
-    //   const other_helpers = favorObj.favor_helpers.filter((helper: any) => helper.user_id !== you.id).map((helper: any) => helper.helper);
-    //   notify_users = [favorObj.owner, ...other_helpers];
-    // } else {
-    //   // send to owner and every other helper
-    //   notify_users = favorObj.favor_helpers.map((helper: any) => helper.helper);
-    // }
+    const event = MYFAVORS_EVENT_TYPES.FAVOR_HELPER_UNHELPED;
 
-    // const event = MYFAVORS_EVENT_TYPES.FAVOR_CANCELED;
-
-    // for (const user of notify_users) {
-    //   create_notification({
-    //     from_id: you.id,
-    //     to_id: user.id,
-    //     event,
-    //     micro_app: MODERN_APP_NAMES.MYFAVORS,
-    //     target_type: MYFAVORS_NOTIFICATION_TARGET_TYPES.FAVOR,
-    //     target_id: favorObj.id
-    //   }).then(async (notification_model) => {
-    //     // const notification = await populate_myfavors_notification_obj(notification_model);
-    //     CommonSocketEventsHandler.emitEventToUserSockets({
-    //       user_id: user.id,
-    //       event,
-    //       data: {
-    //         data,
-    //         message: `Favor "${favorObj.title}" was canceled`,
-    //         user: you,
-    //         // notification,
-    //       }
-    //     });
+    for (const user of notify_users) {
+      const msg = `${getUserFullName(user)} was marked as un-helped for Favor "${favorObj.title}"`;
+      create_notification({
+        from_id: you.id,
+        to_id: user.id,
+        event,
+        micro_app: MODERN_APP_NAMES.MYFAVORS,
+        target_type: MYFAVORS_NOTIFICATION_TARGET_TYPES.FAVOR,
+        target_id: favorObj.id
+      }).then(async (notification_model) => {
+        // const notification = await populate_myfavors_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: user.id,
+          event,
+          data: {
+            data,
+            message: msg,
+            // notification,
+          }
+        });
   
-    //     const to_phone_number = user.phone;
-    //     if (validatePhone(to_phone_number)) {
-    //       send_sms({
-    //         to_phone_number,
-    //         message: `ModernApps ${MODERN_APP_NAMES.MYFAVORS}: Favor "${favorObj.title}" was canceled`,
-    //       });
-    //     }
-    //   });
-    // }
+        const to_phone_number = user.phone;
+        if (validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.MYFAVORS}: ${msg}`,
+          });
+        }
+      });
+    }
 
     return response.status(HttpStatusCode.OK).json({
       message: `Favor helper marked as unhelped!`,
@@ -1275,15 +1386,20 @@ export class FavorsService {
   static async pay_helper(request: Request, response: Response) {
     const you = response.locals.you;
     const user = response.locals.user;
+
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
 
-    // get all helpers who helped
     const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === user.id);
 
     if (!helper) {
       return response.status(HttpStatusCode.FORBIDDEN).json({
         message: `No helper user found by id ${user.id}`
+      });
+    }
+    if (helper.paid) {
+      return response.status(HttpStatusCode.FORBIDDEN).json({
+        message: `Helper already paid`
       });
     }
 
@@ -1311,7 +1427,7 @@ export class FavorsService {
           micro_app: MODERN_APP_NAMES.MYFAVORS,
           target_type: MYFAVORS_NOTIFICATION_TARGET_TYPES.FAVOR,
           target_id: favorObj.id,
-          helper_user_id: helper.user_id
+          helper_user_id: user.id
         }
       },
       // { stripeAccount: you.stripe_account_id }
@@ -1331,6 +1447,7 @@ export class FavorsService {
       micro_app: MODERN_APP_NAMES.MYFAVORS,
       target_type: MYFAVORS_NOTIFICATION_TARGET_TYPES.FAVOR,
       target_id: favorObj.id,
+      status: COMMON_TRANSACTION_STATUS.PENDING
     });
 
     console.log({ newIntent, paymentIntent });

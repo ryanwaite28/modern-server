@@ -86,6 +86,7 @@ export const UserPaymentIntents = <MyModelStaticGeneric<IMyModel>> sequelize.def
   micro_app:                           { type: Sequelize.STRING, allowNull: true },
   target_type:                         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   target_id:                           { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
+  status:                              { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   date_created:                        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);

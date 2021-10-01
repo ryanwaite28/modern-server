@@ -413,6 +413,10 @@ export class StripeWebhookEventsHandlerService {
         var orderReturn = event.data.object;
         // Then define and call a function to handle the event order_return.created
         break;
+      case 'payment.created': {
+        var payment = event.data.object;
+        break;
+      }
       case 'payment_intent.amount_capturable_updated':
         var paymentIntent = event.data.object;
         // Then define and call a function to handle the event payment_intent.amount_capturable_updated
@@ -440,7 +444,7 @@ export class StripeWebhookEventsHandlerService {
       case 'payment_intent.succeeded': {
         const stripePaymentIntent = event.data.object;
         // Then define and call a function to handle the event payment_intent.succeeded
-        const userPaymentIntent = await UserPaymentIntents.findOne({ where: { payment_intent_id: paymentIntent.id } });
+        const userPaymentIntent = await UserPaymentIntents.findOne({ where: { payment_intent_id: stripePaymentIntent.id } });
         if (userPaymentIntent) {
           const userPaymentIntentObj: any = userPaymentIntent.toJSON();
           switch (userPaymentIntentObj.micro_app) {
