@@ -28,7 +28,7 @@ if (process.env.DATABASE_URL) {
   }
 } else if (process.env.DATABASE_URL_DEV) {
   try {
-    console.log(`process.env.DATABASE_URL:`, process.env.DATABASE_URL);
+    console.log(`process.env.DATABASE_URL_DEV:`, process.env.DATABASE_URL_DEV);
     db_env = 'Development';
     sequelize = new Sequelize.Sequelize(<string> process.env.DATABASE_URL_DEV, {
       dialect: 'postgres',

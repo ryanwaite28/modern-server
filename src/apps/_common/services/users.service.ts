@@ -172,6 +172,7 @@ export class UsersService {
   static async sign_up(request: Request, response: Response) {
     const {
       firstname,
+      middlename,
       lastname,
       username,
       displayname,
@@ -196,6 +197,7 @@ export class UsersService {
       ['username', 'Username', validateUsername, 'must be: at least 2 characters, alphanumeric, dashes, underscores, periods'],
       ['displayname', 'DisplayName', validateDisplayName, 'must be: at least 2 characters, alphanumeric, dashes, underscores, periods, spaces'],
       ['firstname', 'First Name', validateName, 'must be: at least 2 characters, letters only'],
+      // ['middlename', 'Middle Name', validateUsername, 'must be: at least 2 characters, letters only'],
       ['lastname', 'Last Name', validateUsername, 'must be: at least 2 characters, letters only'],
 
       ['email', 'Email', validateEmail, 'is in bad format'],
@@ -256,16 +258,6 @@ export class UsersService {
     const new_user_model = await UserRepo.create_user(createInfo);
     const new_user = <IUser> new_user_model!.toJSON();
     delete new_user.password;
-
-    // create JWT
-    const jwt = TokensService.newJwtToken(request, new_user, true);
-
-    response.status(HttpStatusCode.OK).json({
-      online: true,
-      you: new_user,
-      message: 'Signed Up!',
-      token: jwt,
-    });
   
     try {
       /** Email Sign up and verify */
@@ -305,6 +297,15 @@ export class UsersService {
     } catch (e) {
       console.log(`could not sent sign up email:`, e, { new_user });
     }
+
+    // create JWT
+    const jwt = TokensService.newJwtToken(request, new_user, true);
+    return response.status(HttpStatusCode.OK).json({
+      online: true,
+      you: new_user,
+      message: 'Signed Up!',
+      token: jwt,
+    });
   }
 
   static async sign_in(request: Request, response: Response) {
