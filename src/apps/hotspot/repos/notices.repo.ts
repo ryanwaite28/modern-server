@@ -56,7 +56,7 @@ export async function create_notice(createObj: {
     parent_id: createObj.parent_id,
     quote_id: createObj.quote_id,
     share_id: createObj.share_id,
-    visibility: createObj.visibility,
+    visibility: createObj.visibility || '',
     is_explicit: createObj.is_explicit,
     is_private: createObj.is_private,
     body: createObj.body,

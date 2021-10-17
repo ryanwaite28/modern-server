@@ -43,7 +43,6 @@ PostsRouter.post('/owner/:you_id', YouAuthorized, PostsService.create_post);
 
 // PUT Routes
 PostsRouter.put('/:post_id/owner/:you_id', YouAuthorized, PostRouteGuards.existsGuard, PostRouteGuards.isOwnerGuard, PostsService.update_post);
-PostsRouter.put('/:post_id/user-reaction/user/:you_id', YouAuthorized, PostRouteGuards.existsGuard, PostsService.toggle_user_reaction);
 
 
 // DELETE Routes
@@ -65,7 +64,7 @@ const PostReactionsService = createCommonGenericModelReactionsService({
   },
   target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.POST,
   populate_notification_fn: populate_hotspot_notification_obj,
-  reaction_model: HotspotPostReactions
+  reaction_model: HotspotPostReactions,
 });
 const PostReactionsRouter = createCommonGenericModelReactionsRouter({
   reactionService: PostReactionsService,
@@ -178,10 +177,4 @@ const PostCommentReplyReactionsService = createCommonGenericModelReactionsServic
 const PostCommentReplyReactionsRouter = createCommonGenericModelReactionsRouter({
   reactionService: PostCommentReplyReactionsService,
 });
-PostsRouter.use(
-  `/:post_id/comments/:comment_id/replies/:reply_id`, 
-  PostRouteGuards.existsGuard, 
-  PostCommentsGuard.existsGuard, 
-  PostCommentReplyGuard.existsGuard, 
-  PostCommentReplyReactionsRouter
-);
+PostsRouter.use(`/:post_id/comments/:comment_id/replies/:reply_id`, PostRouteGuards.existsGuard, PostCommentsGuard.existsGuard, PostCommentReplyGuard.existsGuard, PostCommentReplyReactionsRouter);

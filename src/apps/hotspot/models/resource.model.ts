@@ -12,10 +12,13 @@ import {
   IResourceModel,
   IMyModel,
 } from '../../_common/models/common.model-types';
+import { Cliques } from './clique.model';
 
 export const HotspotResources = <MyModelStaticGeneric<IResourceModel>> sequelize.define('hotspot_resources', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  clique_id:           { type: Sequelize.INTEGER, allowNull: true, references: { model: Cliques, key: 'id' } },
+  
   model_type:          { type: Sequelize.STRING, allowNull: true }, // determines if post belongs to a particular model; default (null) is user
   model_id:            { type: Sequelize.INTEGER, allowNull: true },
   resource_type:       { type: Sequelize.STRING, allowNull: false, defaultValue: '' },

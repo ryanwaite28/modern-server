@@ -23,6 +23,7 @@ export const Audios = <MyModelStaticGeneric<IAudioModel>> sequelize.define('comm
   tags:                { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   audio_link:          { type: Sequelize.STRING(500), allowNull: false },
   audio_id:            { type: Sequelize.STRING(500), allowNull: false },
+  metadata:            { type: Sequelize.JSON, allowNull: true },
   is_explicit:         { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
   is_private:          { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },

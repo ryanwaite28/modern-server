@@ -19,7 +19,7 @@ export const HotspotUserProfileSettings = <MyModelStatic> sequelize.define('hots
   user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   wallpaper_link:      { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   wallpaper_id:        { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
-  visibility:          { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  visibility:          { type: Sequelize.STRING, allowNull: true, defaultValue: 'PUBLIC' },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);

@@ -49,17 +49,18 @@ export async function get_post_by_id(id: number, slim: boolean = false) {
 
 export async function create_post(createObj: {
   owner_id: number;
+  title: string;
   body: string;
   tags: string[];
-  industry: string[];
   uploadedPhotos: { fileInfo: PlainObject; results: IStoreImage }[];
 }) {
   const new_post_model = await HotspotPosts.create(<any> {
     owner_id: createObj.owner_id,
     body: createObj.body,
     tags: createObj.tags.join(`,`),
-    industry: createObj.industry.join(`,`),
+    title: createObj.title,
   });
+
   for (const uploadedPhoto of createObj.uploadedPhotos) {
     const photo_model = await Photos.create(<any> {
       owner_id: createObj.owner_id,
@@ -74,8 +75,9 @@ export async function create_post(createObj: {
       photo_id: photo_model.get('id'),
     });
   }
+
   const post = await get_post_by_id(new_post_model.get('id'));
-  return post;
+  return post!;
 }
 
 export async function update_post(

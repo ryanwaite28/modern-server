@@ -21,10 +21,13 @@ import {
   IPostCommentReplyReactionModel,
   MyModelStatic,
 } from '../../_common/models/common.model-types';
+import { Cliques } from './clique.model';
 
 export const HotspotPosts = <MyModelStaticGeneric<IPostModel>> sequelize.define('hotspot_posts', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  clique_id:           { type: Sequelize.INTEGER, allowNull: true, references: { model: Cliques, key: 'id' } },
+
   title:               { type: Sequelize.STRING(250), allowNull: false, defaultValue: '' },
   body:                { type: Sequelize.TEXT, allowNull: false },
   tags:                { type: Sequelize.STRING, allowNull: false, defaultValue: '' },

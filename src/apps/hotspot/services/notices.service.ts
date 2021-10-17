@@ -50,7 +50,7 @@ export class NoticesService {
       }); 
     }
 
-    const all_tags_valid = !data.tags || data.tags.length === 0 || data.tags.every((tag: any) => (typeof (tag) === 'string'));
+    const all_tags_valid = data.tags.length === 0 || data.tags.every((tag: any) => (typeof (tag) === 'string') && tag.length <= 30);
     if (!all_tags_valid) {
       return response.status(HttpStatusCode.BAD_REQUEST).json({
         message: `All elements in tags list must be a string`
@@ -64,6 +64,7 @@ export class NoticesService {
 
     const uploadedPhotos: { fileInfo: PlainObject; results: IStoreImage }[] = [];
     const failedFiles: any[] = [];
+    
     const photo_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.photos);
     let filesInfo: PlainObject[] = data.filesInfo || [];
     

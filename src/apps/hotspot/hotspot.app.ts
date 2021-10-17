@@ -13,6 +13,6 @@ HotspotRouter.options(`*`, corsMiddleware);
 /** Mount Routers */
 
 HotspotRouter.use('/users', corsMiddleware, UsersRouter);
-HotspotRouter.use('/resources', corsMiddleware, ResourcesRouter);
-HotspotRouter.use('/cliques', corsMiddleware, CliquesRouter);
 HotspotRouter.use('/posts', corsMiddleware, PostsRouter);
+HotspotRouter.use('/cliques', corsMiddleware, CliquesRouter);
+HotspotRouter.use('/resources', corsMiddleware, ResourcesRouter);

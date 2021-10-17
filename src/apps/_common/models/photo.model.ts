@@ -19,10 +19,11 @@ export const Photos = <MyModelStaticGeneric<IPhotoModel>> sequelize.define('comm
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   model_type:          { type: Sequelize.STRING, allowNull: true }, // determines if post belongs to a particular model; default (null) is user
   model_id:            { type: Sequelize.INTEGER, allowNull: true },
-  caption:             { type: Sequelize.STRING(250), allowNull: false },
+  caption:             { type: Sequelize.STRING(250), allowNull: false, defaultValue: '' },
   tags:                { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   photo_link:          { type: Sequelize.STRING(500), allowNull: false },
   photo_id:            { type: Sequelize.STRING(500), allowNull: false },
+  metadata:            { type: Sequelize.JSON, allowNull: true },
   is_explicit:         { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
   is_private:          { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
