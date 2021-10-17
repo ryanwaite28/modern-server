@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import {
   YouAuthorized,
-  UserExists
 } from '../guards/user.guard';
 import { IGenericModelCrudService } from './create-model-crud-service.helper';
 import { createModelRouteGuards, ICreateModelGuardParams, IModelGuards } from './create-model-guards.helper';
