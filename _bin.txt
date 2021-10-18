@@ -1,3 +1,14 @@
+useful bash commands
+-----
+
+replace filenames: https://stackoverflow.com/questions/7450818/rename-all-files-in-directory-from-filename-h-to-filename-half
+
+for file in *.service.ts; do mv "$file" "${file/service.ts/handler.ts}"; done
+
+
+
+
+
 export async function get_user_by_email_or_username(
   query: string
 ) {
