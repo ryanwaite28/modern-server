@@ -18,6 +18,14 @@ export class SocketsService {
   // private static socketsBySocketIdMap = new Map<string, socket_io.Socket>();
   // private static userSocketIDsByUserId = new Map<number, Map<string, boolean>>(); // all sockets belonging to a user via socket ids map
 
+  public static set_io(io: socket_io.Server) {
+    SocketsService.io = io;
+  }
+
+  public static get_io(): socket_io.Server {
+    return SocketsService.io;
+  }
+
   public static emitEventForUser(user_id: number, data: { event_type: string; [key:string]: any; }) {
     const forUserSocketsRoomKey = SocketsService.userSocketsRoomKeyByUserId.get(user_id);
     if (forUserSocketsRoomKey) {

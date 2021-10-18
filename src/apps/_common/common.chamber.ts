@@ -12,7 +12,9 @@ import {
   verify as jwt_verify
 } from 'jsonwebtoken';
 import {
-  IUser
+  IModelValidator,
+  IUser,
+  PlainObject
 } from './interfaces/common.interface';
 import { HttpStatusCode } from './enums/http-codes.enum';
 import { Conversations } from './models/conversations.model';
@@ -21,6 +23,9 @@ import {
   COMMON_EVENT_TYPES,
   COMMON_USER_TYPES
 } from './enums/common.enum';
+import { ServiceMethodAsyncResult, ServiceMethodResult } from './types/common.types';
+import { IUploadFile, store_image } from '../../cloudinary-manager';
+import { UploadedFile } from 'express-fileupload';
 
 
 export const specialCaracters = ['!', '@', '#', '$', '%', '&', '+', ')', ']', '}', ':', ';', '?'];
@@ -898,3 +903,117 @@ export const corsOptions: CorsOptions = {
 };
 
 export const corsMiddleware = cors(corsOptions);
+
+export const validateData = (opts: {
+  data: any,
+  validators: IModelValidator[],
+  mutateObj?: any
+}): ServiceMethodResult => {
+  const { data, validators, mutateObj } = opts;
+  const dataObj: any = {};
+
+  for (const prop of validators) {
+    if (!data.hasOwnProperty(prop.field)) {
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `${prop.name} is required.`
+        }
+      };
+      return results;
+    }
+    const isValid: boolean = prop.validator(data[prop.field]);
+    if (!isValid) {
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `${prop.name} is invalid.`
+        }
+      };
+      return results;
+    }
+    
+    dataObj[prop.field] = data[prop.field];
+  }
+
+  if (mutateObj) {
+    Object.assign(mutateObj, dataObj);
+  }
+
+  const results: ServiceMethodResult = {
+    status: HttpStatusCode.OK,
+    error: false,
+    info: {
+      message: `validation passed.`,
+      data: dataObj,
+    }
+  };
+  return results;
+}
+
+export const validateAndUploadImageFile = async (
+  image_file: UploadedFile | undefined,
+  opts?: {
+    treatNotFoundAsError: boolean,
+
+    mutateObj?: PlainObject,
+    id_prop?: string,
+    link_prop?: string;
+  }
+): ServiceMethodAsyncResult => {
+  if (!image_file) {
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.NOT_FOUND,
+      error: opts && opts.hasOwnProperty('treatNotFoundAsError') ? opts.treatNotFoundAsError : true,
+      info: {
+        message: `No image file found/given`
+      }
+    };
+    return results;
+  }
+
+  const type = image_file.mimetype.split('/')[1];
+  const isInvalidType = !allowedImages.includes(type);
+  if (isInvalidType) {
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.BAD_REQUEST,
+      error: true,
+      info: {
+        message: 'Invalid file type: jpg, jpeg or png required...'
+      }
+    };
+    return results;
+  }
+  const image_results = await store_image(image_file);
+  if (!image_results.result) {
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+      error: true,
+      info: {
+        message: 'Could not upload file...',
+        data: image_results
+      }
+    };
+    return results;
+  }
+
+  if (opts && opts.mutateObj && opts.id_prop && opts.link_prop) {
+    opts.mutateObj[opts.id_prop] = image_results.result.public_id;
+    opts.mutateObj[opts.link_prop] = image_results.result.secure_url;
+  }
+
+  const results: ServiceMethodResult = {
+    status: HttpStatusCode.OK,
+    error: false,
+    info: {
+      data: {
+        image_results,
+        image_id: image_results.result.public_id,
+        image_link: image_results.result.secure_url
+      }
+    }
+  };
+  return results;
+};

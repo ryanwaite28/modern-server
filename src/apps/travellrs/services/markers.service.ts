@@ -1,170 +1,124 @@
 import { UploadedFile } from 'express-fileupload';
 import {
-  Request,
-  Response,
-} from 'express';
-import {
   HttpStatusCode
 } from '../../_common/enums/http-codes.enum';
 import {
-  IUser, PlainObject,
+  IUser,
 } from '../../_common/interfaces/common.interface';
-import * as CommonRepo from '../../_common/repos/_common.repo';
 import * as MarkersRepo from '../repos/markers.repo';
 import {
-  user_attrs_slim,
   allowedImages
 } from '../../_common/common.chamber';
-import { IStoreImage, store_image } from '../../../cloudinary-manager';
-import { Photos } from '../../_common/models/photo.model';
+import { store_image } from '../../../cloudinary-manager';
 import { Markers, MarkerPhotos, MarkerReactions, MarkerAudios, MarkerVideos } from '../models/marker.model';
-import { Users } from '../../_common/models/user.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
-import { Audios } from '../../_common/models/audio.model';
-import { Videos } from '../../_common/models/video.model';
+import { ServiceMethodResult } from 'src/apps/_common/types/common.types';
 
 export class MarkersService {
-  /** Request Handlers */
-
-  static async main(request: Request, response: Response) {
-    return response.status(HttpStatusCode.OK).json({
-      msg: 'markers router'
-    });
-  }
-
-  static async get_marker_by_id(request: Request, response: Response) {
-    const marker_model = response.locals.marker_model;
-    return response.status(HttpStatusCode.OK).json({
-      data: marker_model
-    });
-  }
-
-  static async get_random_markers(request: Request, response: Response) {
-    const marker_models = MarkersRepo.get_random_markers();
-    return response.status(HttpStatusCode.OK).json({
-      data: marker_models
-    });
-  }
-
-  static async get_user_markers_all(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const markers = await CommonRepo.getAll(
-      Markers,
-      'owner_id',
-      user_id,
-      [{
-        model: Users,
-        as: 'owner',
-        attributes: user_attrs_slim
-      }, {
-        model: MarkerPhotos,
-        as: 'photos',
-        include: [{
-          model: Photos,
-          as: 'photo_marker',
-        }]
-      }, {
-        model: MarkerVideos,
-        as: 'videos',
-        include: [{
-          model: Videos,
-          as: 'video_marker',
-        }]
-      }, {
-        model: MarkerAudios,
-        as: 'audios',
-        include: [{
-          model: Audios,
-          as: 'audio_marker',
-        }]
-      }]
-    );
-    return response.status(HttpStatusCode.OK).json({
-      data: markers
-    });
-  }
-
-  static async get_user_markers(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const marker_id = parseInt(request.params.marker_id, 10);
-    const markers = await CommonRepo.paginateTable(
-      Markers,
-      'owner_id',
-      user_id,
-      marker_id,
-      [{
-        model: Users,
-        as: 'owner',
-        attributes: user_attrs_slim
-      }, {
-        model: MarkerPhotos,
-        as: 'photos',
-        include: [{
-          model: Photos,
-          as: 'photo_marker',
-        }]
-      }, {
-        model: MarkerVideos,
-        as: 'videos',
-        include: [{
-          model: Videos,
-          as: 'video_marker',
-        }]
-      }, {
-        model: MarkerAudios,
-        as: 'audios',
-        include: [{
-          model: Audios,
-          as: 'audio_marker',
-        }]
-      }]
-    );
-    return response.status(HttpStatusCode.OK).json({
-      data: markers
-    });
-  }
-
-  static async get_user_reaction(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const marker_id: number = parseInt(request.params.marker_id, 10);
-    const marker_reaction = await MarkerReactions.findOne({
-      where: {
-        marker_id,
-        owner_id: user_id
+  static async get_marker_by_id(id: number) {
+    const marker_model = await MarkersRepo.get_marker_by_id(id);
+    
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: marker_model
       }
-    });
-    return response.status(HttpStatusCode.OK).json({
-      data: marker_reaction
-    });
+    };
+    return results;
   }
 
-  static async toggle_user_reaction(request: Request, response: Response) {
-    const you: IUser = response.locals.you;
-    const marker_id: number = parseInt(request.params.marker_id, 10);
+  static async get_random_markers() {
+    const marker_models = MarkersRepo.get_random_markers();
+    
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: marker_models
+      }
+    };
+    return results;
+  }
 
-    const reaction = request.body.reaction;
+  static async get_user_markers_all(user_id: number) {
+    const markers = await MarkersRepo.get_user_markers_all(user_id);
+
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: markers
+      }
+    };
+    return results;
+  }
+
+  static async get_user_markers(user_id: number, marker_id: number) {
+    const markers = await MarkersRepo.get_user_markers(user_id, marker_id);
+
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: markers
+      }
+    };
+    return results;
+  }
+
+  static async get_user_reaction(user_id: number, marker_id: number) {
+    const marker_reaction = await MarkersRepo.get_user_reaction(user_id, marker_id);
+    
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: marker_reaction
+      }
+    };
+    return results;
+  }
+
+  static async toggle_user_reaction(opts: {
+    you: IUser,
+    marker_id: number,
+    reaction: string,
+  }) {
+    const { you, marker_id, reaction } = opts;
+
     if (!reaction) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Reaction type is required`
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Reaction type is required`
+        }
+      };
+      return results;
     }
     if (!(typeof (reaction) === 'string')) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Reaction type is invalid`
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Reaction type is invalid`
+        }
+      };
+      return results;
     }
     if (!(reaction in COMMON_REACTION_TYPES)) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Reaction type is invalid`
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Reaction type is invalid`
+        }
+      };
+      return results;
     }
 
-    let marker_reaction = await MarkerReactions.findOne({
-      where: {
-        marker_id,
-        owner_id: you.id
-      }
-    });
+    let marker_reaction = await MarkersRepo.get_user_reaction(you.id, marker_id);
 
     if (!marker_reaction) {
       // user has no reaction to marker; create it
@@ -183,16 +137,18 @@ export class MarkersService {
       await marker_reaction.save({ fields: ['reaction'] });
     }
 
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Toggled marker reaction`,
-      data: marker_reaction
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Toggled marker reaction`,
+        data: marker_reaction
+      }
+    };
+    return results;
   }
 
-  static async get_marker_reactions_counts(request: Request, response: Response) {
-    const marker_id: number = parseInt(request.params.marker_id, 10);
-
+  static async get_marker_reactions_counts(marker_id: number) {
     const like_count = await MarkerReactions.count({ where: { marker_id, reaction: COMMON_REACTION_TYPES.LIKE } });
     const love_count = await MarkerReactions.count({ where: { marker_id, reaction: COMMON_REACTION_TYPES.LOVE } });
     const idea_count = await MarkerReactions.count({ where: { marker_id, reaction: COMMON_REACTION_TYPES.IDEA } });
@@ -205,57 +161,55 @@ export class MarkersService {
       confused_count,
     ].reduce((acc, cur) => (acc + cur));
 
-    return response.status(HttpStatusCode.OK).json({
-      data: {
-        total_count,
-        like_count,
-        love_count,
-        idea_count,
-        confused_count,
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: {
+          total_count,
+          like_count,
+          love_count,
+          idea_count,
+          confused_count,
+        }
       }
-    });
+    };
+    return results;
   }
 
-  static async get_marker_reactions_all(request: Request, response: Response) {
-    const marker_id: number = parseInt(request.params.marker_id, 10);
-    const marker_reactions = await CommonRepo.getAll(
-      MarkerReactions,
-      'marker_id',
-      marker_id,
-      [{
-        model: Users,
-        as: 'owner',
-        attributes: user_attrs_slim
-      }]
-    );
-    return response.status(HttpStatusCode.OK).json({
-      data: marker_reactions
-    });
+  static async get_marker_reactions_all(marker_id: number) {
+    const marker_reactions = await MarkersRepo.get_marker_reactions_all(marker_id);
+    
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: marker_reactions
+      }
+    };
+    return results;
   }
 
-  static async get_marker_reactions(request: Request, response: Response) {
-    const marker_id = parseInt(request.params.marker_id, 10);
-    const marker_reaction_id: number = parseInt(request.params.marker_reaction_id, 10);
-    const marker_reactions = await CommonRepo.paginateTable(
-      MarkerReactions,
-      'marker_id',
-      marker_id,
-      marker_reaction_id,
-      [{
-        model: Users,
-        as: 'owner',
-        attributes: user_attrs_slim
-      }]
-    );
-    return response.status(HttpStatusCode.OK).json({
-      data: marker_reactions
-    });
+  static async get_marker_reactions(marker_id: number, reaction_id: number) {
+    const marker_reactions = await MarkersRepo.get_marker_reactions(marker_id, reaction_id);
+    
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: marker_reactions
+      }
+    };
+    return results;
   }
 
-  static async create_marker(request: Request, response: Response) {
-    const you: IUser = response.locals.you;
-   
-    const data: PlainObject = JSON.parse(request.body.payload);
+  static async create_marker(opts: {
+    data: any,
+    you: IUser,
+    marker_icon?: UploadedFile
+  }) {
+    const { you, data, marker_icon } = opts;
+
     let location: string = data.location;
     let lat: number = data.lat;
     let lng: number = data.lng;
@@ -269,14 +223,17 @@ export class MarkersService {
       datetime_traveled = null;
     }
 
-    const marker_icon: UploadedFile | undefined = request.files && (<UploadedFile> request.files.marker_icon);
-
     let props = ['location', 'lat', 'lng', 'place_id'];
     for (const prop of props) {
       if (!data[prop]) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop} is required`
-        });
+        const results: ServiceMethodResult = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `${prop} is required`
+          }
+        };
+        return results;
       }
     }
 
@@ -286,18 +243,26 @@ export class MarkersService {
       const type = marker_icon.mimetype.split('/')[1];
       const isInvalidType = !allowedImages.includes(type);
       if (isInvalidType) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const results: ServiceMethodResult = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: 'Invalid file type: jpg, jpeg or png required...'
-        });
+          info: {
+            message: 'Invalid file type: jpg, jpeg or png required...'
+          }
+        };
+        return results;
       }
 
       const results = await store_image(marker_icon);
       if (!results.result) {
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+        const results: ServiceMethodResult = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: 'Could not upload file...'
-        });
+          info: {
+            message: 'Could not upload file...'
+          }
+        };
+        return results;
       }
 
       image_id = results.result.public_id,
@@ -316,38 +281,57 @@ export class MarkersService {
       date_traveled: datetime_traveled || null,
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Marker created successfully`,
-      data: marker_model
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: marker_model,
+        message: `Marker created successfully`,
+      }
+    };
+    return results;
   }
 
-  static async update_marker(request: Request, response: Response) {
-    const marker_id = parseInt(request.params.marker_id, 10);
-    const you: IUser = response.locals.you; 
-    let caption: string = request.body.caption;
-    
+  static async update_marker(marker_id: number, caption: string) {
     if (!caption) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Marker body is required`
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: false,
+        info: {
+          message: `Marker body is required`
+        }
+      };
+      return results;
     }
 
     const updates = await MarkersRepo.update_marker({ caption }, marker_id);
     const marker = await MarkersRepo.get_marker_by_id(marker_id);
-    return response.status(HttpStatusCode.OK).json({
-      message: `Marker updated successfully`,
-      updates: updates,
-      data: marker
-    });
+
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Marker updated successfully`,
+        data: {
+          updates,
+          marker
+        }
+      }
+    };
+    return results;
   }
 
-  static async delete_marker(request: Request, response: Response) {
-    const marker_id = parseInt(request.params.marker_id, 10);
+  static async delete_marker(marker_id: number) {
     const deletes = await MarkersRepo.delete_marker(marker_id);
-    return response.status(HttpStatusCode.OK).json({
-      message: `Marker deleted successfully`,
-      deletes
-    });
+
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Marker deleted successfully`,
+        data: deletes
+      }
+    };
+    return results;
   }
 }

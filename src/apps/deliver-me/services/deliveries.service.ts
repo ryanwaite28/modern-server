@@ -10,6 +10,8 @@ import {
   getUserFullName,
   populate_common_notification_obj,
   user_attrs_slim,
+  validateAndUploadImageFile,
+  validateData,
   validatePhone
 } from '../../_common/common.chamber';
 import {
@@ -65,13 +67,13 @@ import { DeliverMeUserProfileSettings } from '../models/deliverme.model';
 import { send_sms } from '../../../sms-client';
 import { GoogleService } from '../../_common/services/google.service';
 import { StripeService } from '../../_common/services/stripe.service';
+import { ServiceMethodResult } from '../../_common/types/common.types';
+
+
 
 export class DeliveriesService {
 
-  static async find_available_delivery_by_from_city_and_state(request: Request, response: Response) {
-    const city: string = request.params.city;
-    const state: string = request.params.state;
-
+  static async find_available_delivery_by_from_city_and_state(city: string, state: string) {
     const result = await Delivery.findOne({
       where: {
         carrier_id: null,
@@ -83,15 +85,17 @@ export class DeliveriesService {
       include: DeliveryRepo.deliveryMasterIncludes,
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      data: result
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: result,
+      }
+    };
+    return results;
   }
 
-  static async find_available_delivery_by_to_city_and_state(request: Request, response: Response) {
-    const city: string = request.params.city;
-    const state: string = request.params.state;
-
+  static async find_available_delivery_by_to_city_and_state(city: string, state: string) {
     const result = await Delivery.findOne({
       where: {
         carrier_id: null,
@@ -103,14 +107,24 @@ export class DeliveriesService {
       include: DeliveryRepo.deliveryMasterIncludes
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      data: result
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: result,
+      }
+    };
+    return results;
   }
 
-  static async find_available_delivery(request: Request, response: Response) {
+  static async find_available_delivery(opts: {
+    you: IUser,
+    criteria: string,
+    city: string,
+    state: string,
+  }) {
     try {
-      const you = response.locals.you;
+      const { you, criteria, city, state } = opts;
       const searchCriterias = [
         { label: 'From City', value: 'from-city' },
         { label: 'To City', value: 'to-city' },
@@ -125,46 +139,51 @@ export class DeliveriesService {
       ];
       const useWhere: any = {};
       
-      switch (request.body.criteria) {
+      switch (criteria) {
         case searchCriterias[0].value: {
           // from city
-          useWhere.from_city = request.body.city;
+          useWhere.from_city = city;
           break;
         }
         case searchCriterias[1].value: {
           // to city
-          useWhere.to_city = request.body.city;
+          useWhere.to_city = city;
           break;
         }
 
         case searchCriterias[2].value: {
           // from state
-          useWhere.from_state = request.body.state;
+          useWhere.from_state = state;
           break;
         }
         case searchCriterias[3].value: {
           // to state
-          useWhere.to_state = request.body.state;
+          useWhere.to_state = state;
           break;
         }
 
         case searchCriterias[4].value: {
           // from city-state
-          useWhere.from_city = request.body.city;
-          useWhere.from_state = request.body.state;
+          useWhere.from_city = city;
+          useWhere.from_state = state;
           break;
         }
         case searchCriterias[5].value: {
           // to city-state
-          useWhere.to_city = request.body.city;
-          useWhere.to_state = request.body.state;
+          useWhere.to_city = city;
+          useWhere.to_state = state;
           break;
         }
 
         default: {
-          return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-            message: `Unknown/Invalid criteria: ${request.body.criteria}`,
-          });
+          const results: ServiceMethodResult = {
+            status: HttpStatusCode.BAD_REQUEST,
+            error: true,
+            info: {
+              message: `Unknown/Invalid criteria: ${criteria}`,
+            }
+          };
+          return results;
         }
       }
 
@@ -180,108 +199,161 @@ export class DeliveriesService {
         order: [fn('RANDOM')],
         include: DeliveryRepo.deliveryMasterIncludes
       });
-  
-      return response.status(HttpStatusCode.OK).json({
-        data: result
-      });
+
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: result
+        }
+      };
+      return results;
     } catch (e) {
       console.log(e);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        message: `Could not find available delivery...`,
-        error: e
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Could not find available delivery...`,
+          data: e,
+        }
+      };
+      return results;
     }
   }
 
-  static async search_deliveries(request: Request, response: Response) {
-    const you = response.locals.you;
+  static async search_deliveries(opts: {
+    you: IUser,
+    from_city: string,
+    from_state: string,
+    to_city: string,
+    to_state: string,
+  }) {
     const {
+      you,
       from_city,
       from_state,
       to_city,
       to_state,
-    } = request.body;
-
-    // console.log(request.body);
+    } = opts;
 
     const fromValid = from_city && from_state;
     const toValid = to_city && to_state;
     const fromAndToValid = fromValid && toValid;
 
     if (!fromValid && !toValid) {
-      const results = await Delivery.findAll({
+      const resultsList = await Delivery.findAll({
         where: { completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
         attributes: delivery_search_attrs,
         limit: 5,
         order: [fn('RANDOM')]
       });
-      return response.status(HttpStatusCode.OK).json({
-        data: results
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: resultsList,
+        }
+      };
+      return results;
     }
 
     if (fromValid && !toValid) {
-      const results = await Delivery.findAll({
+      const resultsList = await Delivery.findAll({
         where: { from_city, from_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
         attributes: delivery_search_attrs,
         limit: 5,
         order: [fn('RANDOM')]
       });
-      return response.status(HttpStatusCode.OK).json({
-        data: results
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: resultsList,
+        }
+      };
+      return results;
     }
     if (!fromValid && toValid) {
-      const results = await Delivery.findAll({
+      const resultsList = await Delivery.findAll({
         where: { to_city, to_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
         attributes: delivery_search_attrs,
         limit: 5,
         order: [fn('RANDOM')]
       });
-      return response.status(HttpStatusCode.OK).json({
-        data: results
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: resultsList,
+        }
+      };
+      return results;
     }
     if (fromAndToValid) {
-      const results = await Delivery.findAll({
+      const resultsList = await Delivery.findAll({
         where: { from_city, from_state, to_city, to_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
         attributes: delivery_search_attrs,
         limit: 5,
         order: [fn('RANDOM')]
       });
-      return response.status(HttpStatusCode.OK).json({
-        data: results
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: resultsList,
+        }
+      };
+      return results;
     }
 
-    return response.status(HttpStatusCode.BAD_REQUEST).json({
-      message: `unhandled contition...`,
-      fromValid, 
-      toValid,
-      fromAndToValid
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.BAD_REQUEST,
+      error: true,
+      info: {
+        message: `unhandled contition...`,
+        data: {
+          fromValid, 
+          toValid,
+          fromAndToValid
+        },
+      }
+    };
+    return results;
   }
 
-  static async send_delivery_message(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
-    const deliveryObj = delivery_model!.toJSON() as any;
+  static async send_delivery_message(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    body: string,
+    ignoreNotification?: boolean,
+  }) {
+    const { you, delivery_model, body, ignoreNotification } = opts;
     
     const delivery_id = delivery_model.get('id');
     const owner_id = delivery_model.get('owner_id');
     const carrier_id = delivery_model.get('carrier_id');
 
     if (you.id !== owner_id && you.id !== carrier_id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `User is not involved with this delivery`
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `User is not involved with this delivery`
+        }
+      };
+      return results;
     }
 
-    const body = request.body.body;
     if (!body || !body.trim()) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Body cannot be empty`
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Body cannot be empty`
+        }
+      };
+      return results;
     }
 
     // create the new message
@@ -300,53 +372,64 @@ export class DeliveriesService {
       }]
     });
 
-    const to_id = you.id === owner_id ? carrier_id : owner_id;
+    if (!ignoreNotification) {
+      const to_id = you.id === owner_id ? carrier_id : owner_id;
 
-    create_notification({
-      from_id: you.id,
-      to_id: to_id,
-      micro_app: MODERN_APP_NAMES.DELIVERME,
-      event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
-      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
-      target_id: delivery_id
-    }).then(async (notification_model) => {
-      const notification = await populate_deliverme_notification_obj(notification_model);
-
-      const eventData = {
-        event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
-        message: `New delivery message for: ${delivery_model.get('title')}`,
+      create_notification({
+        from_id: you.id,
+        to_id: to_id,
         micro_app: MODERN_APP_NAMES.DELIVERME,
-        data: new_message!.toJSON() as any,
-        user_id: you.id,
-        notification,
-      }
-      const TO_ROOM = `${DELIVERME_EVENT_TYPES.TO_DELIVERY}:${delivery_id}`;
-      // console.log({ TO_ROOM, eventData });
-      (<IRequest> request).io.to(TO_ROOM).emit(TO_ROOM, eventData);
-      
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: to_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
-        data: eventData
-      });
-    });
+        target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id: delivery_id
+      }).then(async (notification_model) => {
+        const notification = await populate_deliverme_notification_obj(notification_model);
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery message sent successfully!`,
-      data: new_message,
-    });
+        const eventData = {
+          event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
+          message: `New delivery message for: ${delivery_model.get('title')}`,
+          micro_app: MODERN_APP_NAMES.DELIVERME,
+          data: new_message!.toJSON() as any,
+          user_id: you.id,
+          notification,
+        }
+        const TO_ROOM = `${DELIVERME_EVENT_TYPES.TO_DELIVERY}:${delivery_id}`;
+        // console.log({ TO_ROOM, eventData });
+        SocketsService.get_io().to(TO_ROOM).emit(TO_ROOM, eventData);
+        
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: to_id,
+          event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
+          data: eventData
+        });
+      });
+    }
+    
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: new_message,
+      }
+    };
+    return results;
   }
 
-  static async get_delivery_by_id(request: Request, response: Response) {
-    const delivery = response.locals.delivery_model.toJSON();
-    return response.status(HttpStatusCode.OK).json({
-      data: delivery
-    });
+  static async get_delivery_by_id(id: number) {
+    const delivery = await DeliveryRepo.get_delivery_by_id(id);
+    
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: delivery,
+      }
+    };
+    return results;
   }
   
-  static async get_user_deliveries_all(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const results = await CommonRepo.getAll(
+  static async get_user_deliveries_all(user_id: number) {
+    const resultsList = await CommonRepo.getAll(
       Delivery,
       'owner_id',
       user_id,
@@ -356,15 +439,18 @@ export class DeliveriesService {
       undefined,
       DeliveryRepo.deliveryOrderBy
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
+    };
+    return results;
   }
 
-  static async get_user_deliveries(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const delivery_id: number | undefined = request.params.delivery_id ? parseInt(request.params.delivery_id, 10) : undefined;
-    const results = await CommonRepo.paginateTable(
+  static async get_user_deliveries(user_id: number, delivery_id?: number) {
+    const resultsList = await CommonRepo.paginateTable(
       Delivery,
       'owner_id',
       user_id,
@@ -375,15 +461,18 @@ export class DeliveriesService {
       undefined,
       DeliveryRepo.deliveryOrderBy
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
+    };
+    return results;
   }
 
-  static async get_user_deliverings_all(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    
-    const results = await CommonRepo.getAll(
+  static async get_user_deliverings_all(user_id: number) {
+    const resultsList = await CommonRepo.getAll(
       Delivery,
       'carrier_id',
       user_id,
@@ -393,18 +482,18 @@ export class DeliveriesService {
       { completed: true },
       DeliveryRepo.deliveryOrderBy
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
+    };
+    return results;
   }
 
-  static async get_user_deliverings(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const delivery_id: number | undefined = request.params.delivery_id ? parseInt(request.params.delivery_id, 10) : undefined;
-
-    console.log({ user_id, delivery_id, carrier: true });
-
-    const results = await CommonRepo.paginateTable(
+  static async get_user_deliverings(user_id: number, delivery_id?: number) {
+    const resultsList = await CommonRepo.paginateTable(
       Delivery,
       'carrier_id',
       user_id,
@@ -415,14 +504,18 @@ export class DeliveriesService {
       { completed: true },
       DeliveryRepo.deliveryOrderBy
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
+    };
+    return results;
   }
 
-  static async get_user_delivering(request: Request, response: Response) {
-    const you_id: number = parseInt(request.params.you_id, 10);
-    const result = await Delivery.findAll({
+  static async get_user_delivering(you_id: number) {
+    const resultsList = await Delivery.findAll({
       where: {
         carrier_id: you_id,
         completed: false
@@ -430,127 +523,147 @@ export class DeliveriesService {
       include: DeliveryRepo.deliveryMasterIncludes,
       order: DeliveryRepo.deliveryOrderBy
     });
-    return response.status(HttpStatusCode.OK).json({
-      data: result
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
+    };
+    return results;
   }
 
-  static async create_delivery(request: Request, response: Response) {
+  static async create_delivery(opts: {
+    you: IUser,
+    data: any,
+    delivery_image?: UploadedFile
+  }) {
     try {
-      const you = response.locals.you;
+      const { you, data, delivery_image } = opts;
       const createObj: PlainObject = {
         owner_id: you.id
       };
 
-      const data: PlainObject = JSON.parse(request.body.payload);
-      const delivery_image: UploadedFile | undefined = request.files && (<UploadedFile> request.files.delivery_image);
-
-      console.log(`request.body`, request.body);
-      console.log(`data`, data);
-
-      for (const prop of create_delivery_required_props) {
-        if (!data.hasOwnProperty(prop.field)) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `${prop.name} is required.`
-          });
-        }
-        const isValid: boolean = prop.validator(data[prop.field]);
-        if (!isValid) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `${prop.name} is invalid.`
-          });
-        }
-
-        createObj[prop.field] = data[prop.field];
+      const dataValidation = validateData({
+        data,
+        validators: create_delivery_required_props,
+        mutateObj: createObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
       }
 
-      if (delivery_image) {
-        const type = delivery_image.mimetype.split('/')[1];
-        const isInvalidType = !allowedImages.includes(type);
-        if (isInvalidType) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            error: true,
-            message: 'Invalid file type: jpg, jpeg or png required...'
-          });
-        }
-
-        const results = await store_image(delivery_image);
-        if (!results.result) {
-          return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-            error: true,
-            message: 'Could not upload file...'
-          });
-        }
-
-        createObj.item_image_id = results.result.public_id,
-        createObj.item_image_link = results.result.secure_url
+      const imageValidation = await validateAndUploadImageFile(delivery_image, {
+        treatNotFoundAsError: false,
+        mutateObj: createObj,
+        id_prop: 'item_image_id',
+        link_prop: 'item_image_link',
+      });
+      if (imageValidation.error) {
+        return imageValidation;
       }
 
       console.log(`createObj`, createObj);
 
       const new_delivery_model = await DeliveryRepo.create_delivery(createObj as ICreateDeliveryProps);
-      return response.status(HttpStatusCode.OK).json({
-        message: `New Delivery Created!`,
-        data: new_delivery_model
-      });
+
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `New Delivery Created!`,
+          data: new_delivery_model
+        }
+      };
+      return results;
     } catch (e) {
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        message: `Could not create new delivery`,
-        error: e
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        error: true,
+        info: {
+          message: `Could not create new delivery`,
+          error: e,
+        }
+      };
+      return results;
     }
   }
 
-  static async update_delivery(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model = response.locals.delivery_model;
+  static async update_delivery(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    data: any
+  }) {
+    const { you, delivery_model, data } = opts;
     const updateObj: PlainObject = {
       owner_id: you.id
     };
 
-    for (const prop of create_delivery_required_props) {
-      if (!request.body.hasOwnProperty(prop.field)) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is required.`
-        });
-      }
-      const isValid: boolean = prop.validator(request.body[prop.field]);
-      if (!isValid) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is required.`
-        });
-      }
-
-      updateObj[prop.field] = request.body[prop.field];
+    const dataValidation = validateData({
+      data,
+      validators: create_delivery_required_props,
+      mutateObj: updateObj
+    });
+    if (dataValidation.error) {
+      return dataValidation;
     }
 
-    const updates = await DeliveryRepo.update_delivery(delivery_model.get('id'), updateObj as ICreateDeliveryProps);
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery Updated!`,
-      data: updates
-    });
+    const updates = await delivery_model.update(updateObj);
+
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery Updated!`,
+        data: updates
+      }
+    };
+    return results;
   }
 
-  static async delete_delivery(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model = response.locals.delivery_model;
+  static async delete_delivery(delivery_model: IMyModel) {
+    // const delivery_model = await DeliveryRepo.get_delivery_by_id(delivery_id);
+
+    if (!delivery_model) {
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.NOT_FOUND,
+        error: true,
+        info: {
+          message: `Delivery not found`,
+        }
+      };
+      return results;
+    }
 
     if (!!delivery_model.get('carrier_id')) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Delivery is in progress.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery is in progress`,
+        }
+      };
+      return results;
     }
 
     const deletes = await DeliveryRepo.delete_delivery(delivery_model.get('id'));
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery Deleted!`,
-      data: deletes
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery Deleted!`,
+        data: deletes
+      }
+    };
+    return results;
   }
 
-  static async assign_delivery(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
+  static async assign_delivery(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    ignoreNotification?: boolean
+  }) {
+    const { you, delivery_model, ignoreNotification } = opts;
     const deliveryObj = delivery_model!.toJSON() as any;
     
     const delivery_id = delivery_model.get('id');
@@ -558,9 +671,14 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (!!carrier_id && carrier_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Delivery already has carrier assigned.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery already has carrier assigned.`,
+        }
+      };
+      return results;
     }
 
     delivery_model.carrier_id = you.id;
@@ -570,45 +688,54 @@ export class DeliveriesService {
 
     const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
 
-    create_notification({
-      from_id: you.id,
-      to_id: owner_id,
-      event: DELIVERME_EVENT_TYPES.CARRIER_ASSIGNED,
-      micro_app: MODERN_APP_NAMES.DELIVERME,
-      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
-      target_id: delivery_id
-    }).then(async (notification_model) => {
-      const notification = await populate_deliverme_notification_obj(notification_model);
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: owner_id,
+    if (!ignoreNotification) {
+      create_notification({
+        from_id: you.id,
+        to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_ASSIGNED,
-        data: {
-          data,
-          message: `Delivery assigned to user!`,
-          user: you,
-          notification,
+        micro_app: MODERN_APP_NAMES.DELIVERME,
+        target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id: delivery_id
+      }).then(async (notification_model) => {
+        const notification = await populate_deliverme_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: owner_id,
+          event: DELIVERME_EVENT_TYPES.CARRIER_ASSIGNED,
+          data: {
+            data,
+            message: `Delivery assigned to user!`,
+            user: you,
+            notification,
+          }
+        });
+
+        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
+        if (validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+          });
         }
       });
-
-      const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-      if (validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+    }
+    
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery assigned to user!`,
+        data,
       }
-    });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery assigned to user!`,
-      data,
-      updates,
-    });
+    };
+    return results;
   }
 
-  static async unassign_delivery(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
+  static async unassign_delivery(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    ignoreNotification?: boolean
+  }) {
+    const { you, delivery_model, ignoreNotification } = opts;
     const deliveryObj = delivery_model!.toJSON() as any;
 
     const delivery_id = delivery_model.get('id');
@@ -616,9 +743,14 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are not the carrier of this delivery.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the carrier of this delivery.`,
+        }
+      };
+      return results;
     }
 
     delivery_model.carrier_id = null;
@@ -635,57 +767,71 @@ export class DeliveriesService {
 
     const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
 
-    create_notification({
-      from_id: you.id,
-      to_id: owner_id,
-      event: DELIVERME_EVENT_TYPES.CARRIER_UNASSIGNED,
-      micro_app: MODERN_APP_NAMES.DELIVERME,
-      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
-      target_id: delivery_id
-    }).then(async (notification_model) => {
-      const notification = await populate_deliverme_notification_obj(notification_model);
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: owner_id,
+    if (!ignoreNotification) {
+      create_notification({
+        from_id: you.id,
+        to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_UNASSIGNED,
-        data: {
-          data,
-          message: `Delivery unassigned by carrier!`,
-          user: you,
-          notification,
+        micro_app: MODERN_APP_NAMES.DELIVERME,
+        target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id: delivery_id
+      }).then(async (notification_model) => {
+        const notification = await populate_deliverme_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: owner_id,
+          event: DELIVERME_EVENT_TYPES.CARRIER_UNASSIGNED,
+          data: {
+            data,
+            message: `Delivery unassigned by carrier!`,
+            user: you,
+            notification,
+          }
+        });
+
+        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
+        if (validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+          });
         }
       });
-
-      const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-      if (validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+    }
+    
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery unassigned by carrier!`,
+        data,
       }
-    });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery unassigned by carrier!`,
-      data,
-      updates,
-    });
+    };
+    return results;
   }
 
-  static async create_tracking_update(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
+  static async create_tracking_update(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    data: any,
+    tracking_update_image?: UploadedFile,
+    ignoreNotification?: boolean,
+  }) {
+    const { you, delivery_model, data, tracking_update_image, ignoreNotification } = opts;
     const deliveryObj = delivery_model!.toJSON() as any;
-
-    // console.log({ deliveryObj });
 
     const delivery_id = delivery_model.get('id');
     const owner_id = delivery_model.get('owner_id');
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are not the carrier of this delivery.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the carrier of this delivery.`,
+        }
+      };
+      return results;
     }
 
     const createObj: any = {
@@ -693,109 +839,96 @@ export class DeliveriesService {
       delivery_id,
     };
 
-    const data: PlainObject = JSON.parse(request.body.payload);
-    const tracking_update_image: UploadedFile | undefined = request.files && (
-      <UploadedFile> request.files.tracking_update_image
-    );
-
-    // console.log(`request.body`, request.body);
-    // console.log(`data`, data);
-    
-    for (const prop of create_delivery_tracking_update_required_props) {
-      if (!data.hasOwnProperty(prop.field)) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is required.`
-        });
-      }
-      const isValid: boolean = prop.validator(data[prop.field]);
-      if (!isValid) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is invalid.`
-        });
-      }
-      createObj[prop.field] = data[prop.field];
-    }
-    if (tracking_update_image) {
-      const type = tracking_update_image.mimetype.split('/')[1];
-      const isInvalidType = !allowedImages.includes(type);
-      if (isInvalidType) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          error: true,
-          message: 'Invalid file type: jpg, jpeg or png required...'
-        });
-      }
-      const results = await store_image(tracking_update_image);
-      if (!results.result) {
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: 'Could not upload file...'
-        });
-      }
-      createObj.icon_id = results.result.public_id,
-      createObj.icon_link = results.result.secure_url
+    const dataValidation = validateData({
+      data, 
+      validators: create_delivery_tracking_update_required_props,
+      mutateObj: createObj
+    });
+    if (dataValidation.error) {
+      return dataValidation;
     }
 
-    // console.log(`createObj`, createObj);
+    const imageValidation = await validateAndUploadImageFile(tracking_update_image, {
+      treatNotFoundAsError: false,
+      mutateObj: createObj,
+      id_prop: 'icon_id',
+      link_prop: 'icon_link',
+    });
+    if (imageValidation.error) {
+      return imageValidation;
+    }
+
     const new_delivery_tracking_update_model = await DeliveryRepo.create_delivery_tracking_update(createObj as ICreateDeliveryTrackingUpdateProps);
 
-    create_notification({
-      from_id: you.id,
-      to_id: owner_id,
-      event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_TRACKING_UPDATE,
-      micro_app: MODERN_APP_NAMES.DELIVERME,
-      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY_TRACKING_UPDATE,
-      target_id: new_delivery_tracking_update_model.get('id') as number
-    }).then(async (notification_model) => {
-      const notification = await populate_deliverme_notification_obj(notification_model);
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: owner_id,
+    if (!ignoreNotification) {
+      create_notification({
+        from_id: you.id,
+        to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_TRACKING_UPDATE,
-        data: {
-          data: new_delivery_tracking_update_model,
-          message: `Delivery new tracking update!`,
-          user: you,
-          notification,
+        micro_app: MODERN_APP_NAMES.DELIVERME,
+        target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY_TRACKING_UPDATE,
+        target_id: new_delivery_tracking_update_model.get('id') as number
+      }).then(async (notification_model) => {
+        const notification = await populate_deliverme_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: owner_id,
+          event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_TRACKING_UPDATE,
+          data: {
+            data: new_delivery_tracking_update_model,
+            message: `Delivery new tracking update!`,
+            user: you,
+            notification,
+          }
+        });
+  
+        const owner_phone = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
+        if (validatePhone(owner_phone)) {
+          GoogleService.getLocationFromCoordinates(createObj.carrier_lat, createObj.carrier_lng)
+            .then((placeData) => {
+              const msg = `ModernApps ${MODERN_APP_NAMES.DELIVERME} - Delivery: new tracking update for delivery "${deliveryObj.title}"\n\n` +
+              `${createObj.message}\n\n` +
+              `Carrier's Location: ${placeData.city}, ${placeData.state} ` +
+                `${placeData.county ? '(' + placeData.county + ')' : ''} ${placeData.zipcode}`;
+              console.log(`sending:`, msg);
+              
+              send_sms({
+                to_phone_number: owner_phone,
+                message: msg,
+              })
+            })
+            .catch((error) => {
+              console.log(`Can't send sms with location; sending without...`);
+              const msg = `ModernApps ${MODERN_APP_NAMES.DELIVERME} - Delivery: new tracking update for delivery "${deliveryObj.title}"\n\n` +
+              `${createObj.message}`;
+              console.log(`sending:`, msg);
+              
+              send_sms({
+                to_phone_number: owner_phone,
+                message: msg,
+              })
+            });
         }
       });
+    }
 
-      const owner_phone = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-      if (validatePhone(owner_phone)) {
-        GoogleService.getLocationFromCoordinates(createObj.carrier_lat, createObj.carrier_lng)
-          .then((placeData) => {
-            const msg = `ModernApps ${MODERN_APP_NAMES.DELIVERME} - Delivery: new tracking update for delivery "${deliveryObj.title}"\n\n` +
-            `${createObj.message}\n\n` +
-            `Carrier's Location: ${placeData.city}, ${placeData.state} ` +
-              `${placeData.county ? '(' + placeData.county + ')' : ''} ${placeData.zipcode}`;
-            console.log(`sending:`, msg);
-            
-            send_sms({
-              to_phone_number: owner_phone,
-              message: msg,
-            })
-          })
-          .catch((error) => {
-            console.log(`Can't send sms with location; sending without...`);
-            const msg = `ModernApps ${MODERN_APP_NAMES.DELIVERME} - Delivery: new tracking update for delivery "${deliveryObj.title}"\n\n` +
-            `${createObj.message}`;
-            console.log(`sending:`, msg);
-            
-            send_sms({
-              to_phone_number: owner_phone,
-              message: msg,
-            })
-          });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery new tracking update!`,
+        data: new_delivery_tracking_update_model,
       }
-    });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery new tracking update!`,
-      data: new_delivery_tracking_update_model,
-    });
+    };
+    return results;
   }
 
-  static async add_delivered_picture(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
+  static async add_delivered_picture(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    delivered_image?: UploadedFile,
+    ignoreNotification?: boolean,
+  }) {
+    const { you, delivery_model, delivered_image, ignoreNotification } = opts;
     const deliveryObj = delivery_model!.toJSON() as any;
 
     const delivery_id = delivery_model.get('id');
@@ -803,81 +936,85 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are not the carrier of this delivery.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the carrier of this delivery.`,
+        }
+      };
+      return results;
     }
     if (!delivery_model.get('datetime_delivered')) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Delivery is not delivered yet.`,
-      });
-    }
-
-    const delivered_image: UploadedFile | undefined = request.files && (<UploadedFile> request.files.delivered_image);
-    if (!delivered_image) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `'delivered_image' not found in form.`,
-      });
-    }
-
-    const type = delivered_image.mimetype.split('/')[1];
-    const isInvalidType = !allowedImages.includes(type);
-    if (isInvalidType) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
         error: true,
-        message: 'Invalid file type: jpg, jpeg or png required...'
-      });
-    }
-    const results = await store_image(delivered_image);
-    if (!results.result) {
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        error: true,
-        message: 'Could not upload file...'
-      });
+        info: {
+          message: `Delivery is not delivered yet.`,
+        }
+      };
+      return results;
     }
 
-    delivery_model.delivered_image_id = results.result.public_id;
-    delivery_model.delivered_image_link = results.result.secure_url;
+    const imageValidation = await validateAndUploadImageFile(delivered_image, {
+      treatNotFoundAsError: true
+    });
+    if (imageValidation.error) {
+      return imageValidation;
+    }
+
+    delivery_model.delivered_image_id = imageValidation.info.data.image_id;
+    delivery_model.delivered_image_link = imageValidation.info.data.image_link;
     const updates = await delivery_model.save({ fields: ['delivered_image_id', 'delivered_image_link'] });
 
-    create_notification({
-      from_id: you.id,
-      to_id: owner_id,
-      event: DELIVERME_EVENT_TYPES.DELIVERY_ADD_COMPLETED_PICTURE,
-      micro_app: MODERN_APP_NAMES.DELIVERME,
-      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
-      target_id: delivery_id
-    }).then(async (notification_model) => {
-      const notification = await populate_deliverme_notification_obj(notification_model);
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: owner_id,
+    if (!ignoreNotification) {
+      create_notification({
+        from_id: you.id,
+        to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_ADD_COMPLETED_PICTURE,
-        data: {
-          data: updates,
-          message: `Delivery added delivered picture!`,
-          user: you,
-          notification,
+        micro_app: MODERN_APP_NAMES.DELIVERME,
+        target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id: delivery_id
+      }).then(async (notification_model) => {
+        const notification = await populate_deliverme_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: owner_id,
+          event: DELIVERME_EVENT_TYPES.DELIVERY_ADD_COMPLETED_PICTURE,
+          data: {
+            data: updates,
+            message: `Delivery added delivered picture!`,
+            user: you,
+            notification,
+          }
+        });
+  
+        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
+        if (validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+          });
         }
       });
+    }
 
-      const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-      if (validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery added delivered picture!`,
+        data: updates,
       }
-    });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery added delivered picture!`,
-      data: updates,
-    });
+    };
+    return results;
   }
 
-  static async mark_delivery_as_picked_up(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
+  static async mark_delivery_as_picked_up(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    ignoreNotification?: boolean,
+  }) {
+    const { you, delivery_model, ignoreNotification } = opts;
     const deliveryObj = delivery_model!.toJSON() as any;
 
     const delivery_id = delivery_model.get('id');
@@ -885,9 +1022,14 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are not the carrier of this delivery.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the carrier of this delivery.`,
+        }
+      };
+      return results;
     }
 
     delivery_model.datetime_picked_up = fn('NOW');
@@ -895,45 +1037,54 @@ export class DeliveriesService {
     
     const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
 
-    create_notification({
-      from_id: you.id,
-      to_id: owner_id,
-      event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_PICKED_UP,
-      micro_app: MODERN_APP_NAMES.DELIVERME,
-      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
-      target_id: delivery_id
-    }).then(async (notification_model) => {
-      const notification = await populate_deliverme_notification_obj(notification_model);
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: owner_id,
+    if (!ignoreNotification) {
+      create_notification({
+        from_id: you.id,
+        to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_PICKED_UP,
-        data: {
-          data,
-          message: `Delivery picked up by carrier!`,
-          user: you,
-          notification,
+        micro_app: MODERN_APP_NAMES.DELIVERME,
+        target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id: delivery_id
+      }).then(async (notification_model) => {
+        const notification = await populate_deliverme_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: owner_id,
+          event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_PICKED_UP,
+          data: {
+            data,
+            message: `Delivery picked up by carrier!`,
+            user: you,
+            notification,
+          }
+        });
+  
+        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
+        if (validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+          });
         }
       });
+    }
 
-      const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-      if (validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery picked up by carrier!`,
+        data,
       }
-    });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery picked up by carrier!`,
-      data,
-      updates,
-    });
+    };
+    return results;
   }
 
-  static async mark_delivery_as_dropped_off(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
+  static async mark_delivery_as_dropped_off(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    ignoreNotification?: boolean,
+  }) {
+    const { you, delivery_model, ignoreNotification } = opts;
     const deliveryObj = delivery_model!.toJSON() as any;
 
     const delivery_id = delivery_model.get('id');
@@ -941,9 +1092,14 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are not the carrier of this delivery.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the carrier of this delivery.`,
+        }
+      };
+      return results;
     }
 
     delivery_model.datetime_delivered = fn('NOW');
@@ -951,46 +1107,55 @@ export class DeliveriesService {
     
     const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
 
-    create_notification({
-      from_id: you.id,
-      to_id: owner_id,
-      event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_DROPPED_OFF,
-      micro_app: MODERN_APP_NAMES.DELIVERME,
-      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
-      target_id: delivery_id
-    }).then(async (notification_model) => {
-      const notification = await populate_deliverme_notification_obj(notification_model);
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: owner_id,
+    if (!ignoreNotification) {
+      create_notification({
+        from_id: you.id,
+        to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_DROPPED_OFF,
-        data: {
-          data,
-          message: `Delivery dropped off by carrier!`,
-          user: you,
-          notification,
+        micro_app: MODERN_APP_NAMES.DELIVERME,
+        target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id: delivery_id
+      }).then(async (notification_model) => {
+        const notification = await populate_deliverme_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: owner_id,
+          event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_DROPPED_OFF,
+          data: {
+            data,
+            message: `Delivery dropped off by carrier!`,
+            user: you,
+            notification,
+          }
+        });
+  
+        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
+        if (validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+          });
         }
       });
+    }
 
-      const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-      if (validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery dropped off by carrier!`,
+        data,
       }
-    });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery dropped off by carrier!`,
-      data,
-      updates,
-    });
+    };
+    return results;
   }
 
   
-  static async mark_delivery_as_completed(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
+  static async mark_delivery_as_completed(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    ignoreNotification?: boolean,
+  }) {
+    const { you, delivery_model, ignoreNotification } = opts;
     const deliveryObj = delivery_model!.toJSON() as any;
 
     const delivery_id = delivery_model.get('id');
@@ -998,15 +1163,25 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (owner_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are not the owner of this delivery.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the owner of this delivery.`,
+        }
+      };
+      return results;
     }
 
     if (deliveryObj.completed) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Delivery is already completed.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery is already completed.`,
+        }
+      };
+      return results;
     }
 
     delivery_model.completed = true;
@@ -1014,45 +1189,54 @@ export class DeliveriesService {
     
     const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
 
-    create_notification({
-      from_id: you.id,
-      to_id: carrier_id,
-      event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
-      micro_app: MODERN_APP_NAMES.DELIVERME,
-      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
-      target_id: delivery_id
-    }).then(async (notification_model) => {
-      const notification = await populate_deliverme_notification_obj(notification_model);
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: carrier_id,
+    if (!ignoreNotification) {
+      create_notification({
+        from_id: you.id,
+        to_id: carrier_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
-        data: {
-          data,
-          message: `Delivery completed!`,
-          user: you,
-          notification,
+        micro_app: MODERN_APP_NAMES.DELIVERME,
+        target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id: delivery_id
+      }).then(async (notification_model) => {
+        const notification = await populate_deliverme_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: carrier_id,
+          event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
+          data: {
+            data,
+            message: `Delivery completed!`,
+            user: you,
+            notification,
+          }
+        });
+  
+        const to_phone_number = deliveryObj.carrier.deliverme_settings.phone || deliveryObj.carrier.phone;
+        if (validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+          });
         }
       });
+    }
 
-      const to_phone_number = deliveryObj.carrier.deliverme_settings.phone || deliveryObj.carrier.phone;
-      if (validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery completed!`,
+        data,
       }
-    });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery completed!`,
-      data,
-      updates,
-    });
+    };
+    return results;
   }
 
-  static async mark_delivery_as_returned(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
+  static async mark_delivery_as_returned(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    ignoreNotification?: boolean,
+  }) {
+    const { you, delivery_model, ignoreNotification } = opts;
     const deliveryObj = delivery_model!.toJSON() as any;
 
     const delivery_id = delivery_model.get('id');
@@ -1060,15 +1244,25 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are not the carrier of this delivery.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the carrier of this delivery.`,
+        }
+      };
+      return results;
     }
 
     if (deliveryObj.returned) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Delivery is already returned.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery is already returned.`,
+        }
+      };
+      return results;
     }
 
     delivery_model.returned = true;
@@ -1087,102 +1281,110 @@ export class DeliveriesService {
 
     const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
 
-    create_notification({
-      from_id: carrier_id,
-      to_id: owner_id,
-      event: DELIVERME_EVENT_TYPES.DELIVERY_RETURNED,
-      micro_app: MODERN_APP_NAMES.DELIVERME,
-      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
-      target_id: delivery_id
-    }).then(async (notification_model) => {
-      const notification = await populate_deliverme_notification_obj(notification_model);
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: owner_id,
+    if (!ignoreNotification) {
+      create_notification({
+        from_id: carrier_id,
+        to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_RETURNED,
-        data: {
+        micro_app: MODERN_APP_NAMES.DELIVERME,
+        target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id: delivery_id
+      }).then(async (notification_model) => {
+        const notification = await populate_deliverme_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_RETURNED,
-          micro_app: MODERN_APP_NAMES.DELIVERME,
-          data,
-          message: `Delivery returned`,
-          user: you,
-          notification,
-        }
-      });
-
-      const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-      if (validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+          data: {
+            event: DELIVERME_EVENT_TYPES.DELIVERY_RETURNED,
+            micro_app: MODERN_APP_NAMES.DELIVERME,
+            data,
+            message: `Delivery returned`,
+            user: you,
+            notification,
+          }
         });
-      }
-    });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Delivery returned`,
-      data,
-      updates,
-    });
-  }
-
-  static async get_settings(request: Request, response: Response) {
-    const you = response.locals.you;
-
-    let settings = await DeliverMeUserProfileSettings.findOne({
-      where: { user_id: you.id }
-    });
-    if (!settings) {
-      settings = await DeliverMeUserProfileSettings.create({
-        user_id: you.id
+  
+        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
+        if (validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+          });
+        }
       });
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      data: settings
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery returned`,
+        data,
+      }
+    };
+    return results;
   }
 
-  static async update_settings(request: Request, response: Response) {
-    const you = response.locals.you;
-    const data = request.body;
+  static async get_settings(you_id: number) {
+    let settings = await DeliverMeUserProfileSettings.findOne({
+      where: { user_id: you_id }
+    });
+    if (!settings) {
+      settings = await DeliverMeUserProfileSettings.create({
+        user_id: you_id
+      });
+    }
 
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: settings,
+      }
+    };
+    return results;
+  }
+
+  static async update_settings(you_id: number, data: any) {
     const updatesObj: any = {};
 
     let settings = await DeliverMeUserProfileSettings.findOne({
-      where: { user_id: you.id }
+      where: { user_id: you_id }
     });
     if (!settings) {
       settings = await DeliverMeUserProfileSettings.create({
-        user_id: you.id
+        user_id: you_id
       });
     }
 
-    for (const prop of deliveryme_user_settings_required_props) {
-      if (!data.hasOwnProperty(prop.field)) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is required.`
-        });
-      }
-      const isValid: boolean = prop.validator(data[prop.field]);
-      if (!isValid) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is invalid.`
-        });
-      }
-      updatesObj[prop.field] = data[prop.field];
+    const dataValidation = validateData({
+      data, 
+      validators: deliveryme_user_settings_required_props,
+      mutateObj: updatesObj
+    });
+    if (dataValidation.error) {
+      return dataValidation;
     }
 
     const updates = await settings.update(updatesObj);
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Updated settings successfully!`,
-      data: settings,
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Updated settings successfully!`,
+        data: updates,
+      }
+    };
+    return results;
   }
 
-  static async create_checkout_session(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
+  static async create_checkout_session(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    host: string,
+  }) {
+    const { you, delivery_model, host } = opts;
     const deliveryObj = delivery_model!.toJSON() as any;
 
     const delivery_id = delivery_model.get('id');
@@ -1190,32 +1392,51 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (owner_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are not the owner of this delivery.`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the owner of this delivery.`,
+        }
+      };
+      return results;
     }
 
     if (deliveryObj.completed) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Delivery is already completed`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery is already completed`,
+        }
+      };
+      return results;
     }
 
     if (!deliveryObj.owner.stripe_account_verified) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Owner's stripe account is not setup`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Owner's stripe account is not setup`,
+        }
+      };
+      return results;
     }
 
     if (!deliveryObj.carrier.stripe_account_verified) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Carrier's stripe account is not setup`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier's stripe account is not setup`,
+        }
+      };
+      return results;
     }
 
     await delivery_model.update({ payment_session_id: '' });
 
-    const host: string = request.get('origin')!;
     const useHost = host.endsWith('/') ? host.substr(0, host.length - 1) : host;
     const successUrl = `${useHost}/modern/apps/deliverme/deliveries/${delivery_id}/payment-success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${useHost}/modern/apps/deliverme/deliveries/${delivery_id}/payment-cancel?session_id={CHECKOUT_SESSION_ID}`;
@@ -1259,12 +1480,16 @@ export class DeliveriesService {
       },
       // { stripeAccount: you.stripe_account_id }
       );
-    } catch (err) {
-      console.log((<any> err).message);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        message: (<any> err).message,
-        err
-      });
+    } catch (error) {
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        error: true,
+        info: {
+          message: (<any> error).message,
+          error
+        }
+      };
+      return results;
     }
     
 
@@ -1282,104 +1507,140 @@ export class DeliveriesService {
 
     // console.log({ newIntent, paymentIntent });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Payment intent created`,
-      payment_client_secret: paymentIntent.client_secret,
-      stripe_pk: process.env.STRIPE_PK
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Payment intent created`,
+        payment_client_secret: paymentIntent.client_secret,
+        stripe_pk: process.env.STRIPE_PK
+      }
+    };
+    return results;
   }
 
-  static async payment_success(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
+  static async payment_success(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    session_id: string,
+    ignoreNotification?: boolean,
+  }) {
+    const { you, delivery_model, session_id, ignoreNotification } = opts;
     const deliveryObj = delivery_model!.toJSON() as any;
 
     const delivery_id = delivery_model.get('id');
     const owner_id = delivery_model.get('owner_id');
     const carrier_id = delivery_model.get('carrier_id');
-
-    const session_id = request.query.session_id;
+    
     if (!session_id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Payment session_id was not added as query param on request`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Payment session_id was not added as query param on request`,
+        }
+      };
+      return results;
     }
 
     if (session_id !== deliveryObj.payment_session_id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Payment session_id does not match with delivery`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Payment session_id does not match with delivery`,
+        }
+      };
+      return results;
     }
 
     // pay carrier
-
-
 
     delivery_model.completed = true;
     const updates = await delivery_model.save({ fields: ['completed'] });
     
     const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
 
-    create_notification({
-      from_id: you.id,
-      to_id: carrier_id,
-      event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
-      micro_app: MODERN_APP_NAMES.DELIVERME,
-      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
-      target_id: delivery_id
-    }).then(async (notification_model) => {
-      const notification = await populate_deliverme_notification_obj(notification_model);
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: carrier_id,
+    if (!ignoreNotification) {
+      create_notification({
+        from_id: you.id,
+        to_id: carrier_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
-        data: {
-          data,
-          message: `Delivery completed!`,
-          user: you,
-          notification,
-        }
-      });
-
-      const to_phone_number = deliveryObj.carrier.deliverme_settings.phone || deliveryObj.carrier.phone;
-      if (validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        micro_app: MODERN_APP_NAMES.DELIVERME,
+        target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id: delivery_id
+      }).then(async (notification_model) => {
+        const notification = await populate_deliverme_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: carrier_id,
+          event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
+          data: {
+            data,
+            message: `Delivery completed!`,
+            user: you,
+            notification,
+          }
         });
-      }
-    });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Payment session completed`,
-    });
-  }
-
-  static async payment_cancel(request: Request, response: Response) {
-    const you = response.locals.you;
-    const delivery_model: IMyModel = response.locals.delivery_model;
-    const deliveryObj = delivery_model!.toJSON() as any;
-
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
-
-    const session_id = request.query.session_id;
-    if (!session_id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Payment session_id was not added as query param on request`,
+  
+        const to_phone_number = deliveryObj.carrier.deliverme_settings.phone || deliveryObj.carrier.phone;
+        if (validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+          });
+        }
       });
     }
 
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Payment session completed`,
+      }
+    };
+    return results;
+  }
+
+  static async payment_cancel(opts: {
+    you: IUser,
+    delivery_model: IMyModel,
+    session_id: string,
+  }) {
+    const { you, delivery_model, session_id } = opts;
+    const deliveryObj = delivery_model!.toJSON() as any;
+
+    if (!session_id) {
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Payment session_id was not added as query param on request`,
+        }
+      };
+      return results;
+    }
+
     if (session_id !== deliveryObj.payment_session_id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Payment session_id does not match with delivery`,
-      });
+      const results: ServiceMethodResult = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Payment session_id does not match with delivery`,
+        }
+      };
+      return results;
     }
 
     await delivery_model.update({ payment_session_id: '' });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Payment session canceled`,
-    });
+    const results: ServiceMethodResult = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Payment session canceled`,
+      }
+    };
+    return results;
   }
 }
