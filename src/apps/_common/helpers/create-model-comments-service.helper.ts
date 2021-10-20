@@ -20,7 +20,7 @@ import {
 } from '../models/common.model-types';
 import { create_notification } from '../repos/notifications.repo';
 import { CommonSocketEventsHandler } from '../services/socket-events-handlers-by-app/common.socket-event-handler';
-import { ServiceMethodAsyncResult, ServiceMethodResult } from '../types/common.types';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
 
 
 
@@ -34,22 +34,22 @@ export interface ICreateCommonGenericModelCommentsService {
 }
 
 export interface ICommonGenericCommentsService {
-  get_comment_by_id: (comment_id: number) => ServiceMethodAsyncResult,
-  get_comments_count: (model_id: number) => ServiceMethodAsyncResult,
-  get_comments_all: (model_id: number) => ServiceMethodAsyncResult,
-  get_comments: (model_id: number, comment_id?: number) => ServiceMethodAsyncResult,
+  get_comment_by_id: (comment_id: number) => ServiceMethodAsyncResults,
+  get_comments_count: (model_id: number) => ServiceMethodAsyncResults,
+  get_comments_all: (model_id: number) => ServiceMethodAsyncResults,
+  get_comments: (model_id: number, comment_id?: number) => ServiceMethodAsyncResults,
   create_comment: (opts: {
     body: string,
     base_model: IMyModel,
     you: IUser,
     ignoreNotification?: boolean,
     owner_field?: string,
-  }) => ServiceMethodAsyncResult,
+  }) => ServiceMethodAsyncResults,
   update_comment: (opts: {
     body: string,
     comment_id: number,
-  }) => ServiceMethodAsyncResult,
-  delete_comment: (comment_id: number) => ServiceMethodAsyncResult,
+  }) => ServiceMethodAsyncResults,
+  delete_comment: (comment_id: number) => ServiceMethodAsyncResults,
 }
 
 export function createCommonGenericModelCommentsService(
@@ -71,26 +71,26 @@ export function createCommonGenericModelCommentsService(
           attributes: user_attrs_slim
         }],
       });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: comment_model
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_comments_count(model_id: number) {
       const comments_count = await params.comment_model.count({ where: { [model_id_field]: model_id } });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: comments_count
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_comments_all(model_id: number) {
@@ -104,14 +104,14 @@ export function createCommonGenericModelCommentsService(
           attributes: user_attrs_slim
         }]
       );
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: comments
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_comments(model_id: number, comment_id?: number) {
@@ -126,14 +126,14 @@ export function createCommonGenericModelCommentsService(
           attributes: user_attrs_slim
         }]
       );
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: comments
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async create_comment(opts: {
@@ -147,14 +147,14 @@ export function createCommonGenericModelCommentsService(
       const base_model_owner_field = opts.owner_field || 'owner_id';
       const model_id: number = base_model.get('id');
       if (!body) {
-        const results: ServiceMethodResult = {
+        const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
           error: true,
           info: {
             message: `Comment body is required`
           }
         };
-        return results;
+        return serviceMethodResults;
       }
       const comment_model = await params.comment_model.create({ body, [model_id_field]: model_id, owner_id: you.id });
       const comment = await params.comment_model.findOne({
@@ -189,7 +189,7 @@ export function createCommonGenericModelCommentsService(
         });
       }
 
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -197,7 +197,7 @@ export function createCommonGenericModelCommentsService(
           data: comment
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async update_comment(opts: {
@@ -206,14 +206,14 @@ export function createCommonGenericModelCommentsService(
     }) {
       const { body, comment_id } = opts;
       if (!body) {
-        const results: ServiceMethodResult = {
+        const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
           error: true,
           info: {
             message: `Comment body is required`,
           }
         };
-        return results;
+        return serviceMethodResults;
       }
       const updates = await params.comment_model.update({ body }, { where: { id: comment_id } });
       const comment = await params.comment_model.findOne({
@@ -224,7 +224,7 @@ export function createCommonGenericModelCommentsService(
           attributes: user_attrs_slim
         }]
       });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -235,12 +235,12 @@ export function createCommonGenericModelCommentsService(
           }
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async delete_comment(comment_id: number) {
       const deletes = await params.comment_model.destroy({ where: { id: comment_id } });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -248,7 +248,7 @@ export function createCommonGenericModelCommentsService(
           data: deletes
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   };
 

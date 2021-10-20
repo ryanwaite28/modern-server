@@ -1,15 +1,12 @@
 import {
-  Request,
-  Response,
-} from 'express';
-import {
   fn,
   Op,
 } from 'sequelize';
 import { user_attrs_slim } from '../common.chamber';
 import { COMMON_EVENT_TYPES } from '../enums/common.enum';
 import { HttpStatusCode } from '../enums/http-codes.enum';
-import { PlainObject, IRequest } from '../interfaces/common.interface';
+import { PlainObject } from '../interfaces/common.interface';
+import { IMyModel } from '../models/common.model-types';
 import {
   ConversationMembers,
   ConversationMessages,
@@ -17,21 +14,29 @@ import {
   ConversationMessageSeens
 } from '../models/conversations.model';
 import { Users } from '../models/user.model';
+import { ServiceMethodResults } from '../types/common.types';
+import { SocketsService } from './sockets.service';
 
 export class ConversationMessagesService {
-  static async get_conversation_messages(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const conversation_id = parseInt(request.params.conversation_id, 10);
-    const message_id = parseInt(request.params.message_id, 10);
-
+  static async get_conversation_messages(opts: {
+    you_id: number,
+    conversation_id: number,
+    message_id: number,
+  }) {
+    const { you_id, conversation_id, message_id } = opts;
     const conversation_member_model = await ConversationMembers.findOne({
       where: { conversation_id, user_id: you_id }
     });
 
     if (!conversation_member_model) {
-      return response.status(HttpStatusCode.FORBIDDEN).json({
-        message: `You are not a member of this conversation`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not a member of this conversation`
+        }
+      };
+      return serviceMethodResults;
     }
 
     const whereClause: PlainObject = { conversation_id };
@@ -51,14 +56,21 @@ export class ConversationMessagesService {
       limit: 5
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      data: conversations_last_opened_models
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: conversations_last_opened_models
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async update_conversation_last_opened(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const conversation_id = parseInt(request.params.conversation_id, 10);
+  static async update_conversation_last_opened(opts: {
+    you_id: number,
+    conversation_id: number,
+  }) {
+    const { you_id, conversation_id } = opts;
 
     console.log(`updating last opened for conversation`);
     const updates = await ConversationLastOpeneds.update({ last_opened: fn('NOW') }, {
@@ -67,32 +79,50 @@ export class ConversationMessagesService {
 
     console.log({ updates, conversation_id, user_id: you_id });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `conversation last opened updated`,
-      updates,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.BAD_REQUEST,
+      error: true,
+      info: {
+        message: `conversation last opened updated`,
+        data: updates,
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async create_conversation_message(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const conversation_id = parseInt(request.params.conversation_id, 10);
+  static async create_conversation_message(opts: {
+    you_id: number,
+    conversation_id: number,
+    parent_message_id: number,
+    body: string,
+  }) {
+    let { you_id, conversation_id, parent_message_id, body } = opts;
+    body = body && body.trim();
 
     const conversation_member_model = await ConversationMembers.findOne({
       where: { conversation_id, user_id: you_id }
     });
 
     if (!conversation_member_model) {
-      return response.status(HttpStatusCode.FORBIDDEN).json({
-        message: `You are not a member of this conversation`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not a member of this conversation`
+        }
+      };
+      return serviceMethodResults;
     }
-
-    const body = request.body.body && request.body.body.trim();
-    const parent_message_id = request.body.parent_message_id || null;
+    
     if (!body) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `message body cannot be empty`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `message body cannot be empty`
+        }
+      };
+      return serviceMethodResults;
     }
 
     // get all the conversations that the user is a part of via when they last opened it
@@ -112,35 +142,54 @@ export class ConversationMessagesService {
       }]
     });
 
-    (<IRequest> request).io.to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
+    SocketsService.get_io().to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
       event_type: COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE,
       data: conversation_message_model!.toJSON(),
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `conversation message created!`,
-      data: conversation_message_model
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `conversation message created!`,
+        data: conversation_message_model
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async mark_message_as_seen(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const message_id = parseInt(request.params.message_id, 10);
-    const conversation_id = parseInt(request.params.conversation_id, 10);
-    let seen_message_model = await ConversationMessageSeens.findOne({
+  static async mark_message_as_seen(opts: {
+    you_id: number,
+    conversation_id: number,
+    message_id: number,
+  }) {
+    const { you_id, conversation_id, message_id } = opts;
+
+    let seen_message_model: IMyModel | null = await ConversationMessageSeens.findOne({
       where: { conversation_id, id: message_id, user_id: you_id, seen: true }
     });
     if (seen_message_model) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `message already seen`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `message already seen`
+        }
+      };
+      return serviceMethodResults;
     }
     seen_message_model = await ConversationMessageSeens.create({
       conversation_id, message_id, user_id: you_id, seen: true
     });
-    return response.status(HttpStatusCode.OK).json({
-      message: `message marked as seen`,
-      data: seen_message_model
-    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `message marked as seen`,
+        data: seen_message_model
+      }
+    };
+    return serviceMethodResults;
   }
 }

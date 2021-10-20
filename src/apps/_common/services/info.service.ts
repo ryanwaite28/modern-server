@@ -1,8 +1,4 @@
 import {
-  Request,
-  Response,
-} from 'express';
-import {
   allowedImages,
   hierarchyOptions,
   causesList,
@@ -20,31 +16,38 @@ import moment from 'moment';
 import { Cliques } from '../../hotspot/models/clique.model';
 import { NewsDataCache } from '../models/other.model';
 import { HotspotResources } from '../../hotspot/models/resource.model';
-import { v1 as uuidv1 } from 'uuid';
-
-const lessThanOneDayAgo = (date: any) => {
-  return moment(date).isAfter(moment().subtract(1, 'days'));
-}
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
 
 export class InfoService {
   /** Use a cache to store API results for 24 hours at a time */
   static newsApiResults = null;
   private static newsApiRefreshTimeout: any;
 
-  static async get_site_info(request: Request, response: Response) {
-    return response.status(HttpStatusCode.OK).json({
-      causesList: causesList,
-      jobFields: jobFields.sort(),
-      allowedImages: allowedImages.sort(),
-      employmentTypes: employmentTypes.sort(),
-      predictiveIndexProfilesList: predictiveIndexProfilesList.sort(),
-      gallupStrengthsList: gallupStrengthsList.sort(),
-      hierarchyOptions,
-      languagesList
-    });
+  static moreThanOneDayAgo(date: any) {
+    return moment(date).isAfter(moment().subtract(1, 'days'));
   }
 
-  static async get_recent_activity(request: Request, response: Response) {
+  static get_site_info(): ServiceMethodResults {
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: {
+          causesList: causesList,
+          jobFields: jobFields.sort(),
+          allowedImages: allowedImages.sort(),
+          employmentTypes: employmentTypes.sort(),
+          predictiveIndexProfilesList: predictiveIndexProfilesList.sort(),
+          gallupStrengthsList: gallupStrengthsList.sort(),
+          hierarchyOptions,
+          languagesList
+        }
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async get_recent_activity(): ServiceMethodAsyncResults {
     const resources = await HotspotResources.findAll({
       limit: 1,
       order: [['id', 'DESC']]
@@ -53,18 +56,23 @@ export class InfoService {
       limit: 1,
       order: [['id', 'DESC']]
     });
-
-    return response.status(HttpStatusCode.OK).json({
-      data: {
-        resources,
-        cliques
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: {
+          resources,
+          cliques
+        }
       }
-    });
+    };
+    return serviceMethodResults;
   }
 
   /** External API calls */
 
-  static async get_business_news(request: Request, response: Response) {
+  static async get_business_news(): ServiceMethodAsyncResults {
     /**
      * https://docs.microsoft.com/en-us/rest/api/cognitiveservices-bingsearch/bing-news-api-v7-reference#categories-by-market
      * https://rapidapi.com/microsoft-azure-org-microsoft-cognitive-services/api/bing-news-search1?endpoint=apiendpoint_0aa346dd-16d6-40d4-930c-235f4b4fb9e6
@@ -73,17 +81,22 @@ export class InfoService {
      // check cache
     if (InfoService.newsApiResults) {
       console.log(`returning news api data from cache`);
-      return response.status(HttpStatusCode.OK).json({
-        message: `returning news api data from cache`,
-        data: InfoService.newsApiResults
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `returning news api data from cache`,
+          data: InfoService.newsApiResults
+        }
+      };
+      return serviceMethodResults;
     }
 
     // check database
     const result = await NewsDataCache.findOne();
     if (result) {
       // check age
-      const olderThanOneDay = !lessThanOneDayAgo(result.get('date_created'));
+      const olderThanOneDay = InfoService.moreThanOneDayAgo(result.get('date_created'));
       if (olderThanOneDay) {
         // old data, delete from db and get new
         await result.destroy();
@@ -91,10 +104,15 @@ export class InfoService {
         // not old enough, load to cache and return
         InfoService.newsApiResults = JSON.parse(result.get('json_data'));
         console.log(`loaded news api data from db`);
-        return response.status(HttpStatusCode.OK).json({
-          message: `loaded news api data from db`,
-          data: InfoService.newsApiResults
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.OK,
+          error: false,
+          info: {
+            message: `loaded news api data from db`,
+            data: InfoService.newsApiResults
+          }
+        };
+        return serviceMethodResults;
       }
     }
     
@@ -113,28 +131,43 @@ export class InfoService {
       "x-bingapis-sdk": "true",
       "useQueryString": true
     });
-    req.end(async (res: any) => {
-      if (res.error) {
-        console.log(res.error, `could not load results`);
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-          message: `error loading from API`
-        });
-      }
+    const serviceMethodResults: ServiceMethodResults = await new Promise<ServiceMethodResults>((resolve, reject) => {
+      req.end(async (res: any) => {
+        if (res.error) {
+          console.log(res.error, `could not load results`);
+          const serviceMethodResults: ServiceMethodResults = {
+            status: HttpStatusCode.BAD_REQUEST,
+            error: true,
+            info: {
+              message: `error loading from API`,
+              data: res,
+            }
+          };
+          return resolve(serviceMethodResults);
+        }
+  
+        // set to cache and set timeout
+        console.log(`retrieved news data; storing in db and setting to cache`);
+        const json_data: string = JSON.stringify(res.body);
+        await NewsDataCache.create({ json_data });
 
-      // set to cache and set timeout
-      console.log(`retrieved news data; storing in db and setting to cache`);
-      await NewsDataCache.create({
-        json_data: JSON.stringify(res.body)
-      });
-      InfoService.newsApiResults = res.body;
-      InfoService.newsApiRefreshTimeout = setTimeout(() => {
-        InfoService.newsApiResults = null;
-      }, DURATION_1_DAY_HALF);
-
-      return response.status(HttpStatusCode.OK).json({
-        message: `retrieved news data; storing in db and setting to cache`,
-        data: res.body,
+        InfoService.newsApiResults = res.body;
+        InfoService.newsApiRefreshTimeout = setTimeout(() => {
+          InfoService.newsApiResults = null;
+        }, DURATION_1_DAY_HALF);
+  
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.OK,
+          error: false,
+          info: {
+            message: `retrieved news data; storing in db and setting to cache`,
+            data: res.body,
+          }
+        };
+        return resolve(serviceMethodResults);
       });
     });
+
+    return serviceMethodResults;
   }
 }

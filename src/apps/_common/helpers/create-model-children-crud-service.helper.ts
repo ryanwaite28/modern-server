@@ -11,10 +11,11 @@ import {
   MyModelStatic,
   MyModelStaticGeneric
 } from '../models/common.model-types';
-import { ServiceMethodAsyncResult, ServiceMethodResult } from '../types/common.types';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
 import { create_notification } from '../repos/notifications.repo';
 import { CommonSocketEventsHandler } from '../services/socket-events-handlers-by-app/common.socket-event-handler';
 import { Includeable } from 'sequelize/types';
+import { validateData } from '../common.chamber';
 
 
 
@@ -33,21 +34,21 @@ export interface ICreateCommonGenericModelChildrenCrudService {
 }
 
 export interface ICommonGenericModelChildrenCrudService {
-  get_model_by_id: (child_model_id: number) => ServiceMethodAsyncResult,
-  get_models_count: (parent_id: number) => ServiceMethodAsyncResult,
-  get_models_all: (parent_id: number) => ServiceMethodAsyncResult,
-  get_models: (parent_id: number, child_id?: number) => ServiceMethodAsyncResult,
+  get_model_by_id: (child_model_id: number) => ServiceMethodAsyncResults,
+  get_models_count: (parent_id: number) => ServiceMethodAsyncResults,
+  get_models_all: (parent_id: number) => ServiceMethodAsyncResults,
+  get_models: (parent_id: number, child_id?: number) => ServiceMethodAsyncResults,
   create_model: (opts: {
     data: any,
     you: IUser,
     parent_model: IMyModel,
     ignoreNotification?: boolean
-  }) => ServiceMethodAsyncResult,
+  }) => ServiceMethodAsyncResults,
   update_model: (opts: {
     data: any, 
     child_model_id: number
-  }) => ServiceMethodAsyncResult,
-  delete_model: (child_model_id: number) => ServiceMethodAsyncResult,
+  }) => ServiceMethodAsyncResults,
+  delete_model: (child_model_id: number) => ServiceMethodAsyncResults,
 }
 
 
@@ -65,26 +66,26 @@ export function createCommonGenericModelChildrenCrudService(params: ICreateCommo
         where: { id: child_model_id },
         include: params.includes,
       });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_models_count(parent_id: number) {
       const child_models_count = await params.child_model.count({ where: { [parent_model_id_params_name]: parent_id } });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: child_models_count,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_models_all(parent_id: number) {
@@ -94,14 +95,14 @@ export function createCommonGenericModelChildrenCrudService(params: ICreateCommo
         parent_id,
         params.includes,
       );
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: models,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_models(parent_id: number, child_id?: number) {
@@ -112,14 +113,14 @@ export function createCommonGenericModelChildrenCrudService(params: ICreateCommo
         child_id,
         params.includes
       );
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: models,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async create_model(opts: {
@@ -131,30 +132,13 @@ export function createCommonGenericModelChildrenCrudService(params: ICreateCommo
       const { data, you, parent_model, ignoreNotification } = opts;
       const createObj: any = {};
 
-      for (const prop of params.createValidators) {
-        if (!data.hasOwnProperty(prop.field)) {
-          const results: ServiceMethodResult = {
-            status: HttpStatusCode.BAD_REQUEST,
-            error: true,
-            info: {
-              message: `${prop.name} is required.`
-            }
-          };
-          return results;
-        }
-        const isValid: boolean = prop.validator(data[prop.field]);
-        if (!isValid) {
-          const results: ServiceMethodResult = {
-            status: HttpStatusCode.BAD_REQUEST,
-            error: true,
-            info: {
-              message: `${prop.name} is invalid.`
-            }
-          };
-          return results;
-        }
-
-        createObj[prop.field] = data[prop.field];
+      const dataValidation = validateData({
+        data, 
+        validators: params.createValidators,
+        mutateObj: createObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
       }
       
       const new_model = await params.child_model.create(createObj, { include: params.includes });
@@ -186,7 +170,7 @@ export function createCommonGenericModelChildrenCrudService(params: ICreateCommo
         });
       }
 
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -194,7 +178,7 @@ export function createCommonGenericModelChildrenCrudService(params: ICreateCommo
           data: new_model
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async update_model(opts: {
@@ -204,30 +188,13 @@ export function createCommonGenericModelChildrenCrudService(params: ICreateCommo
       const { data, child_model_id } = opts;
       const updatesObj: any = {};
 
-      for (const prop of params.updateValidators) {
-        if (!data.hasOwnProperty(prop.field)) {
-          const results: ServiceMethodResult = {
-            status: HttpStatusCode.BAD_REQUEST,
-            error: true,
-            info: {
-              message: `${prop.name} is required.`
-            }
-          };
-          return results;
-        }
-        const isValid: boolean = prop.validator(data[prop.field]);
-        if (!isValid) {
-          const results: ServiceMethodResult = {
-            status: HttpStatusCode.BAD_REQUEST,
-            error: true,
-            info: {
-              message: `${prop.name} is invalid.`
-            }
-          };
-          return results;
-        }
-
-        updatesObj[prop.field] = data[prop.field];
+      const dataValidation = validateData({
+        data, 
+        validators: params.updateValidators,
+        mutateObj: updatesObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
       }
 
       const updates = await params.child_model.update(updatesObj, { where: { id: child_model_id } });
@@ -236,7 +203,7 @@ export function createCommonGenericModelChildrenCrudService(params: ICreateCommo
         include: params.includes,
       });
 
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -247,19 +214,19 @@ export function createCommonGenericModelChildrenCrudService(params: ICreateCommo
           }
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async delete_model(child_model_id: number) {
       const deletes = await params.child_model.destroy({ where: { id: child_model_id } });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: deletes,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
   };

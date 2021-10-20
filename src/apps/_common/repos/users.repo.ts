@@ -32,27 +32,22 @@ export async function create_user(
 export async function get_random_users(
   limit: number
 ) {
-  try {
-    const users = await Users.findAll({
-      limit,
-      order: [fn( 'RANDOM' )],
-      attributes: [
-        'id',
-        'firstname',
-        'lastname',
-        'username',
-        'icon_link',
-        'uuid',
-        'created_at',
-        'updated_at',
-        'deleted_at',
-      ]
-    });
-    return users;
-  } catch (e) {
-    console.log(`get_random_users error - `, e);
-    return null;
-  }
+  const users = await Users.findAll({
+    limit,
+    order: [fn( 'RANDOM' )],
+    attributes: [
+      'id',
+      'firstname',
+      'lastname',
+      'username',
+      'icon_link',
+      'uuid',
+      'created_at',
+      'updated_at',
+      'deleted_at',
+    ]
+  });
+  return users;
 }
 
 export async function get_user_by_email(

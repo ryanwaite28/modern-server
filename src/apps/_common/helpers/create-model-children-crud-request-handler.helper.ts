@@ -43,59 +43,59 @@ export function createCommonGenericModelChildrenCrudRequestHandler(params: ICrea
   Class = class {
     /** Request Handlers */
   
-    static async get_model_by_id(request: Request, response: Response) {
+    static async get_model_by_id(request: Request, response: Response): ExpressResponse {
       const child_model = response.locals[child_model_field_name];
       return response.status(HttpStatusCode.OK).json({
         data: child_model
       });
     }
   
-    static async get_models_count(request: Request, response: Response) {
+    static async get_models_count(request: Request, response: Response): ExpressResponse {
       const parent_model_id: number = parseInt(request.params[parent_model_id_params_name], 10);
 
-      const results = await params.crudService.get_models_count(parent_model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.get_models_count(parent_model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async get_models_all(request: Request, response: Response) {
+    static async get_models_all(request: Request, response: Response): ExpressResponse {
       const parent_model_id: number = parseInt(request.params[parent_model_id_params_name], 10);
 
-      const results = await params.crudService.get_models_all(parent_model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.get_models_all(parent_model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async get_models(request: Request, response: Response) {
+    static async get_models(request: Request, response: Response): ExpressResponse {
       const parent_model_id: number = parseInt(request.params[parent_model_id_params_name], 10);
       const child_model_id: number = parseInt(request.params[child_model_id_params_name], 10);
 
-      const results = await params.crudService.get_models(parent_model_id, child_model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.get_models(parent_model_id, child_model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async create_model(request: Request, response: Response) {
+    static async create_model(request: Request, response: Response): ExpressResponse {
       const you: IUser = response.locals.you;
       const data: any = request.body.payload ? JSON.parse(request.body.payload) : request.body;
       const parent_model = response.locals[parent_model_field_name] as IMyModel;
 
-      const results = await params.crudService.create_model({ data, you, parent_model });
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.create_model({ data, you, parent_model });
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async update_model(request: Request, response: Response) {
+    static async update_model(request: Request, response: Response): ExpressResponse {
       const child_model = response.locals[child_model_field_name] as IMyModel;
       const child_model_id = child_model.get('id');
       const data: any = request.body.payload ? JSON.parse(request.body.payload) : request.body;
       
-      const results = await params.crudService.update_model({ data, child_model_id });
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.update_model({ data, child_model_id });
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async delete_model(request: Request, response: Response) {
+    static async delete_model(request: Request, response: Response): ExpressResponse {
       const child_model = response.locals[child_model_field_name] as IMyModel;
       const child_model_id = child_model.get('id');
 
-      const results = await params.crudService.delete_model(child_model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.delete_model(child_model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   };
 

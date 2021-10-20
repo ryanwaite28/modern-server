@@ -72,7 +72,7 @@ import { DELIVERME_APP_FEE, StripeService } from '../../_common/services/stripe.
 
 export class DeliveriesService {
 
-  static async find_available_delivery_by_from_city_and_state(request: Request, response: Response) {
+  static async find_available_delivery_by_from_city_and_state(request: Request, response: Response): ExpressResponse {
     const city: string = request.params.city;
     const state: string = request.params.state;
 
@@ -92,7 +92,7 @@ export class DeliveriesService {
     });
   }
 
-  static async find_available_delivery_by_to_city_and_state(request: Request, response: Response) {
+  static async find_available_delivery_by_to_city_and_state(request: Request, response: Response): ExpressResponse {
     const city: string = request.params.city;
     const state: string = request.params.state;
 
@@ -112,7 +112,7 @@ export class DeliveriesService {
     });
   }
 
-  static async find_available_delivery(request: Request, response: Response) {
+  static async find_available_delivery(request: Request, response: Response): ExpressResponse {
     try {
       const you = response.locals.you;
       const searchCriterias = [
@@ -197,7 +197,7 @@ export class DeliveriesService {
     }
   }
 
-  static async search_deliveries(request: Request, response: Response) {
+  static async search_deliveries(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const {
       from_city,
@@ -258,7 +258,7 @@ export class DeliveriesService {
     });
   }
 
-  static async send_delivery_message(request: Request, response: Response) {
+  static async send_delivery_message(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -318,7 +318,7 @@ export class DeliveriesService {
       }
       const TO_ROOM = `${DELIVERME_EVENT_TYPES.TO_DELIVERY}:${delivery_id}`;
       // console.log({ TO_ROOM, eventData });
-      (<IRequest> request).io.to(TO_ROOM).emit(TO_ROOM, eventData);
+      SocketsService.get_io().to(TO_ROOM).emit(TO_ROOM, eventData);
       
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: to_id,
@@ -333,14 +333,14 @@ export class DeliveriesService {
     });
   }
 
-  static async get_delivery_by_id(request: Request, response: Response) {
+  static async get_delivery_by_id(request: Request, response: Response): ExpressResponse {
     const delivery = response.locals.delivery_model.toJSON();
     return response.status(HttpStatusCode.OK).json({
       data: delivery
     });
   }
   
-  static async get_user_deliveries_all(request: Request, response: Response) {
+  static async get_user_deliveries_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const results = await CommonRepo.getAll(
       Delivery,
@@ -357,7 +357,7 @@ export class DeliveriesService {
     });
   }
 
-  static async get_user_deliveries(request: Request, response: Response) {
+  static async get_user_deliveries(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const delivery_id: number | undefined = request.params.delivery_id ? parseInt(request.params.delivery_id, 10) : undefined;
     const results = await CommonRepo.paginateTable(
@@ -376,7 +376,7 @@ export class DeliveriesService {
     });
   }
 
-  static async get_user_deliverings_all(request: Request, response: Response) {
+  static async get_user_deliverings_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     
     const results = await CommonRepo.getAll(
@@ -394,7 +394,7 @@ export class DeliveriesService {
     });
   }
 
-  static async get_user_deliverings(request: Request, response: Response) {
+  static async get_user_deliverings(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const delivery_id: number | undefined = request.params.delivery_id ? parseInt(request.params.delivery_id, 10) : undefined;
 
@@ -416,7 +416,7 @@ export class DeliveriesService {
     });
   }
 
-  static async get_user_delivering(request: Request, response: Response) {
+  static async get_user_delivering(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const result = await Delivery.findOne({
       where: {
@@ -431,7 +431,7 @@ export class DeliveriesService {
     });
   }
 
-  static async create_delivery(request: Request, response: Response) {
+  static async create_delivery(request: Request, response: Response): ExpressResponse {
     try {
       const you = response.locals.you;
       const createObj: PlainObject = {
@@ -538,7 +538,7 @@ export class DeliveriesService {
     }
   }
 
-  static async update_delivery(request: Request, response: Response) {
+  static async update_delivery(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model = response.locals.delivery_model;
     const updateObj: PlainObject = {
@@ -568,7 +568,7 @@ export class DeliveriesService {
     });
   }
 
-  static async delete_delivery(request: Request, response: Response) {
+  static async delete_delivery(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model = response.locals.delivery_model;
     const delivery_id = delivery_model.get('id');
@@ -618,7 +618,7 @@ export class DeliveriesService {
     });
   }
 
-  static async assign_delivery(request: Request, response: Response) {
+  static async assign_delivery(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -676,7 +676,7 @@ export class DeliveriesService {
     });
   }
 
-  static async unassign_delivery(request: Request, response: Response) {
+  static async unassign_delivery(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -741,7 +741,7 @@ export class DeliveriesService {
     });
   }
 
-  static async create_tracking_update(request: Request, response: Response) {
+  static async create_tracking_update(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -863,7 +863,7 @@ export class DeliveriesService {
     });
   }
 
-  static async add_delivered_picture(request: Request, response: Response) {
+  static async add_delivered_picture(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -945,7 +945,7 @@ export class DeliveriesService {
     });
   }
 
-  static async mark_delivery_as_picked_up(request: Request, response: Response) {
+  static async mark_delivery_as_picked_up(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -1001,7 +1001,7 @@ export class DeliveriesService {
     });
   }
 
-  static async mark_delivery_as_dropped_off(request: Request, response: Response) {
+  static async mark_delivery_as_dropped_off(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -1058,7 +1058,7 @@ export class DeliveriesService {
   }
 
   
-  static async mark_delivery_as_completed(request: Request, response: Response) {
+  static async mark_delivery_as_completed(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -1120,7 +1120,7 @@ export class DeliveriesService {
     });
   }
 
-  static async mark_delivery_as_returned(request: Request, response: Response) {
+  static async mark_delivery_as_returned(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -1195,7 +1195,7 @@ export class DeliveriesService {
     });
   }
 
-  static async get_settings(request: Request, response: Response) {
+  static async get_settings(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
 
     let settings = await DeliverMeUserProfileSettings.findOne({
@@ -1212,7 +1212,7 @@ export class DeliveriesService {
     });
   }
 
-  static async update_settings(request: Request, response: Response) {
+  static async update_settings(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const data = request.body;
 
@@ -1250,7 +1250,7 @@ export class DeliveriesService {
     });
   }
 
-  static async create_checkout_session(request: Request, response: Response) {
+  static async create_checkout_session(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -1358,7 +1358,7 @@ export class DeliveriesService {
     });
   }
 
-  static async payment_success(request: Request, response: Response) {
+  static async payment_success(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;
@@ -1423,7 +1423,7 @@ export class DeliveriesService {
     });
   }
 
-  static async payment_cancel(request: Request, response: Response) {
+  static async payment_cancel(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const delivery_model: IMyModel = response.locals.delivery_model;
     const deliveryObj = delivery_model!.toJSON() as any;

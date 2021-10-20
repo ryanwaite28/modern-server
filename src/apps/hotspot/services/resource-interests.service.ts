@@ -22,7 +22,7 @@ import { SocketsService } from '../../_common/services/sockets.service';
 import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 
 export class ResourceInterestsService {
-  static async get_user_resource_interests(request: Request, response: Response) {
+  static async get_user_resource_interests(request: Request, response: Response): ExpressResponse {
     const user_id = parseInt(request.params.user_id, 10);
     const interest_id = parseInt(request.params.interest_id, 10);
     const resource_interests_models = await CommonRepo.paginateTable(
@@ -54,7 +54,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async get_user_resource_interests_all(request: Request, response: Response) {
+  static async get_user_resource_interests_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const resource_interests = await CommonRepo.getAll(
       HotspotResourceInterests,
@@ -70,7 +70,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async get_resource_interests_all(request: Request, response: Response) {
+  static async get_resource_interests_all(request: Request, response: Response): ExpressResponse {
     const resource_id: number = parseInt(request.params.resource_id, 10);
     const resource_interests_models = await HotspotResourceInterests.findAll({
       where: { resource_id },
@@ -85,7 +85,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async get_resource_interests(request: Request, response: Response) {
+  static async get_resource_interests(request: Request, response: Response): ExpressResponse {
     const resource_id: number = parseInt(request.params.resource_id, 10);
     const interest_id: number = parseInt(request.params.interest_id, 10);
     const whereClause: PlainObject = interest_id
@@ -106,7 +106,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async check_interest(request: Request, response: Response) {
+  static async check_interest(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
@@ -121,7 +121,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async show_interest(request: Request, response: Response) {
+  static async show_interest(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
@@ -143,7 +143,7 @@ export class ResourceInterestsService {
       user_id: you_id
     });
 
-    // (<IRequest> request).io.to(`resource-${resource_id}`).emit(HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST, {
+    // SocketsService.get_io().to(`resource-${resource_id}`).emit(HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST, {
     //   event_type: HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST,
     //   data: { user: response.locals.you }
     // });
@@ -168,7 +168,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async remove_interest(request: Request, response: Response) {
+  static async remove_interest(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
@@ -186,7 +186,7 @@ export class ResourceInterestsService {
     }
 
     const deletes = await interest_model.destroy();
-    (<IRequest> request).io.to(`resource-${resource_id}`).emit(HOTSPOT_EVENT_TYPES.RESOURCE_UNINTEREST, {
+    SocketsService.get_io().to(`resource-${resource_id}`).emit(HOTSPOT_EVENT_TYPES.RESOURCE_UNINTEREST, {
       event_type: HOTSPOT_EVENT_TYPES.RESOURCE_UNINTEREST,
       data: { user: response.locals.you }
     });

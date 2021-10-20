@@ -1,11 +1,17 @@
 import { Request, Response } from 'express';
-import { DelivermeStripeWebhookHandlerService } from '../../deliver-me/services/deliverme-stripe-webhook-handler.service';
-import { MyfavorsStripeWebhookHandlerService } from '../../my-favors/services/myfavors-stripe-webhook-handler.service';
 import { MODERN_APP_NAMES } from '../enums/common.enum';
 import { HttpStatusCode } from '../enums/http-codes.enum';
 import { UserPaymentIntents } from '../models/user.model';
 
-export class StripeWebhookEventsHandlerService {
+import { DelivermeStripeWebhookHandlerService } from '../../deliver-me/services/deliverme-stripe-webhook-handler.service';
+import { MyfavorsStripeWebhookHandlerService } from '../../my-favors/services/myfavors-stripe-webhook-handler.service';
+
+export const StripeWebhookHandlerServiceByApp: { [key:string]: any } = {
+  [MODERN_APP_NAMES.DELIVERME]: DelivermeStripeWebhookHandlerService,
+  [MODERN_APP_NAMES.MYFAVORS]: MyfavorsStripeWebhookHandlerService,
+};
+
+export class StripeWebhookEventsRequestHandler {
   /**
    * @description
    * Main stripe webhook atrium method.
@@ -447,15 +453,11 @@ export class StripeWebhookEventsHandlerService {
         const userPaymentIntent = await UserPaymentIntents.findOne({ where: { payment_intent_id: stripePaymentIntent.id } });
         if (userPaymentIntent) {
           const userPaymentIntentObj: any = userPaymentIntent.toJSON();
-          switch (userPaymentIntentObj.micro_app) {
-            case MODERN_APP_NAMES.DELIVERME: {
-              DelivermeStripeWebhookHandlerService.payment_intent_succeeded(userPaymentIntentObj, stripePaymentIntent);
-              break;
-            }
-            case MODERN_APP_NAMES.MYFAVORS: {
-              MyfavorsStripeWebhookHandlerService.payment_intent_succeeded(userPaymentIntentObj, stripePaymentIntent);
-              break;
-            }
+          const micro_app: MODERN_APP_NAMES = userPaymentIntentObj.micro_app;
+          const handlerService = StripeWebhookHandlerServiceByApp[micro_app];
+
+          if (handlerService.payment_intent_succeeded) {
+            handlerService.payment_intent_succeeded(userPaymentIntentObj, stripePaymentIntent);
           }
         }
         break;

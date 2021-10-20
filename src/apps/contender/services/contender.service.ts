@@ -26,7 +26,7 @@ import { ContenderUserSettings } from '../models/contender.model';
 
 export class ContenderService {
   
-  static async get_settings(request: Request, response: Response) {
+  static async get_settings(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
 
     let settings = await ContenderUserSettings.findOne({
@@ -43,7 +43,7 @@ export class ContenderService {
     });
   }
 
-  static async update_settings(request: Request, response: Response) {
+  static async update_settings(request: Request, response: Response): ExpressResponse {
     // const you = response.locals.you;
     // const data = request.body;
 

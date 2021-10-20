@@ -1,7 +1,3 @@
-import {
-  Request,
-  Response,
-} from 'express';
 import { 
   user_attrs_slim,
   getUserFullName,
@@ -13,7 +9,6 @@ import {
 import {
   PlainObject,
   IUser,
-  IRequest
 } from '../interfaces/common.interface';
 import * as UserRepo from '../repos/users.repo';
 import {
@@ -35,11 +30,10 @@ import { IMyModel } from '../models/common.model-types';
 import { COMMON_EVENT_TYPES, COMMON_NOTIFICATION_TARGET_TYPES, MODERN_APP_NAMES } from '../enums/common.enum';
 import { SocketsService } from './sockets.service';
 import { CommonSocketEventsHandler } from './socket-events-handlers-by-app/common.socket-event-handler';
+import { ServiceMethodResults } from '../types/common.types';
 
 export class ConversationMembersService {
-  static async get_conversation_members_all(request: Request, response: Response) {
-    const conversation_id = parseInt(request.params.conversation_id, 10);
-
+  static async get_conversation_members_all(conversation_id: number) {
     const members_models = await ConversationMembers.findAll({
       where: { conversation_id },
       include: [{
@@ -49,15 +43,17 @@ export class ConversationMembersService {
       }]
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      data: members_models
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: members_models
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_conversation_members(request: Request, response: Response) {
-    const conversation_id = parseInt(request.params.conversation_id, 10);
-    const member_id = parseInt(request.params.member_id, 10);
-
+  static async get_conversation_members(conversation_id: number, member_id?: number) {
     const whereClause: PlainObject = member_id
       ? { conversation_id, id: { [Op.lt]: member_id } }
       : { conversation_id };
@@ -73,24 +69,36 @@ export class ConversationMembersService {
       order: [['id', 'DESC']]
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      data: members_models
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: members_models
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async add_conversation_member(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const user_id = parseInt(request.params.user_id, 10);
-    const conversation_id = parseInt(request.params.conversation_id, 10);
+  static async add_conversation_member(opts: {
+    you_id: number,
+    user_id: number,
+    conversation_id: number,
+  }) {
+    const { you_id, user_id, conversation_id } = opts;
 
     const member_model = await ConversationMembers.findOne({
       where: { conversation_id, user_id }
     });
 
     if (member_model) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `user is already a member`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `user is already a member`
+        }
+      };
+      return serviceMethodResults;
     }
 
     // get all the conversations that the user is a part of via when they last opened it
@@ -112,12 +120,12 @@ export class ConversationMembersService {
       }]
     });
 
-    (<IRequest> request).io.to(`conversation-${conversation_id}`).emit(
+    SocketsService.get_io().to(`conversation-${conversation_id}`).emit(
       COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED, 
       {
         event_type: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED,
         data: {
-          conversation: response.locals.conversation_model!.toJSON(),
+          // conversation: response.locals.conversation_model!.toJSON(),
           member: conversation_member_model!.toJSON()
         },
       }
@@ -152,7 +160,7 @@ export class ConversationMembersService {
         data: {
           notification,
           conversation: {
-            ...response.locals.conversation_model!.toJSON(),
+            // ...response.locals.conversation_model!.toJSON(),
             last_opened: new_conversation_last_opened_model.get('last_opened')
           },
           member: conversation_member_model!.toJSON()
@@ -165,22 +173,29 @@ export class ConversationMembersService {
       conversation_id,
       body: `${full_name} was added to the conversation.`
     }).then((message_model: IMyModel) => {
-      (<IRequest> request).io.to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
+      SocketsService.get_io().to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
         event_type: COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE,
         data: message_model!.toJSON(),
       });
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      data: conversation_member_model,
-      message: `Conversation member added!`
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: conversation_member_model,
+        message: `Conversation member added!`
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async remove_conversation_member(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const user_id = parseInt(request.params.user_id, 10);
-    const conversation_id = parseInt(request.params.conversation_id, 10);
+  static async remove_conversation_member(opts: {
+    you_id: number,
+    user_id: number,
+    conversation_id: number,
+  }) {
+    const { you_id, user_id, conversation_id } = opts;
 
     const member_model = await ConversationMembers.findOne({
       where: { conversation_id, user_id },
@@ -192,15 +207,20 @@ export class ConversationMembersService {
     });
 
     if (!member_model) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `user is not a member`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `user is not a member`
+        }
+      };
+      return serviceMethodResults;
     }
     
     const memberObj: PlainObject = member_model.toJSON();
     const deletes = await member_model.destroy();
 
-    (<IRequest> request).io.to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.CONVERSATION_MEMBER_REMOVED, {
+    SocketsService.get_io().to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.CONVERSATION_MEMBER_REMOVED, {
       event_type: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_REMOVED,
       data: { conversation_id, user_id, member: memberObj },
     });
@@ -238,23 +258,24 @@ export class ConversationMembersService {
       conversation_id,
       body: `${full_name} was removed from the conversation.`
     }).then((message_model: IMyModel) => {
-      (<IRequest> request).io.to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
+      SocketsService.get_io().to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
         event_type: COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE,
         data: message_model!.toJSON(),
       });
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      deletes,
-      message: `Conversation member removed!`
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: deletes,
+        message: `Conversation member removed!`
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async leave_conversation(request: Request, response: Response) {
-    const conversation_model = response.locals.conversation_model;
-    const conversation_id = response.locals.conversation_model.get('id');
-    const you_id = parseInt(request.params.you_id, 10);
-
+  static async leave_conversation(you_id: number, conversation_id: number) {
     const deletes = await ConversationMembers.destroy({
       where: { conversation_id, user_id: you_id }
     });
@@ -269,16 +290,16 @@ export class ConversationMembersService {
       conversation_id,
       body: `${full_name} left the conversation.`
     }).then((message_model: IMyModel) => {
-      (<IRequest> request).io.to(roomKey).emit(COMMON_EVENT_TYPES.CONVERSATION_MEMBER_LEFT, {
+      SocketsService.get_io().to(roomKey).emit(COMMON_EVENT_TYPES.CONVERSATION_MEMBER_LEFT, {
         event_type: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_LEFT,
         data: {
           conversation_id,
           user_id: you_id,
-          user: user
+          user: user,
         },
       });
 
-      (<IRequest> request).io.to(roomKey).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
+      SocketsService.get_io().to(roomKey).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
         event_type: COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE,
         data: {
           message: message_model!.toJSON(),
@@ -286,19 +307,28 @@ export class ConversationMembersService {
       });
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      deletes,
-      message: `Left conversation!`
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: deletes,
+        message: `Left conversation!`
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async search_members(request: Request, response: Response) {
-    const conversation_id = parseInt(request.params.conversation_id, 10);
-    const query_term = (<string> request.query.query_term || '').trim().toLowerCase();
+  static async search_members(conversation_id: number, query: string) {
+    let query_term = (<string> query || '').trim().toLowerCase();
     if (!query_term) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `query_term query param is required`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `query_term query param is required`
+        }
+      };
+      return serviceMethodResults;
     }
 
     const member_ids_models = await ConversationMembers.findAll({
@@ -342,8 +372,13 @@ export class ConversationMembersService {
       newList.push(user);
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      data: newList
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: newList
+      }
+    };
+    return serviceMethodResults;
   }
 }

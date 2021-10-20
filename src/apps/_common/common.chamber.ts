@@ -23,7 +23,7 @@ import {
   COMMON_EVENT_TYPES,
   COMMON_USER_TYPES
 } from './enums/common.enum';
-import { ServiceMethodAsyncResult, ServiceMethodResult } from './types/common.types';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from './types/common.types';
 import { IUploadFile, store_image } from '../../cloudinary-manager';
 import { UploadedFile } from 'express-fileupload';
 
@@ -717,8 +717,9 @@ export function validatePassword(password: string) {
   );
 }
 
-export const genericTextValidator = (arg: any) => !!arg && (/^[a-zA-Z0-9\s\'\-\_\.\@\$\#]{3,250}/).test(arg);
+export const genericTextValidator = (arg: any) => !!arg && typeof(arg) === 'string' && (/^[a-zA-Z0-9\s\'\-\_\.\@\$\#]{3,250}/).test(arg);
 export const phoneValidator = (arg: any) => !!arg && (/^[0-9]{10,15}$/).test(arg);
+export const stringValidator = (arg: any) => typeof(arg) === 'string';
 export const numberValidator = (arg: any) => typeof(arg) === 'number';
 export const booleanValidator = (arg: any) => typeof(arg) === 'boolean';
 export const notNullValidator = (arg: any) => arg !== null;
@@ -908,31 +909,31 @@ export const validateData = (opts: {
   data: any,
   validators: IModelValidator[],
   mutateObj?: any
-}): ServiceMethodResult => {
+}): ServiceMethodResults => {
   const { data, validators, mutateObj } = opts;
   const dataObj: any = {};
 
   for (const prop of validators) {
     if (!data.hasOwnProperty(prop.field)) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `${prop.name} is required.`
         }
       };
-      return results;
+      return serviceMethodResults;
     }
     const isValid: boolean = prop.validator(data[prop.field]);
     if (!isValid) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
-          message: `${prop.name} is invalid.`
+          message: prop.errorMessage ? `${prop.name} ${prop.errorMessage}` : `${prop.name} is invalid.`
         }
       };
-      return results;
+      return serviceMethodResults;
     }
     
     dataObj[prop.field] = data[prop.field];
@@ -942,7 +943,7 @@ export const validateData = (opts: {
     Object.assign(mutateObj, dataObj);
   }
 
-  const results: ServiceMethodResult = {
+  const serviceMethodResults: ServiceMethodResults = {
     status: HttpStatusCode.OK,
     error: false,
     info: {
@@ -950,7 +951,7 @@ export const validateData = (opts: {
       data: dataObj,
     }
   };
-  return results;
+  return serviceMethodResults;
 }
 
 export const validateAndUploadImageFile = async (
@@ -962,33 +963,33 @@ export const validateAndUploadImageFile = async (
     id_prop?: string,
     link_prop?: string;
   }
-): ServiceMethodAsyncResult => {
+): ServiceMethodAsyncResults => {
   if (!image_file) {
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.NOT_FOUND,
       error: opts && opts.hasOwnProperty('treatNotFoundAsError') ? opts.treatNotFoundAsError : true,
       info: {
         message: `No image file found/given`
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   const type = image_file.mimetype.split('/')[1];
   const isInvalidType = !allowedImages.includes(type);
   if (isInvalidType) {
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.BAD_REQUEST,
       error: true,
       info: {
         message: 'Invalid file type: jpg, jpeg or png required...'
       }
     };
-    return results;
+    return serviceMethodResults;
   }
   const image_results = await store_image(image_file);
   if (!image_results.result) {
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.INTERNAL_SERVER_ERROR,
       error: true,
       info: {
@@ -996,7 +997,7 @@ export const validateAndUploadImageFile = async (
         data: image_results
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   if (opts && opts.mutateObj && opts.id_prop && opts.link_prop) {
@@ -1004,7 +1005,7 @@ export const validateAndUploadImageFile = async (
     opts.mutateObj[opts.link_prop] = image_results.result.secure_url;
   }
 
-  const results: ServiceMethodResult = {
+  const serviceMethodResults: ServiceMethodResults = {
     status: HttpStatusCode.OK,
     error: false,
     info: {
@@ -1015,5 +1016,16 @@ export const validateAndUploadImageFile = async (
       }
     }
   };
-  return results;
+  return serviceMethodResults;
 };
+
+export const create_user_required_props: IModelValidator[] = [
+  { field: `username`, name: `Username`, validator: validateUsername, errorMessage: `must be: at least 2 characters, alphanumeric, dashes, underscores, periods` },
+  { field: `displayname`, name: `DisplayName`, validator: validateDisplayName, errorMessage: `must be: at least 2 characters, alphanumeric, dashes, underscores, periods, spaces`, },
+  { field: `firstname`, name: `First Name`, validator: validateName, errorMessage: `must be: at least 2 characters, letters only`, },
+  { field: `middlename`, name: `Middle Name`, validator: (arg: any) => !arg || validateName(arg), errorMessage: `must be: at least 2 characters, letters only`, },
+  { field: `lastname`, name: `Last Name`, validator: validateName, errorMessage: `must be: at least 2 characters, letters only`, },
+  { field: `email`, name: `Email`, validator: validateEmail, errorMessage: `is in bad format`, },
+  { field: `password`, name: `Password`, validator: validatePassword, errorMessage: `Password must be: at least 7 characters, upper and/or lower case alphanumeric`, },
+  { field: `confirmPassword`, name: `Confirm Password`, validator: validatePassword, errorMessage: `Confirm Password must be: at least 7 characters, upper and/or lower case alphanumeric`, },
+];

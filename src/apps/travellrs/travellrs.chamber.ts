@@ -1,10 +1,18 @@
-import { user_attrs_slim, getUserFullName } from "../_common/common.chamber";
-import { IUser } from "../_common/interfaces/common.interface";
+import { user_attrs_slim, getUserFullName, genericTextValidator, numberValidator } from "../_common/common.chamber";
+import { IModelValidator, IUser } from "../_common/interfaces/common.interface";
 import { Users } from "../_common/models/user.model";
 import { TRAVELLRS_EVENT_TYPES } from "./enums/travellrs.enum";
 import { get_marker_by_id } from "./repos/markers.repo";
 
 
+
+
+export const create_marker_required_props: IModelValidator[] = [
+  { field: `location`, name: `Location`, validator: genericTextValidator },
+  { field: `lat`, name: `Latitude`, validator: numberValidator },
+  { field: `lng`, name: `Longitude`, validator: numberValidator },
+  { field: `place_id`, name: `Place ID`, validator: genericTextValidator },
+];
 
 export const populate_travellrs_notification_obj = async (notification_model: any) => {
   const notificationObj = notification_model.toJSON();

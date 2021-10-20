@@ -13,7 +13,8 @@ import {
 } from '../../_common/interfaces/common.interface';
 import {
   user_attrs_slim,
-  allowedImages
+  allowedImages,
+  validateData
 } from '../../_common/common.chamber';
 import { IStoreImage, store_image } from '../../../cloudinary-manager';
 import { Photos } from '../../_common/models/photo.model';
@@ -23,7 +24,7 @@ import {
   MyModelStatic,
   MyModelStaticGeneric
 } from '../models/common.model-types';
-import { ServiceMethodAsyncResult, ServiceMethodResult } from '../types/common.types';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
 import { Includeable } from 'sequelize/types';
 
 
@@ -42,18 +43,18 @@ export interface ICreateCommonGenericModelCrudService {
 }
 
 export interface IGenericModelCrudService {
-  get_model_by_id: (model_id: number) => ServiceMethodAsyncResult,
-  get_models_all: (user_id: number) => ServiceMethodAsyncResult,
-  get_user_models: (user_id: number, model_id: number) => ServiceMethodAsyncResult,
+  get_model_by_id: (model_id: number) => ServiceMethodAsyncResults,
+  get_models_all: (user_id: number) => ServiceMethodAsyncResults,
+  get_user_models: (user_id: number, model_id: number) => ServiceMethodAsyncResults,
   create_model: (opts: {
     you: IUser,
     data: any,
-  }) => ServiceMethodAsyncResult,
+  }) => ServiceMethodAsyncResults,
   update_model: (opts: {
     model: IMyModel,
     data: any,
-  }) => ServiceMethodAsyncResult,
-  delete_model: (model_id: number) => ServiceMethodAsyncResult,
+  }) => ServiceMethodAsyncResults,
+  delete_model: (model_id: number) => ServiceMethodAsyncResults,
 }
 
 export function createCommonGenericModelCrudService (params: ICreateCommonGenericModelCrudService) {
@@ -73,14 +74,14 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
         where: { id: model_id },
         include: includes,
       });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: model
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_models_all(user_id: number) {
@@ -90,14 +91,14 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
         user_id,
         includes
       );
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: models
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_user_models(user_id: number, model_id: number) {
@@ -108,14 +109,14 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
         model_id,
         includes
       );
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: models
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async create_model(opts: {
@@ -124,31 +125,14 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
     }) {
       const { you, data } = opts;
       const createObj: any = {};
-  
-      for (const prop of params.createValidators) {
-        if (!data.hasOwnProperty(prop.field)) {
-          const results: ServiceMethodResult = {
-            status: HttpStatusCode.BAD_REQUEST,
-            error: true,
-            info: {
-              message: `${prop.name} is required.`
-            }
-          };
-          return results;
-        }
-        const isValid: boolean = prop.validator(data[prop.field]);
-        if (!isValid) {
-          const results: ServiceMethodResult = {
-            status: HttpStatusCode.BAD_REQUEST,
-            error: true,
-            info: {
-              message: `${prop.name} is invalid.`
-            }
-          };
-          return results;
-        }
 
-        createObj[prop.field] = data[prop.field];
+      const dataValidation = validateData({
+        data, 
+        validators: params.createValidators,
+        mutateObj: createObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
       }
   
       const new_model = await params.model.create(data);
@@ -162,7 +146,7 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
         include: includes
       });
   
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -170,7 +154,7 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
           message: `${params.model_name} created successfully`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async update_model(opts: {
@@ -180,31 +164,14 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
       const { model, data } = opts;
       const model_id = model.get('id');
       const updatesObj: any = {};
-  
-      for (const prop of params.updateValidators) {
-        if (!data.hasOwnProperty(prop.field)) {
-          const results: ServiceMethodResult = {
-            status: HttpStatusCode.BAD_REQUEST,
-            error: false,
-            info: {
-              message: `${prop.name} is required.`
-            }
-          };
-          return results;
-        }
-        const isValid: boolean = prop.validator(data[prop.field]);
-        if (!isValid) {
-          const results: ServiceMethodResult = {
-            status: HttpStatusCode.BAD_REQUEST,
-            error: false,
-            info: {
-              message: `${prop.name} is invalid.`
-            }
-          };
-          return results;
-        }
 
-        updatesObj[prop.field] = data[prop.field];
+      const dataValidation = validateData({
+        data, 
+        validators: params.updateValidators,
+        mutateObj: updatesObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
       }
 
       const updates = await model.update(updatesObj, { where: { id: model_id } });
@@ -213,7 +180,7 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
         include: includes
       });
 
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -224,12 +191,12 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
           }
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async delete_model(model_id: number) {
       const deletes = await params.model.destroy({ where: { id: model_id } });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -237,7 +204,7 @@ export function createCommonGenericModelCrudService (params: ICreateCommonGeneri
           message: `${params.model_name} deleted successfully`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   };
 

@@ -67,7 +67,7 @@ import { DeliverMeUserProfileSettings } from '../models/deliverme.model';
 import { send_sms } from '../../../sms-client';
 import { GoogleService } from '../../_common/services/google.service';
 import { StripeService } from '../../_common/services/stripe.service';
-import { ServiceMethodResult } from '../../_common/types/common.types';
+import { ServiceMethodResults } from '../../_common/types/common.types';
 
 
 
@@ -85,14 +85,14 @@ export class DeliveriesService {
       include: DeliveryRepo.deliveryMasterIncludes,
     });
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         data: result,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async find_available_delivery_by_to_city_and_state(city: string, state: string) {
@@ -107,14 +107,14 @@ export class DeliveriesService {
       include: DeliveryRepo.deliveryMasterIncludes
     });
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         data: result,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async find_available_delivery(opts: {
@@ -176,14 +176,14 @@ export class DeliveriesService {
         }
 
         default: {
-          const results: ServiceMethodResult = {
+          const serviceMethodResults: ServiceMethodResults = {
             status: HttpStatusCode.BAD_REQUEST,
             error: true,
             info: {
               message: `Unknown/Invalid criteria: ${criteria}`,
             }
           };
-          return results;
+          return serviceMethodResults;
         }
       }
 
@@ -200,17 +200,17 @@ export class DeliveriesService {
         include: DeliveryRepo.deliveryMasterIncludes
       });
 
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: result
         }
       };
-      return results;
+      return serviceMethodResults;
     } catch (e) {
       console.log(e);
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
@@ -218,7 +218,7 @@ export class DeliveriesService {
           data: e,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   }
 
@@ -248,14 +248,14 @@ export class DeliveriesService {
         limit: 5,
         order: [fn('RANDOM')]
       });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: resultsList,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     if (fromValid && !toValid) {
@@ -265,14 +265,14 @@ export class DeliveriesService {
         limit: 5,
         order: [fn('RANDOM')]
       });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: resultsList,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
     if (!fromValid && toValid) {
       const resultsList = await Delivery.findAll({
@@ -281,14 +281,14 @@ export class DeliveriesService {
         limit: 5,
         order: [fn('RANDOM')]
       });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: resultsList,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
     if (fromAndToValid) {
       const resultsList = await Delivery.findAll({
@@ -297,17 +297,17 @@ export class DeliveriesService {
         limit: 5,
         order: [fn('RANDOM')]
       });
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: resultsList,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.BAD_REQUEST,
       error: true,
       info: {
@@ -319,7 +319,7 @@ export class DeliveriesService {
         },
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async send_delivery_message(opts: {
@@ -335,25 +335,25 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (you.id !== owner_id && you.id !== carrier_id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `User is not involved with this delivery`
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     if (!body || !body.trim()) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Body cannot be empty`
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     // create the new message
@@ -405,27 +405,27 @@ export class DeliveriesService {
       });
     }
     
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         data: new_message,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async get_delivery_by_id(id: number) {
     const delivery = await DeliveryRepo.get_delivery_by_id(id);
     
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         data: delivery,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
   
   static async get_user_deliveries_all(user_id: number) {
@@ -439,14 +439,14 @@ export class DeliveriesService {
       undefined,
       DeliveryRepo.deliveryOrderBy
     );
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         data: resultsList,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async get_user_deliveries(user_id: number, delivery_id?: number) {
@@ -461,14 +461,14 @@ export class DeliveriesService {
       undefined,
       DeliveryRepo.deliveryOrderBy
     );
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         data: resultsList,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async get_user_deliverings_all(user_id: number) {
@@ -482,14 +482,14 @@ export class DeliveriesService {
       { completed: true },
       DeliveryRepo.deliveryOrderBy
     );
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         data: resultsList,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async get_user_deliverings(user_id: number, delivery_id?: number) {
@@ -504,14 +504,14 @@ export class DeliveriesService {
       { completed: true },
       DeliveryRepo.deliveryOrderBy
     );
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         data: resultsList,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async get_user_delivering(you_id: number) {
@@ -523,14 +523,14 @@ export class DeliveriesService {
       include: DeliveryRepo.deliveryMasterIncludes,
       order: DeliveryRepo.deliveryOrderBy
     });
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         data: resultsList,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async create_delivery(opts: {
@@ -567,7 +567,7 @@ export class DeliveriesService {
 
       const new_delivery_model = await DeliveryRepo.create_delivery(createObj as ICreateDeliveryProps);
 
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -575,9 +575,9 @@ export class DeliveriesService {
           data: new_delivery_model
         }
       };
-      return results;
+      return serviceMethodResults;
     } catch (e) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.INTERNAL_SERVER_ERROR,
         error: true,
         info: {
@@ -585,7 +585,7 @@ export class DeliveriesService {
           error: e,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   }
 
@@ -610,7 +610,7 @@ export class DeliveriesService {
 
     const updates = await delivery_model.update(updateObj);
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -618,36 +618,36 @@ export class DeliveriesService {
         data: updates
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async delete_delivery(delivery_model: IMyModel) {
     // const delivery_model = await DeliveryRepo.get_delivery_by_id(delivery_id);
 
     if (!delivery_model) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.NOT_FOUND,
         error: true,
         info: {
           message: `Delivery not found`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     if (!!delivery_model.get('carrier_id')) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Delivery is in progress`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     const deletes = await DeliveryRepo.delete_delivery(delivery_model.get('id'));
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -655,7 +655,7 @@ export class DeliveriesService {
         data: deletes
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async assign_delivery(opts: {
@@ -671,14 +671,14 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (!!carrier_id && carrier_id !== you.id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Delivery already has carrier assigned.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     delivery_model.carrier_id = you.id;
@@ -719,7 +719,7 @@ export class DeliveriesService {
       });
     }
     
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -727,7 +727,7 @@ export class DeliveriesService {
         data,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async unassign_delivery(opts: {
@@ -743,14 +743,14 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `You are not the carrier of this delivery.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     delivery_model.carrier_id = null;
@@ -798,7 +798,7 @@ export class DeliveriesService {
       });
     }
     
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -806,7 +806,7 @@ export class DeliveriesService {
         data,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async create_tracking_update(opts: {
@@ -824,14 +824,14 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `You are not the carrier of this delivery.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     const createObj: any = {
@@ -911,7 +911,7 @@ export class DeliveriesService {
       });
     }
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -919,7 +919,7 @@ export class DeliveriesService {
         data: new_delivery_tracking_update_model,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async add_delivered_picture(opts: {
@@ -936,24 +936,24 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `You are not the carrier of this delivery.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
     if (!delivery_model.get('datetime_delivered')) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Delivery is not delivered yet.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     const imageValidation = await validateAndUploadImageFile(delivered_image, {
@@ -998,7 +998,7 @@ export class DeliveriesService {
       });
     }
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -1006,7 +1006,7 @@ export class DeliveriesService {
         data: updates,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async mark_delivery_as_picked_up(opts: {
@@ -1022,14 +1022,14 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `You are not the carrier of this delivery.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     delivery_model.datetime_picked_up = fn('NOW');
@@ -1068,7 +1068,7 @@ export class DeliveriesService {
       });
     }
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -1076,7 +1076,7 @@ export class DeliveriesService {
         data,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async mark_delivery_as_dropped_off(opts: {
@@ -1092,14 +1092,14 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `You are not the carrier of this delivery.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     delivery_model.datetime_delivered = fn('NOW');
@@ -1138,7 +1138,7 @@ export class DeliveriesService {
       });
     }
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -1146,7 +1146,7 @@ export class DeliveriesService {
         data,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   
@@ -1163,25 +1163,25 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (owner_id !== you.id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `You are not the owner of this delivery.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     if (deliveryObj.completed) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Delivery is already completed.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     delivery_model.completed = true;
@@ -1220,7 +1220,7 @@ export class DeliveriesService {
       });
     }
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -1228,7 +1228,7 @@ export class DeliveriesService {
         data,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async mark_delivery_as_returned(opts: {
@@ -1244,25 +1244,25 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (carrier_id !== you.id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `You are not the carrier of this delivery.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     if (deliveryObj.returned) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Delivery is already returned.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     delivery_model.returned = true;
@@ -1314,7 +1314,7 @@ export class DeliveriesService {
       });
     }
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -1322,7 +1322,7 @@ export class DeliveriesService {
         data,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async get_settings(you_id: number) {
@@ -1335,14 +1335,14 @@ export class DeliveriesService {
       });
     }
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         data: settings,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async update_settings(you_id: number, data: any) {
@@ -1368,7 +1368,7 @@ export class DeliveriesService {
 
     const updates = await settings.update(updatesObj);
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -1376,7 +1376,7 @@ export class DeliveriesService {
         data: updates,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async create_checkout_session(opts: {
@@ -1392,47 +1392,47 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
 
     if (owner_id !== you.id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `You are not the owner of this delivery.`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     if (deliveryObj.completed) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Delivery is already completed`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     if (!deliveryObj.owner.stripe_account_verified) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Owner's stripe account is not setup`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     if (!deliveryObj.carrier.stripe_account_verified) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Carrier's stripe account is not setup`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     await delivery_model.update({ payment_session_id: '' });
@@ -1481,7 +1481,7 @@ export class DeliveriesService {
       // { stripeAccount: you.stripe_account_id }
       );
     } catch (error) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.INTERNAL_SERVER_ERROR,
         error: true,
         info: {
@@ -1489,7 +1489,7 @@ export class DeliveriesService {
           error
         }
       };
-      return results;
+      return serviceMethodResults;
     }
     
 
@@ -1507,7 +1507,7 @@ export class DeliveriesService {
 
     // console.log({ newIntent, paymentIntent });
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -1516,7 +1516,7 @@ export class DeliveriesService {
         stripe_pk: process.env.STRIPE_PK
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async payment_success(opts: {
@@ -1533,25 +1533,25 @@ export class DeliveriesService {
     const carrier_id = delivery_model.get('carrier_id');
     
     if (!session_id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Payment session_id was not added as query param on request`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     if (session_id !== deliveryObj.payment_session_id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Payment session_id does not match with delivery`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     // pay carrier
@@ -1592,14 +1592,14 @@ export class DeliveriesService {
       });
     }
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         message: `Payment session completed`,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 
   static async payment_cancel(opts: {
@@ -1611,36 +1611,36 @@ export class DeliveriesService {
     const deliveryObj = delivery_model!.toJSON() as any;
 
     if (!session_id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Payment session_id was not added as query param on request`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     if (session_id !== deliveryObj.payment_session_id) {
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
           message: `Payment session_id does not match with delivery`,
         }
       };
-      return results;
+      return serviceMethodResults;
     }
 
     await delivery_model.update({ payment_session_id: '' });
 
-    const results: ServiceMethodResult = {
+    const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         message: `Payment session canceled`,
       }
     };
-    return results;
+    return serviceMethodResults;
   }
 }

@@ -24,20 +24,20 @@ import { IRecipeModel } from '../../_common/models/common.model-types';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
 
 export class RecipesService {
-  static async main(request: Request, response: Response) {
+  static async main(request: Request, response: Response): ExpressResponse {
     return response.status(HttpStatusCode.OK).json({
       msg: 'recipes router'
     });
   }
 
-  static async get_recipe_by_id(request: Request, response: Response) {
+  static async get_recipe_by_id(request: Request, response: Response): ExpressResponse {
     const recipe_model = response.locals.recipe_model;
     return response.status(HttpStatusCode.OK).json({
       data: recipe_model
     });
   }
 
-  static async get_user_recipes_all(request: Request, response: Response) {
+  static async get_user_recipes_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const recipes = await CommonRepo.getAll(
       Recipes,
@@ -57,7 +57,7 @@ export class RecipesService {
     });
   }
 
-  static async get_user_recipes(request: Request, response: Response) {
+  static async get_user_recipes(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const recipe_id = parseInt(request.params.recipe_id, 10);
     const recipes = await CommonRepo.paginateTable(
@@ -79,7 +79,7 @@ export class RecipesService {
     });
   }
 
-  static async get_user_reaction(request: Request, response: Response) {
+  static async get_user_reaction(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const recipe_id: number = parseInt(request.params.recipe_id, 10);
     const recipe_reaction = await RecipeReactions.findOne({
@@ -93,7 +93,7 @@ export class RecipesService {
     });
   }
 
-  static async toggle_user_reaction(request: Request, response: Response) {
+  static async toggle_user_reaction(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const recipe_id: number = parseInt(request.params.recipe_id, 10);
 
@@ -144,7 +144,7 @@ export class RecipesService {
     });
   }
 
-  static async get_recipe_reactions_counts(request: Request, response: Response) {
+  static async get_recipe_reactions_counts(request: Request, response: Response): ExpressResponse {
     const recipe_id: number = parseInt(request.params.recipe_id, 10);
 
     const like_count = await RecipeReactions.count({ where: { recipe_id, reaction: COMMON_REACTION_TYPES.LIKE } });
@@ -170,7 +170,7 @@ export class RecipesService {
     });
   }
 
-  static async get_recipe_reactions_all(request: Request, response: Response) {
+  static async get_recipe_reactions_all(request: Request, response: Response): ExpressResponse {
     const recipe_id: number = parseInt(request.params.recipe_id, 10);
     const recipe_reactions = await CommonRepo.getAll(
       RecipeReactions,
@@ -187,7 +187,7 @@ export class RecipesService {
     });
   }
 
-  static async get_recipe_reactions(request: Request, response: Response) {
+  static async get_recipe_reactions(request: Request, response: Response): ExpressResponse {
     const recipe_id = parseInt(request.params.recipe_id, 10);
     const recipe_reaction_id: number = parseInt(request.params.recipe_reaction_id, 10);
     const recipe_reactions = await CommonRepo.paginateTable(
@@ -206,7 +206,7 @@ export class RecipesService {
     });
   }
 
-  static async create_recipe(request: Request, response: Response) {
+  static async create_recipe(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const data: PlainObject = JSON.parse(request.body.payload);
     
@@ -303,7 +303,7 @@ export class RecipesService {
     });
   }
 
-  static async update_recipe(request: Request, response: Response) {
+  static async update_recipe(request: Request, response: Response): ExpressResponse {
     const recipe_id: number = parseInt(request.params.recipe_id, 10);
     const you: IUser = response.locals.you;
     const recipe_model: IRecipeModel = response.locals.recipe_model;
@@ -411,7 +411,7 @@ export class RecipesService {
     });
   }
 
-  static async update_recipe_ingredient(request: Request, response: Response) {
+  static async update_recipe_ingredient(request: Request, response: Response): ExpressResponse {
     const ingredient_id = parseInt(request.params.ingredient_id, 10);
     const updates = await RecipesRepo.update_recipe_ingredient(
       {
@@ -426,7 +426,7 @@ export class RecipesService {
     });
   }
 
-  static async delete_recipe(request: Request, response: Response) {
+  static async delete_recipe(request: Request, response: Response): ExpressResponse {
     const recipe_id = parseInt(request.params.recipe_id, 10);
     const recipe_model: IRecipeModel = response.locals.recipe_model;
     if (recipe_model.get('image_id')) {
@@ -443,7 +443,7 @@ export class RecipesService {
     });
   }
 
-  static async delete_recipe_ingredient(request: Request, response: Response) {
+  static async delete_recipe_ingredient(request: Request, response: Response): ExpressResponse {
     const ingredient_id = parseInt(request.params.ingredient_id, 10);
     const deletes = await RecipesRepo.delete_recipe_ingredient(ingredient_id);
     return response.status(HttpStatusCode.OK).json({

@@ -36,49 +36,49 @@ export function createCommonGenericModelCrudRequestHandler (params: ICreateCommo
 
   let Class: IGenericModelCrudRequestHandler;
   Class = class {
-    static async get_model_by_id(request: Request, response: Response) {
+    static async get_model_by_id(request: Request, response: Response): ExpressResponse {
       const model = response.locals[model_field] as IMyModel;
       return response.status(HttpStatusCode.OK).json({
         data: model
       });
     }
   
-    static async get_models_all(request: Request, response: Response) {
+    static async get_models_all(request: Request, response: Response): ExpressResponse {
       const user_id: number = parseInt(request.params.user_id, 10);
       
-      const results = await params.crudService.get_models_all(user_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.get_models_all(user_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async get_user_models(request: Request, response: Response) {
+    static async get_user_models(request: Request, response: Response): ExpressResponse {
       const user_id: number = parseInt(request.params.user_id, 10);
       const model_id = parseInt(request.params[model_id_field], 10);
       
-      const results = await params.crudService.get_user_models(user_id, model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.get_user_models(user_id, model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async create_model(request: Request, response: Response) {
+    static async create_model(request: Request, response: Response): ExpressResponse {
       const you: IUser = response.locals.you;
       const data: any = request.body.payload ? JSON.parse(request.body.payload) : request.body;
       
-      const results = await params.crudService.create_model({ you, data });
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.create_model({ you, data });
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async update_model(request: Request, response: Response) {
+    static async update_model(request: Request, response: Response): ExpressResponse {
       const model = response.locals[model_field] as IMyModel;
       const data: any = request.body.payload ? JSON.parse(request.body.payload) : request.body;
       
-      const results = await params.crudService.update_model({ data, model });
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.update_model({ data, model });
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async delete_model(request: Request, response: Response) {
+    static async delete_model(request: Request, response: Response): ExpressResponse {
       const model_id = parseInt(request.params[model_id_field], 10);
       
-      const results = await params.crudService.delete_model(model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.crudService.delete_model(model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   };
 

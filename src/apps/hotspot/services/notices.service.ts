@@ -22,14 +22,14 @@ import { UploadedFile } from 'express-fileupload';
 
 export class NoticesService {
 
-  static async get_notice_by_id(request: Request, response: Response) {
+  static async get_notice_by_id(request: Request, response: Response): ExpressResponse {
     const notice_model: IMyModel = response.locals.notice_model;
     return response.status(HttpStatusCode.OK).json({
       data: notice_model
     });
   }
 
-  static async create_notice(request: Request, response: Response) {
+  static async create_notice(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const data: PlainObject = request.body;
 
@@ -120,7 +120,7 @@ export class NoticesService {
     });
   }
 
-  static async delete_notice(request: Request, response: Response) {
+  static async delete_notice(request: Request, response: Response): ExpressResponse {
     const notice_model: IMyModel = response.locals.notice_model;
     const deletes = await notice_model.destroy();
     return response.status(HttpStatusCode.OK).json({

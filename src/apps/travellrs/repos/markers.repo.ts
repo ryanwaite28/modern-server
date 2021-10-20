@@ -14,37 +14,43 @@ import {
 } from '../models/marker.model';
 import { getAll, getRandomModels, paginateTable } from '../../_common/repos/_common.repo';
 
+
+
+export const markerMasterIncludes = [{
+  model: Users,
+  as: 'owner',
+  attributes: user_attrs_slim
+}, {
+  model: MarkerPhotos,
+  as: 'photos',
+  include: [{
+    model: Photos,
+    as: 'photo_marker',
+  }]
+}, {
+  model: MarkerVideos,
+  as: 'videos',
+  include: [{
+    model: Videos,
+    as: 'video_marker',
+  }]
+}, {
+  model: MarkerAudios,
+  as: 'audios',
+  include: [{
+    model: Audios,
+    as: 'audio_marker',
+  }]
+}];
+
+
+
 export async function get_marker_by_id(id: number, slim: boolean = false) {
   const marker = slim 
   ? await Markers.findByPk(id)
   : await Markers.findOne({
       where: { id },
-      include: [{
-        model: Users,
-        as: 'owner',
-        attributes: user_attrs_slim
-      }, {
-        model: MarkerPhotos,
-        as: 'photos',
-        include: [{
-          model: Photos,
-          as: 'photo_marker',
-        }]
-      }, {
-        model: MarkerVideos,
-        as: 'videos',
-        include: [{
-          model: Videos,
-          as: 'video_marker',
-        }]
-      }, {
-        model: MarkerAudios,
-        as: 'audios',
-        include: [{
-          model: Audios,
-          as: 'audio_marker',
-        }]
-      }]
+      include: markerMasterIncludes
     });
   return marker;
 }

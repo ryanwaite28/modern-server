@@ -46,57 +46,57 @@ export function createCommonGenericModelCommentsRequestHandler(
     
     /** Request Handlers */
   
-    static async get_comment_by_id(request: Request, response: Response) {
+    static async get_comment_by_id(request: Request, response: Response): ExpressResponse {
       const comment_model = response.locals.comment_model;
       return response.status(HttpStatusCode.OK).json({
         data: comment_model
       });
     }
   
-    static async get_comments_count(request: Request, response: Response) {
+    static async get_comments_count(request: Request, response: Response): ExpressResponse {
       const model_id: number = parseInt(request.params[model_id_field], 10);
       
-      const results = await params.commentsService.get_comments_count(model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentsService.get_comments_count(model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async get_comments_all(request: Request, response: Response) {
+    static async get_comments_all(request: Request, response: Response): ExpressResponse {
       const model_id: number = parseInt(request.params[model_id_field], 10);
       
-      const results = await params.commentsService.get_comments_all(model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentsService.get_comments_all(model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async get_comments(request: Request, response: Response) {
+    static async get_comments(request: Request, response: Response): ExpressResponse {
       const model_id: number = parseInt(request.params[model_id_field], 10);
       const comment_id = parseInt(request.params.comment_id, 10) || undefined;
       
-      const results = await params.commentsService.get_comments(model_id, comment_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentsService.get_comments(model_id, comment_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async create_comment(request: Request, response: Response) {
+    static async create_comment(request: Request, response: Response): ExpressResponse {
       const you: IUser = response.locals.you;
       const base_model = response.locals[model_field];
       let body: string = request.body.body;
 
-      const results = await params.commentsService.create_comment({ you, base_model, body });
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentsService.create_comment({ you, base_model, body });
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async update_comment(request: Request, response: Response) {
+    static async update_comment(request: Request, response: Response): ExpressResponse {
       let body: string = request.body.body;
       const comment_id = parseInt(request.params.comment_id, 10);
       
-      const results = await params.commentsService.update_comment({ comment_id, body });
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentsService.update_comment({ comment_id, body });
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async delete_comment(request: Request, response: Response) {
+    static async delete_comment(request: Request, response: Response): ExpressResponse {
       const comment_id = parseInt(request.params.comment_id, 10);
       
-      const results = await params.commentsService.delete_comment(comment_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentsService.delete_comment(comment_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   };
 

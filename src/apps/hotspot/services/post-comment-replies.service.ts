@@ -23,20 +23,20 @@ import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
 export class PostCommentRepliesService {
   /** Request Handlers */
 
-  static async main(request: Request, response: Response) {
+  static async main(request: Request, response: Response): ExpressResponse {
     return response.status(HttpStatusCode.OK).json({
       msg: 'replies router'
     });
   }
 
-  static async get_reply_by_id(request: Request, response: Response) {
+  static async get_reply_by_id(request: Request, response: Response): ExpressResponse {
     const reply_model = response.locals.reply_model;
     return response.status(HttpStatusCode.OK).json({
       data: reply_model
     });
   }
 
-  static async get_comment_replies_count(request: Request, response: Response) {
+  static async get_comment_replies_count(request: Request, response: Response): ExpressResponse {
     const comment_id: number = parseInt(request.params.comment_id, 10);
     const replies_count = await HotspotPostCommentReplies.count({ where: { comment_id } });
     return response.status(HttpStatusCode.OK).json({
@@ -44,7 +44,7 @@ export class PostCommentRepliesService {
     });
   }
 
-  static async get_comment_replies_all(request: Request, response: Response) {
+  static async get_comment_replies_all(request: Request, response: Response): ExpressResponse {
     const comment_id: number = parseInt(request.params.comment_id, 10);
     const replys = await CommonRepo.getAll(
       HotspotPostCommentReplies,
@@ -61,7 +61,7 @@ export class PostCommentRepliesService {
     });
   }
 
-  static async get_comment_replies(request: Request, response: Response) {
+  static async get_comment_replies(request: Request, response: Response): ExpressResponse {
     const comment_id: number = parseInt(request.params.comment_id, 10);
     const reply_id = parseInt(request.params.reply_id, 10);
     const businesses = await CommonRepo.paginateTable(
@@ -80,7 +80,7 @@ export class PostCommentRepliesService {
     });
   }
 
-  static async get_user_reaction(request: Request, response: Response) {
+  static async get_user_reaction(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const reply_id: number = parseInt(request.params.reply_id, 10);
     const reply_reaction = await HotspotPostCommentReplyReactions.findOne({
@@ -94,7 +94,7 @@ export class PostCommentRepliesService {
     });
   }
 
-  static async toggle_user_reaction(request: Request, response: Response) {
+  static async toggle_user_reaction(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const reply_id: number = parseInt(request.params.reply_id, 10);
 
@@ -146,7 +146,7 @@ export class PostCommentRepliesService {
     });
   }
 
-  static async get_reply_reactions_counts(request: Request, response: Response) {
+  static async get_reply_reactions_counts(request: Request, response: Response): ExpressResponse {
     const reply_id: number = parseInt(request.params.reply_id, 10);
 
     const like_count = await HotspotPostCommentReplyReactions.count({ where: { reply_id, reaction: COMMON_REACTION_TYPES.LIKE } });
@@ -172,7 +172,7 @@ export class PostCommentRepliesService {
     });
   }
 
-  static async get_reply_reactions_all(request: Request, response: Response) {
+  static async get_reply_reactions_all(request: Request, response: Response): ExpressResponse {
     const reply_id: number = parseInt(request.params.reply_id, 10);
     const reply_reactions = await CommonRepo.getAll(
       HotspotPostCommentReplyReactions,
@@ -189,7 +189,7 @@ export class PostCommentRepliesService {
     });
   }
 
-  static async get_reply_reactions(request: Request, response: Response) {
+  static async get_reply_reactions(request: Request, response: Response): ExpressResponse {
     const reply_id = parseInt(request.params.reply_id, 10);
     const reply_reaction_id: number = parseInt(request.params.reply_reaction_id, 10);
     const reply_reactions = await CommonRepo.paginateTable(
@@ -208,7 +208,7 @@ export class PostCommentRepliesService {
     });
   }
 
-  static async create_reply(request: Request, response: Response) {
+  static async create_reply(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const comment_id: number = parseInt(request.params.comment_id, 10);
     let body: string = request.body.body;
@@ -224,7 +224,7 @@ export class PostCommentRepliesService {
     });
   }
 
-  static async update_reply(request: Request, response: Response) {
+  static async update_reply(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you; 
     let body: string = request.body.body;
     const reply_id = parseInt(request.params.reply_id, 10);
@@ -242,7 +242,7 @@ export class PostCommentRepliesService {
     });
   }
 
-  static async delete_reply(request: Request, response: Response) {
+  static async delete_reply(request: Request, response: Response): ExpressResponse {
     const reply_id = parseInt(request.params.reply_id, 10);
     const deletes = await RepliesRepo.delete_reply(reply_id);
     return response.status(HttpStatusCode.OK).json({

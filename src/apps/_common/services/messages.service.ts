@@ -1,16 +1,11 @@
 import {
-  Request,
-  Response,
-} from 'express';
-import {
   user_attrs_slim
 } from '../common.chamber';
 import {
   HttpStatusCode
 } from '../enums/http-codes.enum';
 import {
-  PlainObject,
-  IRequest
+  PlainObject
 } from '../interfaces/common.interface';
 import {
   fn,
@@ -20,22 +15,35 @@ import { Messages, Messagings } from '../models/messages.model';
 import { Users } from '../models/user.model';
 import { COMMON_EVENT_TYPES } from '../enums/common.enum';
 import { CommonSocketEventsHandler } from './socket-events-handlers-by-app/common.socket-event-handler';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
+import { SocketsService } from './sockets.service';
 
 export class MessagesService {
-  static async get_user_messages(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const user_id = parseInt(request.params.user_id, 10);
-    const min_id = parseInt(request.params.min_id, 10);
+  static async get_user_messages(opts: {
+    you_id: number,
+    user_id: number,
+    min_id: number,
+  }): ServiceMethodAsyncResults {
+    let { you_id, user_id, min_id } = opts;
 
     if (!user_id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `user_id is required`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `user_id is required`
+        }
+      };
+      return serviceMethodResults;
     }
     if (user_id === you_id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `user_id is invalid: cannot be same as you_id`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `user_id is invalid: cannot be same as you_id`
+        }
+      };
     }
 
     const whereClause: PlainObject = {
@@ -86,30 +94,53 @@ export class MessagesService {
       }
     }, 3000);
 
-    return response.status(HttpStatusCode.OK).json({
-      data: messages_models
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: messages_models
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async send_user_message(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const user_id = parseInt(request.params.user_id, 10);
+  static async send_user_message(opts: {
+    you_id: number,
+    user_id: number,
+    body: string,
+  }): ServiceMethodAsyncResults {
+    let { you_id, user_id, body } = opts;
 
     if (!user_id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `user_id is required`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `user_id is required`
+        }
+      };
+      return serviceMethodResults;
     }
     if (user_id === you_id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `user_id is invalid: cannot be same as you_id`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `user_id is invalid: cannot be same as you_id`
+        }
+      };
+      return serviceMethodResults;
     }
-    const body = request.body.body;
+    
     if (!body || !body.trim()) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Body cannot be empty`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Body cannot be empty`
+        }
+      };
+      return serviceMethodResults;
     }
 
     // check if there was messaging between the two users
@@ -176,12 +207,12 @@ export class MessagesService {
     }
     const TO_ROOM = `${COMMON_EVENT_TYPES.TO_MESSAGING_ROOM}:${eventData.messaging.id}`;
     console.log({ TO_ROOM, eventData });
-    (<IRequest> request).io.to(TO_ROOM).emit(TO_ROOM, eventData);
+    SocketsService.get_io().to(TO_ROOM).emit(TO_ROOM, eventData);
     
     CommonSocketEventsHandler.emitEventToUserSockets({
       user_id: user_id,
       event: COMMON_EVENT_TYPES.NEW_MESSAGE,
-      data: eventData
+      data: eventData,
     });
 
     // create_notification({
@@ -195,25 +226,35 @@ export class MessagesService {
       
     // });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Message sent successfully!`,
-      data: new_message,
-      updates
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Message sent successfully!`,
+        data: {
+          new_message,
+          updates
+        },
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async mark_message_as_read(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const message_id = parseInt(request.params.message_id, 10);
-
+  static async mark_message_as_read(you_id: number, message_id: number): ServiceMethodAsyncResults {
     const updates = await Messages.update({ opened: true }, {
       where: { id: message_id, to_id: you_id }
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      updates,
-      message: `marked as read`,
-      data: null
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `marked as read`,
+        data: {
+          updates,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 }

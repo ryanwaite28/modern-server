@@ -16,7 +16,7 @@ import { CommonSocketEventsHandler } from '../../_common/services/socket-events-
 import { StripeService } from '../../_common/services/stripe.service';
 import { store_image } from '../../../cloudinary-manager';
 import { send_sms } from '../../../sms-client';
-import { allowedImages, getUserFullName, user_attrs_slim, validatePhone } from '../../_common/common.chamber';
+import { allowedImages, getUserFullName, user_attrs_slim, validateAndUploadImageFile, validateData, validatePhone } from '../../_common/common.chamber';
 import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
 import { UserPaymentIntents, Users } from '../../_common/models/user.model';
 import { FavorCancellations, FavorHelpers, FavorMessages, Favors, FavorUpdates } from '../models/favor.model';
@@ -25,6 +25,7 @@ import { MyfavorsUserProfileSettings } from '../models/myfavors.model';
 import { create_favor_update_required_props, create_update_favor_required_props, favor_date_needed_validator, myfavors_user_settings_required_props, populate_myfavors_notification_obj } from '../myfavors.chamber';
 import { ICreateUpdateFavor } from '../interfaces/myfavors.interface';
 import { MYFAVORS_EVENT_TYPES, MYFAVORS_NOTIFICATION_TARGET_TYPES } from '../enums/myfavors.enum';
+import { SocketsService } from 'src/apps/_common/services/sockets.service';
 
 
 
@@ -65,7 +66,7 @@ const favorCommonFindCriteria = {
 
 export class FavorsService {
 
-  static async search_favors(request: Request, response: Response) {
+  static async search_favors(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const city: string = request.body.city;
     const state: string = request.body.state;
@@ -109,7 +110,7 @@ export class FavorsService {
     });
   }
 
-  static async send_favor_message(request: Request, response: Response) {
+  static async send_favor_message(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
@@ -183,7 +184,7 @@ export class FavorsService {
         }
         const TO_ROOM = `${MYFAVORS_EVENT_TYPES.TO_FAVOR}:${favorObj.id}`;
         // console.log({ TO_ROOM, eventData });
-        (<IRequest> request).io.to(TO_ROOM).emit(TO_ROOM, eventData);
+        SocketsService.get_io().to(TO_ROOM).emit(TO_ROOM, eventData);
         
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
@@ -201,7 +202,7 @@ export class FavorsService {
     });
   }
 
-  static async create_favor_update(request: Request, response: Response) {
+  static async create_favor_update(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
@@ -229,39 +230,24 @@ export class FavorsService {
 
     // console.log(`request.body`, request.body);
     // console.log(`data`, data);
-    
-    for (const prop of create_favor_update_required_props) {
-      if (!data.hasOwnProperty(prop.field)) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is required.`
-        });
-      }
-      const isValid: boolean = prop.validator(data[prop.field]);
-      if (!isValid) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is invalid.`
-        });
-      }
-      createObj[prop.field] = data[prop.field];
+
+    const dataValidation = validateData({
+      data, 
+      validators: create_favor_update_required_props,
+      mutateObj: createObj
+    });
+    if (dataValidation.error) {
+      return dataValidation;
     }
-    if (update_image) {
-      const type = update_image.mimetype.split('/')[1];
-      const isInvalidType = !allowedImages.includes(type);
-      if (isInvalidType) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          error: true,
-          message: 'Invalid file type: jpg, jpeg or png required...'
-        });
-      }
-      const results = await store_image(update_image);
-      if (!results.result) {
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: 'Could not upload file...'
-        });
-      }
-      createObj.icon_id = results.result.public_id,
-      createObj.icon_link = results.result.secure_url
+
+    const imageValidation = await validateAndUploadImageFile(update_image, {
+      treatNotFoundAsError: false,
+      mutateObj: createObj,
+      id_prop: 'icon_id',
+      link_prop: 'icon_link',
+    });
+    if (imageValidation.error) {
+      return imageValidation;
     }
 
     // console.log(`createObj`, createObj);
@@ -338,14 +324,14 @@ export class FavorsService {
     });
   }
 
-  static async get_favor_by_id(request: Request, response: Response) {
+  static async get_favor_by_id(request: Request, response: Response): ExpressResponse {
     const favor = response.locals.favor_model.toJSON();
     return response.status(HttpStatusCode.OK).json({
       data: favor
     });
   }
   
-  static async get_user_favors_all(request: Request, response: Response) {
+  static async get_user_favors_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const results = await getAll(
       Favors,
@@ -362,7 +348,7 @@ export class FavorsService {
     });
   }
 
-  static async get_user_favors(request: Request, response: Response) {
+  static async get_user_favors(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const favor_id: number | undefined = request.params.favor_id ? parseInt(request.params.favor_id, 10) : undefined;
     const results = await paginateTable(
@@ -381,7 +367,7 @@ export class FavorsService {
     });
   }
 
-  static async get_user_favor_helpings_all_active(request: Request, response: Response) {
+  static async get_user_favor_helpings_all_active(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     
     const results = await getAll(
@@ -404,7 +390,7 @@ export class FavorsService {
     });
   }
 
-  static async get_user_favor_helpings_active(request: Request, response: Response) {
+  static async get_user_favor_helpings_active(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const favor_id: number | undefined = request.params.favor_id ? parseInt(request.params.favor_id, 10) : undefined;
 
@@ -431,7 +417,7 @@ export class FavorsService {
     });
   }
 
-  static async get_user_favor_helpings_all_past(request: Request, response: Response) {
+  static async get_user_favor_helpings_all_past(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     
     const results = await getAll(
@@ -454,7 +440,7 @@ export class FavorsService {
     });
   }
 
-  static async get_user_favor_helpings_past(request: Request, response: Response) {
+  static async get_user_favor_helpings_past(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const favor_id: number | undefined = request.params.favor_id ? parseInt(request.params.favor_id, 10) : undefined;
 
@@ -481,7 +467,7 @@ export class FavorsService {
     });
   }
 
-  static async create_favor(request: Request, response: Response) {
+  static async create_favor(request: Request, response: Response): ExpressResponse {
     try {
       const you = response.locals.you;
       const createObj: PlainObject = {
@@ -513,48 +499,29 @@ export class FavorsService {
       console.log(`request.body`, request.body);
       console.log(`data`, data);
 
-      for (const prop of create_update_favor_required_props) {
-        if (!data.hasOwnProperty(prop.field)) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `${prop.name} is required.`
-          });
-        }
-        const isValid: boolean = prop.validator(data[prop.field]);
-        if (!isValid) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `${prop.name} is invalid.`
-          });
-        }
-
-        createObj[prop.field] = data[prop.field];
+      const dataValidation = validateData({
+        data, 
+        validators: create_update_favor_required_props,
+        mutateObj: createObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
       }
-
-      if (favor_image) {
-        const type = favor_image.mimetype.split('/')[1];
-        const isInvalidType = !allowedImages.includes(type);
-        if (isInvalidType) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            error: true,
-            message: 'Invalid file type: jpg, jpeg or png required...'
-          });
-        }
-
-        const results = await store_image(favor_image);
-        if (!results.result) {
-          return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-            error: true,
-            message: 'Could not upload file...'
-          });
-        }
-
-        createObj.item_image_id = results.result.public_id,
-        createObj.item_image_link = results.result.secure_url
+  
+      const imageValidation = await validateAndUploadImageFile(favor_image, {
+        treatNotFoundAsError: false,
+        mutateObj: createObj,
+        id_prop: 'item_image_id',
+        link_prop: 'item_image_link',
+      });
+      if (imageValidation.error) {
+        return imageValidation;
       }
 
       console.log(`createObj`, createObj);
 
       const new_favor_model = await FavorsRepo.create_favor(createObj as ICreateUpdateFavor);
-      console.log({new_favor_model});
+      console.log({ new_favor_model });
 
       return response.status(HttpStatusCode.OK).json({
         message: `New Favor Created!`,
@@ -569,7 +536,7 @@ export class FavorsService {
     }
   }
 
-  static async update_favor(request: Request, response: Response) {
+  static async update_favor(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
@@ -615,7 +582,7 @@ export class FavorsService {
     });
   }
 
-  static async delete_favor(request: Request, response: Response) {
+  static async delete_favor(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
@@ -638,7 +605,7 @@ export class FavorsService {
     });
   }
 
-  static async assign_favor(request: Request, response: Response) {
+  static async assign_favor(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
@@ -725,7 +692,7 @@ export class FavorsService {
     });
   }
 
-  static async unassign_favor(request: Request, response: Response) {
+  static async unassign_favor(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
@@ -799,7 +766,7 @@ export class FavorsService {
     });
   }
   
-  static async mark_favor_as_started(request: Request, response: Response) {
+  static async mark_favor_as_started(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
@@ -883,7 +850,7 @@ export class FavorsService {
     });
   }
 
-  static async mark_favor_as_fulfilled(request: Request, response: Response) {
+  static async mark_favor_as_fulfilled(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
@@ -967,7 +934,7 @@ export class FavorsService {
     });
   }
 
-  static async mark_favor_as_canceled(request: Request, response: Response) {
+  static async mark_favor_as_canceled(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
@@ -1065,7 +1032,7 @@ export class FavorsService {
       updates,
     });
   }
-  static async mark_favor_as_uncanceled(request: Request, response: Response) {
+  static async mark_favor_as_uncanceled(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj: any = favor_model.toJSON();
@@ -1085,7 +1052,7 @@ export class FavorsService {
     });
   }
 
-  static async mark_helper_as_helped(request: Request, response: Response) {
+  static async mark_helper_as_helped(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const user_id: number = parseInt(request.params.user_id, 10);
     const favor_model: IMyModel = response.locals.favor_model;
@@ -1157,7 +1124,7 @@ export class FavorsService {
     });
   }
 
-  static async mark_helper_as_unhelped(request: Request, response: Response) {
+  static async mark_helper_as_unhelped(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const user_id: number = parseInt(request.params.user_id, 10);
     const favor_model: IMyModel = response.locals.favor_model;
@@ -1229,7 +1196,7 @@ export class FavorsService {
     });
   }
 
-  static async get_settings(request: Request, response: Response) {
+  static async get_settings(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
 
     let settings = await MyfavorsUserProfileSettings.findOne({
@@ -1246,7 +1213,7 @@ export class FavorsService {
     });
   }
 
-  static async update_settings(request: Request, response: Response) {
+  static async update_settings(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const data = request.body;
 
@@ -1261,19 +1228,13 @@ export class FavorsService {
       });
     }
 
-    for (const prop of myfavors_user_settings_required_props) {
-      if (!data.hasOwnProperty(prop.field)) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is required.`
-        });
-      }
-      const isValid: boolean = prop.validator(data[prop.field]);
-      if (!isValid) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is invalid.`
-        });
-      }
-      updatesObj[prop.field] = data[prop.field];
+    const dataValidation = validateData({
+      data, 
+      validators: myfavors_user_settings_required_props,
+      mutateObj: updatesObj
+    });
+    if (dataValidation.error) {
+      return dataValidation;
     }
 
     const updates = await settings.update(updatesObj);
@@ -1288,7 +1249,7 @@ export class FavorsService {
 
 
   /*
-  static async create_checkout_session(request: Request, response: Response) {
+  static async create_checkout_session(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const favor_model: IMyModel = response.locals.favor_model;
     const favorObj = favor_model!.toJSON() as any;
@@ -1383,7 +1344,7 @@ export class FavorsService {
   }
   */
 
-  static async pay_helper(request: Request, response: Response) {
+  static async pay_helper(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you;
     const user = response.locals.user;
 

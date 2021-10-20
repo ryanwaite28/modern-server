@@ -16,24 +16,25 @@ import {
 import { NewsPostCommentReactions, NewsPostComments } from '../models/newspost.model';
 import { Users } from '../../_common/models/user.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
+import { ExpressResponse } from 'src/apps/_common/types/common.types';
 
 export class NewsPostCommentsService {
   /** Request Handlers */
 
-  static async main(request: Request, response: Response) {
+  static async main(request: Request, response: Response): ExpressResponse {
     return response.status(HttpStatusCode.OK).json({
       msg: 'comments router'
     });
   }
 
-  static async get_comment_by_id(request: Request, response: Response) {
+  static async get_comment_by_id(request: Request, response: Response): ExpressResponse {
     const comment_model = response.locals.comment_model;
     return response.status(HttpStatusCode.OK).json({
       data: comment_model
     });
   }
 
-  static async get_newspost_comments_count(request: Request, response: Response) {
+  static async get_newspost_comments_count(request: Request, response: Response): ExpressResponse {
     const newspost_id: number = parseInt(request.params.newspost_id, 10);
     const comments_count = await NewsPostComments.count({ where: { newspost_id } });
     return response.status(HttpStatusCode.OK).json({
@@ -41,7 +42,7 @@ export class NewsPostCommentsService {
     });
   }
 
-  static async get_newspost_comments_all(request: Request, response: Response) {
+  static async get_newspost_comments_all(request: Request, response: Response): ExpressResponse {
     const newspost_id: number = parseInt(request.params.newspost_id, 10);
     const comments = await CommonRepo.getAll(
       NewsPostComments,
@@ -58,7 +59,7 @@ export class NewsPostCommentsService {
     });
   }
 
-  static async get_newspost_comments(request: Request, response: Response) {
+  static async get_newspost_comments(request: Request, response: Response): ExpressResponse {
     const newspost_id: number = parseInt(request.params.newspost_id, 10);
     const comment_id = parseInt(request.params.comment_id, 10) || undefined;
     const comments = await CommonRepo.paginateTable(
@@ -77,7 +78,7 @@ export class NewsPostCommentsService {
     });
   }
 
-  static async get_user_reaction(request: Request, response: Response) {
+  static async get_user_reaction(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const comment_id: number = parseInt(request.params.comment_id, 10);
     const comment_reaction = await NewsPostCommentReactions.findOne({
@@ -91,7 +92,7 @@ export class NewsPostCommentsService {
     });
   }
 
-  static async toggle_user_reaction(request: Request, response: Response) {
+  static async toggle_user_reaction(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const comment_id: number = parseInt(request.params.comment_id, 10);
 
@@ -143,7 +144,7 @@ export class NewsPostCommentsService {
     });
   }
 
-  static async get_comment_reactions_counts(request: Request, response: Response) {
+  static async get_comment_reactions_counts(request: Request, response: Response): ExpressResponse {
     const comment_id: number = parseInt(request.params.comment_id, 10);
 
     const like_count = await NewsPostCommentReactions.count({ where: { comment_id, reaction: COMMON_REACTION_TYPES.LIKE } });
@@ -169,7 +170,7 @@ export class NewsPostCommentsService {
     });
   }
 
-  static async get_comment_reactions_all(request: Request, response: Response) {
+  static async get_comment_reactions_all(request: Request, response: Response): ExpressResponse {
     const comment_id: number = parseInt(request.params.comment_id, 10);
     const comment_reactions = await CommonRepo.getAll(
       NewsPostCommentReactions,
@@ -186,7 +187,7 @@ export class NewsPostCommentsService {
     });
   }
 
-  static async get_comment_reactions(request: Request, response: Response) {
+  static async get_comment_reactions(request: Request, response: Response): ExpressResponse {
     const comment_id = parseInt(request.params.comment_id, 10);
     const comment_reaction_id: number = parseInt(request.params.comment_reaction_id, 10);
     const comment_reactions = await CommonRepo.paginateTable(
@@ -205,7 +206,7 @@ export class NewsPostCommentsService {
     });
   }
 
-  static async create_comment(request: Request, response: Response) {
+  static async create_comment(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const newspost_id: number = parseInt(request.params.newspost_id, 10);
     let body: string = request.body.body;
@@ -221,7 +222,7 @@ export class NewsPostCommentsService {
     });
   }
 
-  static async update_comment(request: Request, response: Response) {
+  static async update_comment(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you; 
     let body: string = request.body.body;
     const comment_id = parseInt(request.params.comment_id, 10);
@@ -239,7 +240,7 @@ export class NewsPostCommentsService {
     });
   }
 
-  static async delete_comment(request: Request, response: Response) {
+  static async delete_comment(request: Request, response: Response): ExpressResponse {
     const comment_id = parseInt(request.params.comment_id, 10);
     const deletes = await NewsPostCommentsRepo.delete_newspost_comment(comment_id);
     return response.status(HttpStatusCode.OK).json({

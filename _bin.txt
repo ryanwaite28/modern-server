@@ -6,6 +6,87 @@ replace filenames: https://stackoverflow.com/questions/7450818/rename-all-files-
 for file in *.service.ts; do mv "$file" "${file/service.ts/handler.ts}"; done
 
 
+replace within file
+
+for file in *.service.ts;
+do
+  sed -i 's,Service,RequestHandler,g' "$file"
+done
+
+for file in *.service.ts; do sed -i 's,Service,RequestHandler,g' "$file"; done
+
+
+
+
+
+
+import { Request, Response } from 'express';
+
+
+(opts: {
+  prop: type
+  }): ServiceMethodAsyncResults {
+    let {  } = opts;
+
+
+(opts: {
+    prop: type,
+  }): ServiceMethodAsyncResults {
+    let {  } = opts;
+
+
+opts: {
+    
+  }
+let {  } = opts;
+
+let {  } = opts;
+
+const opts = {  };
+
+
+
+const serviceMethodResults: ServiceMethodResults = {
+  status: HttpStatusCode.BAD_REQUEST,
+  error: true,
+  info: {
+  }
+};
+return serviceMethodResults;
+
+const serviceMethodResults: ServiceMethodResults = {
+  status: HttpStatusCode.OK,
+  error: false,
+  info: {
+  }
+};
+return serviceMethodResults;
+
+const serviceMethodResults: ServiceMethodResults = await Service.method();
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+
+
+
+const dataValidation = validateData({
+      data, 
+      validators: create_marker_required_props,
+      mutateObj: createObj
+    });
+    if (dataValidation.error) {
+      return dataValidation;
+    }
+
+    const imageValidation = await validateAndUploadImageFile(imagefile, {
+      treatNotFoundAsError: false,
+      mutateObj: createObj,
+      id_prop: 'icon_id',
+      link_prop: 'icon_link',
+    });
+    if (imageValidation.error) {
+      return imageValidation;
+    }
+
+
 
 
 
@@ -269,7 +350,7 @@ import { SocketsService } from '../../_common/services/sockets.service';
 
 export class NullService {
   
-  static async method(request: Request, response: Response) {
+  static async method(request: Request, response: Response): ExpressResponse {
 
   }
 

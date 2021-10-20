@@ -19,7 +19,7 @@ import {
   MyModelStatic,
   MyModelStaticGeneric
 } from '../models/common.model-types';
-import { ExpressRouteEndHandler, ServiceMethodAsyncResult, ServiceMethodResult } from '../types/common.types';
+import { ExpressRouteEndHandler, ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
 import { create_notification } from '../repos/notifications.repo';
 import { CommonSocketEventsHandler } from '../services/socket-events-handlers-by-app/common.socket-event-handler';
 
@@ -37,16 +37,16 @@ export interface ICreateCommonGenericModelReactionsService {
 }
 
 export interface IGenericModelReactionsService {
-  get_user_reaction: (user_id: number, model_id: number) => ServiceMethodAsyncResult,
+  get_user_reaction: (user_id: number, model_id: number) => ServiceMethodAsyncResults,
   toggle_user_reaction: (opts: {
     you: IUser,
     model: IMyModel,
     reaction: string,
     ignoreNotification?: boolean,
-  }) => ServiceMethodAsyncResult,
-  get_model_reactions_counts: (model_id: number) => ServiceMethodAsyncResult,
-  get_model_reactions_all: (model_id: number) => ServiceMethodAsyncResult,
-  get_model_reactions: (model_id: number, reaction_id: number) => ServiceMethodAsyncResult,
+  }) => ServiceMethodAsyncResults,
+  get_model_reactions_counts: (model_id: number) => ServiceMethodAsyncResults,
+  get_model_reactions_all: (model_id: number) => ServiceMethodAsyncResults,
+  get_model_reactions: (model_id: number, reaction_id: number) => ServiceMethodAsyncResults,
 }
 
 export function createCommonGenericModelReactionsService (
@@ -64,18 +64,18 @@ export function createCommonGenericModelReactionsService (
             owner_id: user_id
           }
         });
-        const results: ServiceMethodResult = {
+        const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.OK,
           error: false,
           info: {
             data: model_reaction
           }
         };
-        return results;
+        return serviceMethodResults;
       }
       catch (e) {
         console.log(e);
-        const results: ServiceMethodResult = {
+        const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
           error: true,
           info: {
@@ -85,7 +85,7 @@ export function createCommonGenericModelReactionsService (
             }
           }
         };
-        return results;
+        return serviceMethodResults;
       }
     }
   
@@ -99,34 +99,34 @@ export function createCommonGenericModelReactionsService (
       const model_id: number = model.get('id');
 
       if (!reaction) {
-        const results: ServiceMethodResult = {
+        const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
           error: true,
           info: {
             message: `Reaction type is required`
           }
         };
-        return results;
+        return serviceMethodResults;
       }
       if (!(typeof (reaction) === 'string')) {
-        const results: ServiceMethodResult = {
+        const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
           error: true,
           info: {
             message: `Reaction type is invalid`
           }
         };
-        return results;
+        return serviceMethodResults;
       }
       if (!(reaction in COMMON_REACTION_TYPES)) {
-        const results: ServiceMethodResult = {
+        const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
           error: false,
           info: {
             message: `Reaction type is invalid`
           }
         };
-        return results;
+        return serviceMethodResults;
       }
   
       let model_reaction = await params.reaction_model.findOne({
@@ -184,7 +184,7 @@ export function createCommonGenericModelReactionsService (
       }
       
 
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -192,7 +192,7 @@ export function createCommonGenericModelReactionsService (
           data: model_reaction
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_model_reactions_counts(model_id: number) {
@@ -208,7 +208,7 @@ export function createCommonGenericModelReactionsService (
         confused_count,
       ].reduce((acc, cur) => (acc + cur));
 
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
@@ -221,7 +221,7 @@ export function createCommonGenericModelReactionsService (
           }
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_model_reactions_all(model_id: number) {
@@ -236,14 +236,14 @@ export function createCommonGenericModelReactionsService (
         }]
       );
       
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: model_reactions
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   
     static async get_model_reactions(model_id: number, reaction_id: number) {
@@ -259,14 +259,14 @@ export function createCommonGenericModelReactionsService (
         }]
       );
       
-      const results: ServiceMethodResult = {
+      const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
         info: {
           data: model_reactions
         }
       };
-      return results;
+      return serviceMethodResults;
     }
   };
 

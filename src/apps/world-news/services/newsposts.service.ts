@@ -21,31 +21,32 @@ import * as CommonRepo from '../../_common/repos/_common.repo';
 import { Photos } from '../../_common/models/photo.model';
 import { Users } from '../../_common/models/user.model';
 import { NewsPosts, NewsPostPhotos, NewsPostReactions } from '../models/newspost.model';
+import { ExpressResponse } from 'src/apps/_common/types/common.types';
 
 export class NewsPostsService {
   /** Request Handlers */
 
-  static async main(request: Request, response: Response) {
+  static async main(request: Request, response: Response): ExpressResponse {
     return response.status(HttpStatusCode.OK).json({
       msg: 'newsposts router'
     });
   }
 
-  static async get_newspost_by_id(request: Request, response: Response) {
+  static async get_newspost_by_id(request: Request, response: Response): ExpressResponse {
     const newspost_model = response.locals.newspost_model;
     return response.status(HttpStatusCode.OK).json({
       data: newspost_model
     });
   }
 
-  static async get_random_newsposts(request: Request, response: Response) {
+  static async get_random_newsposts(request: Request, response: Response): ExpressResponse {
     const newspost_models = NewsPostsRepo.get_random_newsposts();
     return response.status(HttpStatusCode.OK).json({
       data: newspost_models
     });
   }
 
-  static async get_user_newsposts_all(request: Request, response: Response) {
+  static async get_user_newsposts_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const newsposts = await CommonRepo.getAll(
       NewsPosts,
@@ -69,7 +70,7 @@ export class NewsPostsService {
     });
   }
 
-  static async get_user_newsposts(request: Request, response: Response) {
+  static async get_user_newsposts(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const newspost_id = parseInt(request.params.newspost_id, 10);
     const newsposts = await CommonRepo.paginateTable(
@@ -95,7 +96,7 @@ export class NewsPostsService {
     });
   }
 
-  static async get_user_reaction(request: Request, response: Response) {
+  static async get_user_reaction(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const newspost_id: number = parseInt(request.params.newspost_id, 10);
     const newspost_reaction = await NewsPostReactions.findOne({
@@ -109,7 +110,7 @@ export class NewsPostsService {
     });
   }
 
-  static async toggle_user_newspost_reaction(request: Request, response: Response) {
+  static async toggle_user_newspost_reaction(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const newspost_id: number = parseInt(request.params.newspost_id, 10);
 
@@ -161,7 +162,7 @@ export class NewsPostsService {
     });
   }
 
-  static async get_newspost_reactions_counts(request: Request, response: Response) {
+  static async get_newspost_reactions_counts(request: Request, response: Response): ExpressResponse {
     const newspost_id: number = parseInt(request.params.newspost_id, 10);
 
     const like_count = await NewsPostReactions.count({ where: { newspost_id, reaction: COMMON_REACTION_TYPES.LIKE } });
@@ -187,7 +188,7 @@ export class NewsPostsService {
     });
   }
 
-  static async get_newspost_reactions_all(request: Request, response: Response) {
+  static async get_newspost_reactions_all(request: Request, response: Response): ExpressResponse {
     const newspost_id: number = parseInt(request.params.newspost_id, 10);
     const newspost_reactions = await CommonRepo.getAll(
       NewsPostReactions,
@@ -204,7 +205,7 @@ export class NewsPostsService {
     });
   }
 
-  static async get_newspost_reactions(request: Request, response: Response) {
+  static async get_newspost_reactions(request: Request, response: Response): ExpressResponse {
     const newspost_id = parseInt(request.params.newspost_id, 10);
     const newspost_reaction_id: number = parseInt(request.params.newspost_reaction_id, 10);
     const newspost_reactions = await CommonRepo.paginateTable(
@@ -223,7 +224,7 @@ export class NewsPostsService {
     });
   }
 
-  static async create_newspost(request: Request, response: Response) {
+  static async create_newspost(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const data: PlainObject = JSON.parse(request.body.payload);
     
@@ -319,7 +320,7 @@ export class NewsPostsService {
     });
   }
 
-  static async update_newspost(request: Request, response: Response) {
+  static async update_newspost(request: Request, response: Response): ExpressResponse {
     const newspost_id = parseInt(request.params.newspost_id, 10);
     const you: IUser = response.locals.you; 
     let title: string = request.body.caption;
@@ -347,7 +348,7 @@ export class NewsPostsService {
     });
   }
 
-  static async delete_newspost(request: Request, response: Response) {
+  static async delete_newspost(request: Request, response: Response): ExpressResponse {
     const newspost_id = parseInt(request.params.newspost_id, 10);
     const deletes = await NewsPostsRepo.delete_newspost(newspost_id);
     return response.status(HttpStatusCode.OK).json({

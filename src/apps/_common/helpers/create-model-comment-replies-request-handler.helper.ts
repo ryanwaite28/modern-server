@@ -47,57 +47,57 @@ export function createCommonGenericModelCommentRepliesRequestHandler (
   Class = class {
     /** Request Handlers */
   
-    static async get_comment_reply_by_id(request: Request, response: Response) {
+    static async get_comment_reply_by_id(request: Request, response: Response): ExpressResponse {
       const reply_model = response.locals.reply_model;
       return response.status(HttpStatusCode.OK).json({
         data: reply_model
       });
     }
   
-    static async get_comment_replies_count(request: Request, response: Response) {
+    static async get_comment_replies_count(request: Request, response: Response): ExpressResponse {
       const comment_id: number = parseInt(request.params.comment_id, 10);
       
-      const results = await params.commentRepliesService.get_comment_replies_count(comment_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentRepliesService.get_comment_replies_count(comment_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async get_comment_replies_all(request: Request, response: Response) {
+    static async get_comment_replies_all(request: Request, response: Response): ExpressResponse {
       const comment_id: number = parseInt(request.params.comment_id, 10);
       
-      const results = await params.commentRepliesService.get_comment_replies_all(comment_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentRepliesService.get_comment_replies_all(comment_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async get_comment_replies(request: Request, response: Response) {
+    static async get_comment_replies(request: Request, response: Response): ExpressResponse {
       const comment_id: number = parseInt(request.params.comment_id, 10);
       const reply_id = parseInt(request.params.reply_id, 10);
       
-      const results = await params.commentRepliesService.get_comment_replies(comment_id, reply_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentRepliesService.get_comment_replies(comment_id, reply_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async create_comment_reply(request: Request, response: Response) {
+    static async create_comment_reply(request: Request, response: Response): ExpressResponse {
       const you: IUser = response.locals.you;
       const comment_model = response.locals.comment_model as IMyModel;
       const body: string = request.body.body;
       
-      const results = await params.commentRepliesService.create_comment_reply({ body, comment_model, you });
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentRepliesService.create_comment_reply({ body, comment_model, you });
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async update_comment_reply(request: Request, response: Response) {
+    static async update_comment_reply(request: Request, response: Response): ExpressResponse {
       const body: string = request.body.body;
       const reply_id = parseInt(request.params.reply_id, 10);
       
-      const results = await params.commentRepliesService.update_comment_reply({ body, reply_id });
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentRepliesService.update_comment_reply({ body, reply_id });
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async delete_comment_reply(request: Request, response: Response) {
+    static async delete_comment_reply(request: Request, response: Response): ExpressResponse {
       const reply_id = parseInt(request.params.reply_id, 10);
       
-      const results = await params.commentRepliesService.delete_comment_reply(reply_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.commentRepliesService.delete_comment_reply(reply_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   };
 

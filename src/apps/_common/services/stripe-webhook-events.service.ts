@@ -5,7 +5,7 @@ import { MODERN_APP_NAMES } from '../enums/common.enum';
 import { HttpStatusCode } from '../enums/http-codes.enum';
 import { UserPaymentIntents } from '../models/user.model';
 
-export class StripeWebhookEventsHandlerService {
+export class StripeWebhookEventsService {
   /**
    * @description
    * Main stripe webhook atrium method.

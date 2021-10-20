@@ -25,7 +25,7 @@ import { SocketsService } from '../../_common/services/sockets.service';
 
 export class ContenderInterviewsService {
   
-  static async get_interview_by_id(request: Request, response: Response) {
+  static async get_interview_by_id(request: Request, response: Response): ExpressResponse {
     return response.status(HttpStatusCode.OK).json({
       data: response.locals.interview_model
     });

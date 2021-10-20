@@ -40,43 +40,43 @@ export function createCommonGenericModelReactionsRequestHandler (
 
   let Class: IGenericModelReactionsRequestHandler;
   Class = class {
-    static async get_user_reaction(request: Request, response: Response) {
+    static async get_user_reaction(request: Request, response: Response): ExpressResponse {
       const user_id: number = parseInt(request.params.user_id, 10);
       const model_id: number = parseInt(request.params[model_id_field], 10);
       
-      const results = await params.reactionsService.get_user_reaction(user_id, model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.reactionsService.get_user_reaction(user_id, model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async toggle_user_reaction(request: Request, response: Response) {
+    static async toggle_user_reaction(request: Request, response: Response): ExpressResponse {
       const you: IUser = response.locals.you;
       const model = response.locals[model_field];
       const reaction = request.body.reaction;
       
-      const results = await params.reactionsService.toggle_user_reaction({ you, model, reaction });
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.reactionsService.toggle_user_reaction({ you, model, reaction });
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async get_model_reactions_counts(request: Request, response: Response) {
+    static async get_model_reactions_counts(request: Request, response: Response): ExpressResponse {
       const model_id: number = parseInt(request.params[model_id_field], 10);
   
-      const results = await params.reactionsService.get_model_reactions_counts(model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.reactionsService.get_model_reactions_counts(model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async get_model_reactions_all(request: Request, response: Response) {
+    static async get_model_reactions_all(request: Request, response: Response): ExpressResponse {
       const model_id: number = parseInt(request.params[model_id_field], 10);
       
-      const results = await params.reactionsService.get_model_reactions_all(model_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.reactionsService.get_model_reactions_all(model_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   
-    static async get_model_reactions(request: Request, response: Response) {
+    static async get_model_reactions(request: Request, response: Response): ExpressResponse {
       const model_id: number = parseInt(request.params[model_id_field], 10);
       const reaction_id: number = parseInt(request.params.reaction_id, 10);
       
-      const results = await params.reactionsService.get_model_reactions(model_id, reaction_id);
-      return response.status(results.status).json(results.info);
+      const serviceMethodResults: ServiceMethodResults = await params.reactionsService.get_model_reactions(model_id, reaction_id);
+      return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
     }
   };
 

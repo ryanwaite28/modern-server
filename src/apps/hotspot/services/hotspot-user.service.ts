@@ -18,13 +18,13 @@ export class HotspotUsersService {
 
   /** Request Handlers */
 
-  static async main(request: Request, response: Response) {
+  static async main(request: Request, response: Response): ExpressResponse {
     return response.status(HttpStatusCode.OK).json({
       msg: 'hotspot app router'
     });
   }
 
-  static async get_search_results(request: Request, response: Response) {
+  static async get_search_results(request: Request, response: Response): ExpressResponse {
     const model = String(request.query.model || '');
     const q = String(request.query.q || '');
     const min_id = String(request.query.feed_type || '') || null;
@@ -114,7 +114,7 @@ export class HotspotUsersService {
     }
   }
 
-  static async get_user_feed(request: Request, response: Response) {
+  static async get_user_feed(request: Request, response: Response): ExpressResponse {
     const min_id = parseInt(request.params.min_id, 10);
     const you: IUser = response.locals.you;
     const feed_type = String(request.query.feed_type || '');

@@ -16,20 +16,20 @@ import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
 export class RecipeCommentsService {
   /** Request Handlers */
 
-  static async main(request: Request, response: Response) {
+  static async main(request: Request, response: Response): ExpressResponse {
     return response.status(HttpStatusCode.OK).json({
       msg: 'comments router'
     });
   }
 
-  static async get_comment_by_id(request: Request, response: Response) {
+  static async get_comment_by_id(request: Request, response: Response): ExpressResponse {
     const comment_model = response.locals.comment_model;
     return response.status(HttpStatusCode.OK).json({
       data: comment_model
     });
   }
 
-  static async get_recipe_comments_count(request: Request, response: Response) {
+  static async get_recipe_comments_count(request: Request, response: Response): ExpressResponse {
     const recipe_id: number = parseInt(request.params.recipe_id, 10);
     const comments_count = await RecipeComments.count({ where: { recipe_id } });
     return response.status(HttpStatusCode.OK).json({
@@ -37,7 +37,7 @@ export class RecipeCommentsService {
     });
   }
 
-  static async get_recipe_comments_all(request: Request, response: Response) {
+  static async get_recipe_comments_all(request: Request, response: Response): ExpressResponse {
     const recipe_id: number = parseInt(request.params.recipe_id, 10);
     const comments = await CommonRepo.getAll(
       RecipeComments,
@@ -54,7 +54,7 @@ export class RecipeCommentsService {
     });
   }
 
-  static async get_recipe_comments(request: Request, response: Response) {
+  static async get_recipe_comments(request: Request, response: Response): ExpressResponse {
     const recipe_id: number = parseInt(request.params.recipe_id, 10);
     const comment_id = parseInt(request.params.comment_id, 10) || undefined;
     const comments = await CommonRepo.paginateTable(
@@ -73,7 +73,7 @@ export class RecipeCommentsService {
     });
   }
 
-  static async get_user_reaction(request: Request, response: Response) {
+  static async get_user_reaction(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const comment_id: number = parseInt(request.params.comment_id, 10);
     const comment_reaction = await RecipeCommentReactions.findOne({
@@ -87,7 +87,7 @@ export class RecipeCommentsService {
     });
   }
 
-  static async toggle_user_reaction(request: Request, response: Response) {
+  static async toggle_user_reaction(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const comment_id: number = parseInt(request.params.comment_id, 10);
 
@@ -139,7 +139,7 @@ export class RecipeCommentsService {
     });
   }
 
-  static async get_comment_reactions_counts(request: Request, response: Response) {
+  static async get_comment_reactions_counts(request: Request, response: Response): ExpressResponse {
     const comment_id: number = parseInt(request.params.comment_id, 10);
 
     const like_count = await RecipeCommentReactions.count({ where: { comment_id, reaction: COMMON_REACTION_TYPES.LIKE } });
@@ -165,7 +165,7 @@ export class RecipeCommentsService {
     });
   }
 
-  static async get_comment_reactions_all(request: Request, response: Response) {
+  static async get_comment_reactions_all(request: Request, response: Response): ExpressResponse {
     const comment_id: number = parseInt(request.params.comment_id, 10);
     const comment_reactions = await CommonRepo.getAll(
       RecipeCommentReactions,
@@ -182,7 +182,7 @@ export class RecipeCommentsService {
     });
   }
 
-  static async get_comment_reactions(request: Request, response: Response) {
+  static async get_comment_reactions(request: Request, response: Response): ExpressResponse {
     const comment_id = parseInt(request.params.comment_id, 10);
     const comment_reaction_id: number = parseInt(request.params.comment_reaction_id, 10);
     const comment_reactions = await CommonRepo.paginateTable(
@@ -201,7 +201,7 @@ export class RecipeCommentsService {
     });
   }
 
-  static async create_comment(request: Request, response: Response) {
+  static async create_comment(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const recipe_id: number = parseInt(request.params.recipe_id, 10);
     let body: string = request.body.body;
@@ -217,7 +217,7 @@ export class RecipeCommentsService {
     });
   }
 
-  static async update_comment(request: Request, response: Response) {
+  static async update_comment(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you; 
     let body: string = request.body.body;
     const comment_id = parseInt(request.params.comment_id, 10);
@@ -235,7 +235,7 @@ export class RecipeCommentsService {
     });
   }
 
-  static async delete_comment(request: Request, response: Response) {
+  static async delete_comment(request: Request, response: Response): ExpressResponse {
     const comment_id = parseInt(request.params.comment_id, 10);
     const deletes = await RecipeCommentsRepo.delete_comment(comment_id);
     return response.status(HttpStatusCode.OK).json({

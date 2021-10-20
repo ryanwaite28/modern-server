@@ -7,6 +7,7 @@ import { HttpStatusCode } from '../enums/http-codes.enum';
 import moment from 'moment';
 import { generateJWT } from '../common.chamber';
 import { v1 as uuidv1 } from 'uuid';
+import { ServiceMethodResults } from '../types/common.types';
 
 
 const cookieOptions: CookieOptions = {
@@ -20,37 +21,61 @@ const cookieOptions: CookieOptions = {
 
 
 export class UtilsService {
-  static async get_xsrf_token(request: Request, response: Response) {
+  static set_xsrf_token(response: Response): ServiceMethodResults {
     const token = generateJWT(process.env.APP_SECRET);
     
     response.cookie('xsrf-token', token, cookieOptions as CookieOptions);
-    return response.status(HttpStatusCode.OK).json({
-      message: `new xsrf-token cookie sent.`,
-      // xsrf_token: token,
-    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `new xsrf-token cookie sent.`,
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_xsrf_token_pair(request: Request, response: Response) {
+  static set_xsrf_token_pair(response: Response): ServiceMethodResults {
     const datetime = new Date().toISOString();
     const jwt = generateJWT(datetime);
     
     response.cookie('xsrf-token-a', datetime, cookieOptions as CookieOptions);
     response.cookie('xsrf-token-b', jwt, cookieOptions as CookieOptions);
-    return response.status(HttpStatusCode.OK).json({
-      message: `new xsrf-token cookies sent.`,
-    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `new xsrf-token cookies sent.`,
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_google_maps_key(request: Request, response: Response) {
+  static get_google_maps_key(): ServiceMethodResults {
     const key = process.env.GOOGLE_MAPS_API_KEY;
+    
     if (!key) {
-      return response.status(HttpStatusCode.SERVICE_UNAVAILABLE).json({
-        message: `Google maps instance/service is not available on this app right now; please try again later.`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.SERVICE_UNAVAILABLE,
+        error: true,
+        info: {
+          message: `Google maps instance/service is not available on this app right now; please try again later.`
+        }
+      };
+      return serviceMethodResults;
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      data: key
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: {
+          key,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 }

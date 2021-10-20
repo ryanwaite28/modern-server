@@ -30,7 +30,7 @@ import { SocketsService } from '../../_common/services/sockets.service';
 import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 
 export class CliqueInterestsService {
-  static async get_user_clique_interests(request: Request, response: Response) {
+  static async get_user_clique_interests(request: Request, response: Response): ExpressResponse {
     const user_id = parseInt(request.params.user_id, 10);
     const interest_id = parseInt(request.params.interest_id, 10);
     const clique_interests_models = await CommonRepo.paginateTable(
@@ -62,7 +62,7 @@ export class CliqueInterestsService {
     });
   }
 
-  static async get_user_clique_interests_all(request: Request, response: Response) {
+  static async get_user_clique_interests_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const clique_interests = await CommonRepo.getAll(
       CliqueInterests,
@@ -78,7 +78,7 @@ export class CliqueInterestsService {
     });
   }
 
-  static async get_clique_interests_all(request: Request, response: Response) {
+  static async get_clique_interests_all(request: Request, response: Response): ExpressResponse {
     const clique_id: number = parseInt(request.params.clique_id, 10);
     const clique_interests_models = await CliqueInterests.findAll({
       where: { clique_id },
@@ -93,7 +93,7 @@ export class CliqueInterestsService {
     });
   }
 
-  static async get_clique_interests(request: Request, response: Response) {
+  static async get_clique_interests(request: Request, response: Response): ExpressResponse {
     const clique_id: number = parseInt(request.params.clique_id, 10);
     const interest_id: number = parseInt(request.params.interest_id, 10);
     const whereClause: PlainObject = interest_id
@@ -114,7 +114,7 @@ export class CliqueInterestsService {
     });
   }
 
-  static async check_interest(request: Request, response: Response) {
+  static async check_interest(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const clique_id: number = parseInt(request.params.clique_id, 10);
     
@@ -129,7 +129,7 @@ export class CliqueInterestsService {
     });
   }
 
-  static async check_membership(request: Request, response: Response) {
+  static async check_membership(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const clique_id: number = parseInt(request.params.clique_id, 10);
     
@@ -144,7 +144,7 @@ export class CliqueInterestsService {
     });
   }
 
-  static async show_interest(request: Request, response: Response) {
+  static async show_interest(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const clique_id: number = parseInt(request.params.clique_id, 10);
     
@@ -166,7 +166,7 @@ export class CliqueInterestsService {
       user_id: you_id
     });
 
-    (<IRequest> request).io.to(`clique-${clique_id}`).emit(HOTSPOT_EVENT_TYPES.NEW_CLIQUE_INTEREST, {
+    SocketsService.get_io().to(`clique-${clique_id}`).emit(HOTSPOT_EVENT_TYPES.NEW_CLIQUE_INTEREST, {
       event_type: HOTSPOT_EVENT_TYPES.NEW_CLIQUE_INTEREST,
       data: { user: response.locals.you }
     });
@@ -191,7 +191,7 @@ export class CliqueInterestsService {
     });
   }
 
-  static async remove_interest(request: Request, response: Response) {
+  static async remove_interest(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const clique_id: number = parseInt(request.params.clique_id, 10);
     
@@ -209,7 +209,7 @@ export class CliqueInterestsService {
     }
 
     const deletes = await interest_model.destroy();
-    (<IRequest> request).io.to(`clique-${clique_id}`).emit(HOTSPOT_EVENT_TYPES.CLIQUE_UNINTEREST, {
+    SocketsService.get_io().to(`clique-${clique_id}`).emit(HOTSPOT_EVENT_TYPES.CLIQUE_UNINTEREST, {
       event_type: HOTSPOT_EVENT_TYPES.CLIQUE_UNINTEREST,
       data: { user: response.locals.you }
     });

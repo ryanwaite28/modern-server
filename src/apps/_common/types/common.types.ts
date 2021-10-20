@@ -8,13 +8,15 @@ export type ExpressMiddlewareFn = (
   next: NextFunction
 ) => Promise<void | Response<any>>;
 
+export type ExpressResponse = Promise<Response<any>>;
 export type ExpressRouteEndHandler = (
   request: Request, 
   response: Response
-) => Promise<Response<any>>;
+) => ExpressResponse;
+
 
 /**
- * @interface ServiceMethodResult
+ * @interface ServiceMethodResults
  * 
  * @description
  * Interface for a service method return value.
@@ -22,7 +24,7 @@ export type ExpressRouteEndHandler = (
  * - error: flag to indicate if there was an error
  * - info: object that serves as details about the results
  */
-export type ServiceMethodResult = {
+export type ServiceMethodResults = {
   status: HttpStatusCode,
   error: boolean,
   info: {
@@ -30,10 +32,10 @@ export type ServiceMethodResult = {
     data?: any;
     error?: any;
 
-    [key:string]: any;
+    // [key:string]: any;
   };
 };
 
-export type ServiceMethodAsyncResult = Promise<ServiceMethodResult>;
+export type ServiceMethodAsyncResults = Promise<ServiceMethodResults>;
 
 export type ModelValidators = IModelValidator[];

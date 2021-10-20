@@ -24,14 +24,14 @@ import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
 export class PostsService {
   /** Request Handlers */
 
-  static async get_post_by_id(request: Request, response: Response) {
+  static async get_post_by_id(request: Request, response: Response): ExpressResponse {
     const post_model = response.locals.post_model;
     return response.status(HttpStatusCode.OK).json({
       data: post_model
     });
   }
 
-  static async get_user_posts_all(request: Request, response: Response) {
+  static async get_user_posts_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const posts = await CommonRepo.getAll(
       HotspotPosts,
@@ -55,7 +55,7 @@ export class PostsService {
     });
   }
 
-  static async get_user_posts(request: Request, response: Response) {
+  static async get_user_posts(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const post_id = parseInt(request.params.post_id, 10);
     const posts = await CommonRepo.paginateTable(
@@ -81,7 +81,7 @@ export class PostsService {
     });
   }
 
-  static async create_post(request: Request, response: Response) {
+  static async create_post(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const data: PlainObject = JSON.parse(request.body.payload);
     
@@ -176,7 +176,7 @@ export class PostsService {
     });
   }
 
-  static async update_post(request: Request, response: Response) {
+  static async update_post(request: Request, response: Response): ExpressResponse {
     const post_id = parseInt(request.params.post_id, 10);
     const you: IUser = response.locals.you; 
     let body: string = request.body.body;
@@ -217,7 +217,7 @@ export class PostsService {
     });
   }
 
-  static async delete_post(request: Request, response: Response) {
+  static async delete_post(request: Request, response: Response): ExpressResponse {
     const post_id = parseInt(request.params.post_id, 10);
     const deletes = await HotspotPostsRepo.delete_post(post_id);
     return response.status(HttpStatusCode.OK).json({
