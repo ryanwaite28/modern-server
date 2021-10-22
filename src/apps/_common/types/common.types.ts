@@ -24,18 +24,18 @@ export type ExpressRouteEndHandler = (
  * - error: flag to indicate if there was an error
  * - info: object that serves as details about the results
  */
-export type ServiceMethodResults = {
+export type ServiceMethodResults<T = any> = {
   status: HttpStatusCode,
   error: boolean,
   info: {
     message?: string;
-    data?: any;
+    data?: T;
     error?: any;
 
     // [key:string]: any;
   };
 };
 
-export type ServiceMethodAsyncResults = Promise<ServiceMethodResults>;
+export type ServiceMethodAsyncResults<T = any> = Promise<ServiceMethodResults<T>>;
 
 export type ModelValidators = IModelValidator[];

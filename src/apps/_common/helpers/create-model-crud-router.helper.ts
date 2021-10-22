@@ -14,7 +14,9 @@ export interface ICreateCommonGenericModelCrudRouter {
   modelCrudService: IGenericModelCrudService,
 }
 
-export function createCommonGenericModelCrudRouter(params: ICreateCommonGenericModelCrudRouter) {
+export function createCommonGenericModelCrudRouter(
+  params: ICreateCommonGenericModelCrudRouter
+): Router {
   const model_id_field = params.model_name + `_id`;
 
   const routeGuards: IModelGuards = params.makeGuard

@@ -17,7 +17,7 @@ export interface ICreateGenericCommentsRouter {
   commentGuardsOpts: IModelGuards | ICreateModelGuardParams,
 }
 
-export function createGenericCommentsRouter (params: ICreateGenericCommentsRouter) {
+export function createGenericCommentsRouter (params: ICreateGenericCommentsRouter): Router {
   const CommentsRouter: Router = Router({ mergeParams: true });
   
   const useClass = class {

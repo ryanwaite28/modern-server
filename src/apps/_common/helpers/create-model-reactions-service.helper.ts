@@ -19,7 +19,7 @@ import {
   MyModelStatic,
   MyModelStaticGeneric
 } from '../models/common.model-types';
-import { ExpressRouteEndHandler, ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
 import { create_notification } from '../repos/notifications.repo';
 import { CommonSocketEventsHandler } from '../services/socket-events-handlers-by-app/common.socket-event-handler';
 
@@ -51,7 +51,7 @@ export interface IGenericModelReactionsService {
 
 export function createCommonGenericModelReactionsService (
   params: ICreateCommonGenericModelReactionsService
-) {
+): IGenericModelReactionsService {
   const model_id_field = params.base_model_name + '_id';
 
   let Class: IGenericModelReactionsService;

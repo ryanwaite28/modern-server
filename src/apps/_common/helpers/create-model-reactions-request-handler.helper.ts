@@ -14,7 +14,7 @@ import {
 } from '../../_common/common.chamber';
 import { Users } from '../../_common/models/user.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
-import { ExpressRouteEndHandler } from '../types/common.types';
+import { ExpressResponse, ExpressRouteEndHandler, ServiceMethodResults } from '../types/common.types';
 import { create_notification } from '../repos/notifications.repo';
 import { CommonSocketEventsHandler } from '../services/socket-events-handlers-by-app/common.socket-event-handler';
 import { IGenericModelReactionsService } from './create-model-reactions-service.helper';
@@ -34,7 +34,7 @@ export interface IGenericModelReactionsRequestHandler {
 
 export function createCommonGenericModelReactionsRequestHandler (
   params: ICreateCommonGenericModelReactionsRequestHandler
-) {
+): IGenericModelReactionsRequestHandler {
   const model_field = params.base_model_name + '_model';
   const model_id_field = params.base_model_name + '_id';
 

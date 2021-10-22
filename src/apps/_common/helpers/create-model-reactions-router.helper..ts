@@ -14,7 +14,7 @@ export interface ICreateCommonGenericModelReactionsRouter {
 
 export function createCommonGenericModelReactionsRouter(
   params: ICreateCommonGenericModelReactionsRouter
-) {
+): Router {
   const ReactionsRouter: Router = Router({ mergeParams: true });
 
   ReactionsRouter.get(`/user-reactions/count`, params.reactionRequestHandler.get_model_reactions_counts);

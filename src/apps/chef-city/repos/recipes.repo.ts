@@ -53,7 +53,7 @@ export async function create_recipe(createObj: {
     });
   }
   const recipe = await get_recipe_by_id(recipe_id);
-  return recipe;
+  return recipe!;
 }
 
 export async function update_recipe(

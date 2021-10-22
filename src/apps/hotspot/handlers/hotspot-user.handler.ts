@@ -11,21 +11,21 @@ import { Users } from '../../_common/models/user.model';
 import { Cliques } from '../models/clique.model';
 import { HotspotPosts, HotspotPostPhotos } from '../models/post.model';
 import { HotspotResources } from '../models/resource.model';
-import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
+import { ExpressResponse } from '../../_common/types/common.types';
 
 
 
-export class HotspotUsersService {
+export class HotspotUsersRequestHandler {
 
   /** Request Handlers */
 
-  static async main(): ServiceMethodAsyncResults {
+  static async main(request: Request, response: Response): ExpressResponse {
     return response.status(HttpStatusCode.OK).json({
       msg: 'hotspot app router'
     });
   }
 
-  static async get_search_results(): ServiceMethodAsyncResults {
+  static async get_search_results(request: Request, response: Response): ExpressResponse {
     const model = String(request.query.model || '');
     const q = String(request.query.q || '');
     const min_id = String(request.query.feed_type || '') || null;
@@ -115,7 +115,7 @@ export class HotspotUsersService {
     }
   }
 
-  static async get_user_feed(): ServiceMethodAsyncResults {
+  static async get_user_feed(request: Request, response: Response): ExpressResponse {
     const min_id = parseInt(request.params.min_id, 10);
     const you: IUser = response.locals.you;
     const feed_type = String(request.query.feed_type || '');

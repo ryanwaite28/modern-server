@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { HttpStatusCode } from '../enums/http-codes.enum';
+import { ServiceMethodResults } from '../types/common.types';
 
 /* class decorator */
 function staticImplements<T>() {
@@ -34,8 +35,43 @@ export function CatchRequestHandlerError() {
             error,
           });
         } catch (error2) {
-          console.log(error2);
+          console.log(`could not return generic response...`, error2);
         }
+      }
+    };
+
+    return descriptor;
+  }
+}
+
+export function CatchServiceError(opts?: {
+  isAsync: boolean,
+}) {
+  const isAsync = opts ? opts.isAsync : true;
+
+  return function (
+    target: Object,
+    key: string | symbol,
+    descriptor: PropertyDescriptor
+  ) {
+    const childFunction = descriptor.value;
+    
+    descriptor.value = (...args: any[]) => {
+      console.log({ target, key, descriptor, childFunction, args });
+      try {
+        // @ts-ignore
+        return childFunction.apply(this, args);
+      } catch (error) {
+        console.log(error);
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Error in service method; something went wrong...`,
+            error,
+          }
+        };
+        return isAsync ? Promise.resolve(serviceMethodResults) : serviceMethodResults; 
       }
     };
 

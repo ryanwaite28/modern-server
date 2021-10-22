@@ -54,7 +54,7 @@ export interface ICommonGenericCommentsService {
 
 export function createCommonGenericModelCommentsService(
   params: ICreateCommonGenericModelCommentsService
-) {
+): ICommonGenericCommentsService {
   const model_id_field = params.base_model_name + '_id';
 
   let Class: ICommonGenericCommentsService;

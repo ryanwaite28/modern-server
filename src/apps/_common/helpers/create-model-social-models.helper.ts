@@ -15,6 +15,26 @@ import {
 import { MODERN_APP_NAMES } from '../enums/common.enum';
 
 
+export interface ISocialModelsConstructed {
+  ModelReactions: MyModelStatic,
+  ModelViewers: MyModelStatic,
+  ModelPhotos: MyModelStatic,
+  ModelVideos: MyModelStatic,
+  ModelAudios: MyModelStatic,
+
+  ModelComments: MyModelStatic,
+  ModelCommentReactions: MyModelStatic,
+  ModelCommentPhotos: MyModelStatic,
+  ModelCommentVideos: MyModelStatic,
+  ModelCommentAudios: MyModelStatic,
+
+  ModelCommentReplies: MyModelStatic,
+  ModelCommentReplyReactions: MyModelStatic,
+  ModelCommentReplyPhotos: MyModelStatic,
+  ModelCommentReplyVideos: MyModelStatic,
+  ModelCommentReplyAudios: MyModelStatic,
+}
+
 
 // create social models helper
 
@@ -23,11 +43,13 @@ export function createCommonGenericModelSocialModels(params: {
   base_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
   base_model_name: string,
   ignoreRelations?: boolean,
-}) {
+}): ISocialModelsConstructed {
   const appName = params.micro_app.toLowerCase().replace(/\_/gi, '');
   const model_id_field = params.base_model_name + '_id';
 
-  const ModelReactions = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_reactions`, {
+  const table_model_prefix = `${appName}_${params.base_model_name}`;
+
+  const ModelReactions = <MyModelStatic> sequelize.define(`${table_model_prefix}_reactions`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: `id` } },
     [model_id_field]:    { type: Sequelize.INTEGER, allowNull: false, references: { model: params.base_model, key: `id` } },
@@ -37,7 +59,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelViewers = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_viewers`, {
+  const ModelViewers = <MyModelStatic> sequelize.define(`${table_model_prefix}_viewers`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: `id` } },
     user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: `id` } },
@@ -46,7 +68,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelPhotos = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_photos`, {
+  const ModelPhotos = <MyModelStatic> sequelize.define(`${table_model_prefix}_photos`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     [model_id_field]:    { type: Sequelize.INTEGER, allowNull: false, references: { model: params.base_model, key: `id` } },
     photo_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Photos, key: `id` } },
@@ -54,7 +76,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelVideos = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_videos`, {
+  const ModelVideos = <MyModelStatic> sequelize.define(`${table_model_prefix}_videos`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     [model_id_field]:    { type: Sequelize.INTEGER, allowNull: false, references: { model: params.base_model, key: `id` } },
     video_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Videos, key: `id` } },
@@ -62,7 +84,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelAudios = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_audios`, {
+  const ModelAudios = <MyModelStatic> sequelize.define(`${table_model_prefix}_audios`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     [model_id_field]:    { type: Sequelize.INTEGER, allowNull: false, references: { model: params.base_model, key: `id` } },
     audio_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Audios, key: `id` } },
@@ -72,7 +94,7 @@ export function createCommonGenericModelSocialModels(params: {
   
   
   
-  const ModelComments = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_comments`, {
+  const ModelComments = <MyModelStatic> sequelize.define(`${table_model_prefix}_comments`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: `id` } },
     [model_id_field]:    { type: Sequelize.INTEGER, allowNull: false, references: { model: params.base_model, key: `id` } },
@@ -82,7 +104,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelCommentReactions = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_comment_reactions`, {
+  const ModelCommentReactions = <MyModelStatic> sequelize.define(`${table_model_prefix}_comment_reactions`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: `id` } },
     comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: ModelComments, key: `id` } },
@@ -92,7 +114,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelCommentPhotos = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_comment_photos`, {
+  const ModelCommentPhotos = <MyModelStatic> sequelize.define(`${table_model_prefix}_comment_photos`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: ModelComments, key: `id` } },
     photo_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Photos, key: `id` } },
@@ -100,7 +122,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelCommentVideos = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_comment_videos`, {
+  const ModelCommentVideos = <MyModelStatic> sequelize.define(`${table_model_prefix}_comment_videos`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: ModelComments, key: `id` } },
     video_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Videos, key: `id` } },
@@ -108,7 +130,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelCommentAudios = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_comment_audios`, {
+  const ModelCommentAudios = <MyModelStatic> sequelize.define(`${table_model_prefix}_comment_audios`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: ModelComments, key: `id` } },
     audio_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Audios, key: `id` } },
@@ -118,7 +140,7 @@ export function createCommonGenericModelSocialModels(params: {
   
   
   
-  const ModelCommentReplies = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_comment_replies`, {
+  const ModelCommentReplies = <MyModelStatic> sequelize.define(`${table_model_prefix}_comment_replies`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: `id` } },
     comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: ModelComments, key: `id` } },
@@ -128,7 +150,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelCommentReplyReactions = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_comment_reply_reactions`, {
+  const ModelCommentReplyReactions = <MyModelStatic> sequelize.define(`${table_model_prefix}_comment_reply_reactions`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: `id` } },
     reply_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: ModelCommentReplies, key: `id` } },
@@ -138,7 +160,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelCommentReplyPhotos = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_comment_reply_photos`, {
+  const ModelCommentReplyPhotos = <MyModelStatic> sequelize.define(`${table_model_prefix}_comment_reply_photos`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     reply_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: ModelCommentReplies, key: `id` } },
     photo_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Photos, key: `id` } },
@@ -146,7 +168,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelCommentReplyVideos = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_comment_reply_videos`, {
+  const ModelCommentReplyVideos = <MyModelStatic> sequelize.define(`${table_model_prefix}_comment_reply_videos`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     reply_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: ModelCommentReplies, key: `id` } },
     video_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Videos, key: `id` } },
@@ -154,7 +176,7 @@ export function createCommonGenericModelSocialModels(params: {
     uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
   }, common_options);
   
-  const ModelCommentReplyAudios = <MyModelStatic> sequelize.define(`${appName}_${params.base_model_name}_comment_reply_audios`, {
+  const ModelCommentReplyAudios = <MyModelStatic> sequelize.define(`${table_model_prefix}_comment_reply_audios`, {
     id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
     reply_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: ModelCommentReplies, key: `id` } },
     audio_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Audios, key: `id` } },
@@ -167,21 +189,21 @@ export function createCommonGenericModelSocialModels(params: {
   // relations
 
   if (!params.ignoreRelations) {
-    Users.hasMany(ModelComments, { as: `${appName}_${params.base_model_name}_comments`, foreignKey: `owner_id`, sourceKey: `id` });
+    Users.hasMany(ModelComments, { as: `${table_model_prefix}_comments`, foreignKey: `owner_id`, sourceKey: `id` });
     ModelComments.belongsTo(Users, { as: `owner`, foreignKey: `owner_id`, targetKey: `id` });
-    Users.hasMany(ModelCommentReplies, { as: `${appName}_${params.base_model_name}_comment_replies`, foreignKey: `owner_id`, sourceKey: `id` });
+    Users.hasMany(ModelCommentReplies, { as: `${table_model_prefix}_comment_replies`, foreignKey: `owner_id`, sourceKey: `id` });
     ModelCommentReplies.belongsTo(Users, { as: `owner`, foreignKey: `owner_id`, targetKey: `id` });
   
-    Users.hasMany(ModelReactions, { as: `${appName}_${params.base_model_name}_reactions`, foreignKey: `owner_id`, sourceKey: `id` });
+    Users.hasMany(ModelReactions, { as: `${table_model_prefix}_reactions`, foreignKey: `owner_id`, sourceKey: `id` });
     ModelReactions.belongsTo(Users, { as: `owner`, foreignKey: `owner_id`, targetKey: `id` });
-    Users.hasMany(ModelCommentReactions, { as: `${appName}_${params.base_model_name}_comment_reactions`, foreignKey: `owner_id`, sourceKey: `id` });
+    Users.hasMany(ModelCommentReactions, { as: `${table_model_prefix}_comment_reactions`, foreignKey: `owner_id`, sourceKey: `id` });
     ModelCommentReactions.belongsTo(Users, { as: `owner`, foreignKey: `owner_id`, targetKey: `id` });
-    Users.hasMany(ModelCommentReplyReactions, { as: `${appName}_${params.base_model_name}_comment_reply_reactions`, foreignKey: `owner_id`, sourceKey: `id` });
+    Users.hasMany(ModelCommentReplyReactions, { as: `${table_model_prefix}_comment_reply_reactions`, foreignKey: `owner_id`, sourceKey: `id` });
     ModelCommentReplyReactions.belongsTo(Users, { as: `owner`, foreignKey: `owner_id`, targetKey: `id` });
   
     params.base_model.hasMany(ModelViewers, { as: `${params.base_model_name}_viewers`, foreignKey: `${params.base_model_name}_id`, sourceKey: `id` });
     ModelViewers.belongsTo(params.base_model, { as: params.base_model_name, foreignKey: `${params.base_model_name}_id`, targetKey: `id` });
-    Users.hasMany(ModelViewers, { as: `${appName}_${params.base_model_name}_viewings`, foreignKey: `user_id`, sourceKey: `id` });
+    Users.hasMany(ModelViewers, { as: `${table_model_prefix}_viewings`, foreignKey: `user_id`, sourceKey: `id` });
     ModelViewers.belongsTo(Users, { as: `viewer`, foreignKey: `user_id`, targetKey: `id` });
   
     params.base_model.hasMany(ModelPhotos, { as: `${params.base_model_name}_photos`, foreignKey: `${params.base_model_name}_id`, sourceKey: `id` });
@@ -206,32 +228,32 @@ export function createCommonGenericModelSocialModels(params: {
   
     ModelComments.hasMany(ModelCommentPhotos, { as: `${params.base_model_name}_comment_photos`, foreignKey: `comment_id`, sourceKey: `id` });
     ModelCommentPhotos.belongsTo(ModelComments, { as: `comment`, foreignKey: `comment_id`, targetKey: `id` });
-    Photos.hasMany(ModelCommentPhotos, { as: `${appName}_${params.base_model_name}_comment_photos`, foreignKey: `photo_id`, sourceKey: `id` });
+    Photos.hasMany(ModelCommentPhotos, { as: `${table_model_prefix}_comment_photos`, foreignKey: `photo_id`, sourceKey: `id` });
     ModelCommentPhotos.belongsTo(Photos, { as: `photo_comment`, foreignKey: `photo_id`, targetKey: `id` });
   
     ModelComments.hasMany(ModelCommentVideos, { as: `${params.base_model_name}_comment_videos`, foreignKey: `comment_id`, sourceKey: `id` });
     ModelCommentVideos.belongsTo(ModelComments, { as: `comment`, foreignKey: `comment_id`, targetKey: `id` });
-    Videos.hasMany(ModelCommentVideos, { as: `${appName}_${params.base_model_name}_comment_videos`, foreignKey: `video_id`, sourceKey: `id` });
+    Videos.hasMany(ModelCommentVideos, { as: `${table_model_prefix}_comment_videos`, foreignKey: `video_id`, sourceKey: `id` });
     ModelCommentVideos.belongsTo(Videos, { as: `video_comment`, foreignKey: `video_id`, targetKey: `id` });
   
     ModelComments.hasMany(ModelCommentAudios, { as: `${params.base_model_name}_comment_audios`, foreignKey: `comment_id`, sourceKey: `id` });
     ModelCommentAudios.belongsTo(ModelComments, { as: `comment`, foreignKey: `comment_id`, targetKey: `id` });
-    Audios.hasMany(ModelCommentAudios, { as: `${appName}_${params.base_model_name}_comment_audios`, foreignKey: `audio_id`, sourceKey: `id` });
+    Audios.hasMany(ModelCommentAudios, { as: `${table_model_prefix}_comment_audios`, foreignKey: `audio_id`, sourceKey: `id` });
     ModelCommentAudios.belongsTo(Audios, { as: `audio_comment`, foreignKey: `audio_id`, targetKey: `id` });
   
     ModelCommentReplies.hasMany(ModelCommentReplyPhotos, { as: `${params.base_model_name}_reply_photos`, foreignKey: `reply_id`, sourceKey: `id` });
     ModelCommentReplyPhotos.belongsTo(ModelCommentReplies, { as: `reply`, foreignKey: `reply_id`, targetKey: `id` });
-    Photos.hasMany(ModelCommentReplyPhotos, { as: `${appName}_${params.base_model_name}_reply_photos`, foreignKey: `photo_id`, sourceKey: `id` });
+    Photos.hasMany(ModelCommentReplyPhotos, { as: `${table_model_prefix}_reply_photos`, foreignKey: `photo_id`, sourceKey: `id` });
     ModelCommentReplyPhotos.belongsTo(Photos, { as: `photo_reply`, foreignKey: `photo_id`, targetKey: `id` });
   
     ModelCommentReplies.hasMany(ModelCommentReplyVideos, { as: `${params.base_model_name}_reply_videos`, foreignKey: `reply_id`, sourceKey: `id` });
     ModelCommentReplyVideos.belongsTo(ModelCommentReplies, { as: `reply`, foreignKey: `reply_id`, targetKey: `id` });
-    Videos.hasMany(ModelCommentReplyVideos, { as: `${appName}_${params.base_model_name}_reply_videos`, foreignKey: `video_id`, sourceKey: `id` });
+    Videos.hasMany(ModelCommentReplyVideos, { as: `${table_model_prefix}_reply_videos`, foreignKey: `video_id`, sourceKey: `id` });
     ModelCommentReplyVideos.belongsTo(Videos, { as: `video_reply`, foreignKey: `video_id`, targetKey: `id` });
   
     ModelCommentReplies.hasMany(ModelCommentReplyAudios, { as: `${params.base_model_name}_reply_audios`, foreignKey: `reply_id`, sourceKey: `id` });
     ModelCommentReplyAudios.belongsTo(ModelCommentReplies, { as: `reply`, foreignKey: `reply_id`, targetKey: `id` });
-    Audios.hasMany(ModelCommentReplyAudios, { as: `${appName}_${params.base_model_name}_reply_audios`, foreignKey: `audio_id`, sourceKey: `id` });
+    Audios.hasMany(ModelCommentReplyAudios, { as: `${table_model_prefix}_reply_audios`, foreignKey: `audio_id`, sourceKey: `id` });
     ModelCommentReplyAudios.belongsTo(Audios, { as: `audio_reply`, foreignKey: `audio_id`, targetKey: `id` });
   
     ModelComments.hasMany(ModelCommentReplies, { as: `${params.base_model_name}_comment_replies`, foreignKey: `comment_id`, sourceKey: `id` });

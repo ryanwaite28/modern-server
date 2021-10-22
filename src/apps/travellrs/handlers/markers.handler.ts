@@ -11,6 +11,7 @@ import {
 } from '../../_common/interfaces/common.interface';
 import { MarkersService } from '../services/markers.service';
 import { CatchRequestHandlerError } from 'src/apps/_common/decorators/common.decorator';
+import { ExpressResponse, ServiceMethodResults } from 'src/apps/_common/types/common.types';
 
 export class MarkersRequestHandler {
   /** Request Handlers */

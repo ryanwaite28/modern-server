@@ -53,7 +53,9 @@ export interface ICommonGenericModelChildrenCrudService {
 
 
 
-export function createCommonGenericModelChildrenCrudService(params: ICreateCommonGenericModelChildrenCrudService) {
+export function createCommonGenericModelChildrenCrudService(
+  params: ICreateCommonGenericModelChildrenCrudService
+): ICommonGenericModelChildrenCrudService {
   const parent_model_id_params_name = params.parent_model_name + '_id';
 
   // https://stackoverflow.com/questions/13955157/how-to-define-static-property-in-typescript-interface

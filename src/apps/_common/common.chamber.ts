@@ -26,6 +26,7 @@ import {
 import { ServiceMethodAsyncResults, ServiceMethodResults } from './types/common.types';
 import { IUploadFile, store_image } from '../../cloudinary-manager';
 import { UploadedFile } from 'express-fileupload';
+import { IMyModel } from './models/common.model-types';
 
 
 export const specialCaracters = ['!', '@', '#', '$', '%', '&', '+', ')', ']', '}', ':', ';', '?'];
@@ -1029,3 +1030,69 @@ export const create_user_required_props: IModelValidator[] = [
   { field: `password`, name: `Password`, validator: validatePassword, errorMessage: `Password must be: at least 7 characters, upper and/or lower case alphanumeric`, },
   { field: `confirmPassword`, name: `Confirm Password`, validator: validatePassword, errorMessage: `Confirm Password must be: at least 7 characters, upper and/or lower case alphanumeric`, },
 ];
+
+
+export const check_model_args = async (opts: {
+  model_id?: number,
+  model?: IMyModel,
+  model_name?: string,
+  get_model_fn: (id: number) => Promise<IMyModel | null>
+}) => {
+  const { model_id, model, model_name, get_model_fn } = opts;
+  const useName = model_name || 'model';
+
+  if (!model_id && !model) {
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.BAD_REQUEST,
+      error: true,
+      info: {
+        message: `${useName} id or model instance is required.`
+      }
+    };
+    return serviceMethodResults;
+  }
+  const model_model: IMyModel | null = model || await get_model_fn(model_id!);
+  if (!model_model) {
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.NOT_FOUND,
+      error: true,
+      info: {
+        message: `${useName} not found...`,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  const serviceMethodResults: ServiceMethodResults = {
+    status: HttpStatusCode.OK,
+    error: false,
+    info: {
+      data: model_model,
+    }
+  };
+  return serviceMethodResults;
+};
+
+export const createGenericServiceMethodError = (message: string, status?: HttpStatusCode, error?: any): ServiceMethodResults => {
+  const serviceMethodResults: ServiceMethodResults = {
+    status: HttpStatusCode.BAD_REQUEST,
+    error: true,
+    info: {
+      message,
+      error,
+    }
+  };
+  return serviceMethodResults;
+};
+
+export const createGenericServiceMethodSuccess = (message?: string, data?: any): ServiceMethodResults => {
+  const serviceMethodResults: ServiceMethodResults = {
+    status: HttpStatusCode.OK,
+    error: false,
+    info: {
+      message,
+      data,
+    }
+  };
+  return serviceMethodResults;
+};

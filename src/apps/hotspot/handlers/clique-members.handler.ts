@@ -32,12 +32,12 @@ import {
 import { populate_hotspot_notification_obj } from '../hotspot.chamber';
 import { SocketsService } from '../../_common/services/sockets.service';
 import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
-import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
+import { ExpressResponse } from '../../_common/types/common.types';
 
 
 
-export class CliqueMembersService {
-  static async get_clique_member_requests_all(): ServiceMethodAsyncResults {
+export class CliqueMembersRequestHandler {
+  static async get_clique_member_requests_all(request: Request, response: Response): ExpressResponse {
     const you_id = parseInt(request.params.you_id, 10);
     const member_requests_models = await CliqueMemberRequests.findAll({
       where: { user_id: you_id },
@@ -57,7 +57,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async get_clique_member_requests(): ServiceMethodAsyncResults {
+  static async get_clique_member_requests(request: Request, response: Response): ExpressResponse {
     const you_id = parseInt(request.params.you_id, 10);
     const member_request_id = parseInt(request.params.member_request_id, 10);
 
@@ -85,7 +85,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async get_user_clique_members_all(): ServiceMethodAsyncResults {
+  static async get_user_clique_members_all(request: Request, response: Response): ExpressResponse {
     const user_id = parseInt(request.params.user_id, 10);
 
     const members_models = await CliqueMembers.findAll({
@@ -116,7 +116,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async get_user_clique_members(): ServiceMethodAsyncResults {
+  static async get_user_clique_members(request: Request, response: Response): ExpressResponse {
     const user_id = parseInt(request.params.user_id, 10);
     const member_id = parseInt(request.params.member_id, 10);
 
@@ -154,7 +154,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async get_clique_members_all(): ServiceMethodAsyncResults {
+  static async get_clique_members_all(request: Request, response: Response): ExpressResponse {
     const clique_id = parseInt(request.params.clique_id, 10);
 
     const members_models = await CliqueMembers.findAll({
@@ -171,7 +171,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async get_clique_members(): ServiceMethodAsyncResults {
+  static async get_clique_members(request: Request, response: Response): ExpressResponse {
     const clique_id = parseInt(request.params.clique_id, 10);
     const member_id = parseInt(request.params.member_id, 10);
 
@@ -195,7 +195,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async add_clique_member(): ServiceMethodAsyncResults {
+  static async add_clique_member(request: Request, response: Response): ExpressResponse {
     const user_id = parseInt(request.params.user_id, 10);
     const clique_id = parseInt(request.params.clique_id, 10);
 
@@ -247,7 +247,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async remove_clique_member(): ServiceMethodAsyncResults {
+  static async remove_clique_member(request: Request, response: Response): ExpressResponse {
     const user_id = parseInt(request.params.user_id, 10);
     const clique_id = parseInt(request.params.clique_id, 10);
 
@@ -284,7 +284,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async leave_clique(): ServiceMethodAsyncResults {
+  static async leave_clique(request: Request, response: Response): ExpressResponse {
     const clique_model = response.locals.clique_model;
     const clique_id = response.locals.clique_model.get('id');
     const you_id = parseInt(request.params.you_id, 10);
@@ -325,7 +325,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async search_members(): ServiceMethodAsyncResults {
+  static async search_members(request: Request, response: Response): ExpressResponse {
     const clique_id = parseInt(request.params.clique_id, 10);
     const query_term = (<string> request.query.query_term || '').trim().toLowerCase();
     if (!query_term) {
@@ -375,7 +375,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async send_clique_member_request(): ServiceMethodAsyncResults {
+  static async send_clique_member_request(request: Request, response: Response): ExpressResponse {
     const you_id = parseInt(request.params.you_id, 10);
     const user_id = parseInt(request.params.user_id, 10);
     const clique_id = parseInt(request.params.clique_id, 10);
@@ -448,7 +448,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async cancel_clique_member_request(): ServiceMethodAsyncResults {
+  static async cancel_clique_member_request(request: Request, response: Response): ExpressResponse {
     const you_id = parseInt(request.params.you_id, 10);
     const clique_id = parseInt(request.params.clique_id, 10);
     const member_request_id = parseInt(request.params.member_request_id, 10);
@@ -486,7 +486,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async accept_clique_member_request(): ServiceMethodAsyncResults {
+  static async accept_clique_member_request(request: Request, response: Response): ExpressResponse {
     const you_id = parseInt(request.params.you_id, 10);
     const clique_id = parseInt(request.params.clique_id, 10);
     const member_request_id = parseInt(request.params.member_request_id, 10);
@@ -561,7 +561,7 @@ export class CliqueMembersService {
     });
   }
 
-  static async decline_clique_member_request(): ServiceMethodAsyncResults {
+  static async decline_clique_member_request(request: Request, response: Response): ExpressResponse {
     const you_id = parseInt(request.params.you_id, 10);
     const clique_id = parseInt(request.params.clique_id, 10);
     const member_request_id = parseInt(request.params.member_request_id, 10);

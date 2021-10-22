@@ -16,7 +16,7 @@ export interface ICreateCommonGenericCommentRepliesRouter {
   repliesRequestHandler: IGenericCommentRepliesRequestHandler,
 }
 
-export function createGenericCommentRepliesRouter (params: ICreateCommonGenericCommentRepliesRouter) {
+export function createGenericCommentRepliesRouter (params: ICreateCommonGenericCommentRepliesRouter): Router {
   const RepliesRouter: Router = Router({ mergeParams: true });
 
   const useClass = class {

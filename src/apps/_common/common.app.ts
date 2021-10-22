@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { corsMiddleware } from './common.chamber';
 import { InfoRouter } from './routers/info.router';
-import { PaymentsRouter } from './routers/payments.router';
 import { UsersRouter } from './routers/users.router';
 import { UtilsRouter } from './routers/utils.router';
 import * as bodyParser from 'body-parser';

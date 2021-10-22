@@ -11,7 +11,7 @@ import {
 import {
   IMyModel,
 } from '../models/common.model-types';
-import { ExpressRouteEndHandler } from '../types/common.types';
+import { ExpressResponse, ExpressRouteEndHandler, ServiceMethodResults } from '../types/common.types';
 import { IGenericModelCrudService } from './create-model-crud-service.helper';
 
 
@@ -30,7 +30,9 @@ export interface IGenericModelCrudRequestHandler {
   delete_model: ExpressRouteEndHandler,
 }
 
-export function createCommonGenericModelCrudRequestHandler (params: ICreateCommonGenericModelCrudRequestHandler) {
+export function createCommonGenericModelCrudRequestHandler (
+  params: ICreateCommonGenericModelCrudRequestHandler
+): IGenericModelCrudRequestHandler {
   const model_field = params.model_name + '_model';
   const model_id_field = params.model_name + '_id';
 
@@ -52,7 +54,7 @@ export function createCommonGenericModelCrudRequestHandler (params: ICreateCommo
   
     static async get_user_models(request: Request, response: Response): ExpressResponse {
       const user_id: number = parseInt(request.params.user_id, 10);
-      const model_id = parseInt(request.params[model_id_field], 10);
+      const model_id: number = parseInt(request.params[model_id_field], 10);
       
       const serviceMethodResults: ServiceMethodResults = await params.crudService.get_user_models(user_id, model_id);
       return response.status(serviceMethodResults.status).json(serviceMethodResults.info);

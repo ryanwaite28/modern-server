@@ -16,7 +16,9 @@ export interface ICreateCommonGenericModelChildrenCrudRouter {
   childModelCrudRequestHandler: ICommonGenericModelChildrenCrudRequestHandler,
 }
 
-export function createCommonGenericModelChildrenCrudRouter (params: ICreateCommonGenericModelChildrenCrudRouter) {
+export function createCommonGenericModelChildrenCrudRouter (
+  params: ICreateCommonGenericModelChildrenCrudRouter
+): Router {
   const ChildModelCrudRouter: Router = Router({ mergeParams: true });
 
   const routeGuards: IModelGuards = params.makeGuard

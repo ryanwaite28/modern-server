@@ -62,6 +62,16 @@ const serviceMethodResults: ServiceMethodResults = {
 };
 return serviceMethodResults;
 
+const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.OK,
+          error: false,
+          info: {
+            data: {
+            }
+          }
+        };
+        return serviceMethodResults;
+
 const serviceMethodResults: ServiceMethodResults = await Service.method();
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
 

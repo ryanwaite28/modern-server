@@ -52,7 +52,7 @@ export interface IGenericCommentRepliesService {
 
 export function createCommonGenericModelCommentRepliesService (
   params: ICreateCommonGenericModelCommentRepliesService
-) {
+): IGenericCommentRepliesService {
 
   let Class: IGenericCommentRepliesService;
   Class = class {

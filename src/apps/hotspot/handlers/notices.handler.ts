@@ -19,20 +19,20 @@ import { IMyModel } from '../../_common/models/common.model-types';
 import { NoticeVisibility } from '../enums/hotspot.enum';
 import { IStoreImage, store_image } from '../../../cloudinary-manager';
 import { UploadedFile } from 'express-fileupload';
-import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
+import { ExpressResponse } from '../../_common/types/common.types';
 
 
 
-export class NoticesService {
+export class NoticesRequestHandler {
 
-  static async get_notice_by_id(): ServiceMethodAsyncResults {
+  static async get_notice_by_id(request: Request, response: Response): ExpressResponse {
     const notice_model: IMyModel = response.locals.notice_model;
     return response.status(HttpStatusCode.OK).json({
       data: notice_model
     });
   }
 
-  static async create_notice(): ServiceMethodAsyncResults {
+  static async create_notice(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const data: PlainObject = request.body;
 
@@ -123,7 +123,7 @@ export class NoticesService {
     });
   }
 
-  static async delete_notice(): ServiceMethodAsyncResults {
+  static async delete_notice(request: Request, response: Response): ExpressResponse {
     const notice_model: IMyModel = response.locals.notice_model;
     const deletes = await notice_model.destroy();
     return response.status(HttpStatusCode.OK).json({

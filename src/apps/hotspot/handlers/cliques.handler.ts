@@ -25,27 +25,27 @@ import * as CommonRepo from '../../_common/repos/_common.repo';
 import { fn, col, cast, Op } from 'sequelize';
 import { CliqueMembers, Cliques, CliqueInterests } from '../models/clique.model';
 import { Users } from '../../_common/models/user.model';
-import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
+import { ExpressResponse } from '../../_common/types/common.types';
 
 
 
-export class CliquesService {
+export class CliquesRequestHandler {
   /** Request Handlers */
 
-  static async main(): ServiceMethodAsyncResults {
+  static async main(request: Request, response: Response): ExpressResponse {
     return response.status(HttpStatusCode.OK).json({
       msg: 'cliques router'
     });
   }
 
-  static async get_clique(): ServiceMethodAsyncResults {
+  static async get_clique(request: Request, response: Response): ExpressResponse {
     const clique_model = response.locals.clique_model;
     return response.status(HttpStatusCode.OK).json({
       data: clique_model
     });
   }
 
-  static async create_clique(): ServiceMethodAsyncResults {
+  static async create_clique(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
 
     const title = request.body.title && request.body.title.trim();
@@ -110,7 +110,7 @@ export class CliquesService {
     });
   }
 
-  static async update_clique(): ServiceMethodAsyncResults {
+  static async update_clique(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
 
     const title = request.body.title && request.body.title.trim();
@@ -169,7 +169,7 @@ export class CliquesService {
     });
   }
 
-  static async delete_clique(): ServiceMethodAsyncResults {
+  static async delete_clique(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
 
     const deletes = await response.locals.clique_model.destroy();
@@ -180,7 +180,7 @@ export class CliquesService {
     });
   }
 
-  static async get_user_cliques(): ServiceMethodAsyncResults {
+  static async get_user_cliques(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you; 
     const clique_id = parseInt(request.params.clique_id, 10);
     const cliques = await CommonRepo.paginateTable(
@@ -214,7 +214,7 @@ export class CliquesService {
     });
   }
 
-  static async get_user_cliques_all(): ServiceMethodAsyncResults {
+  static async get_user_cliques_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const cliques = await CommonRepo.getAll(
       Cliques,

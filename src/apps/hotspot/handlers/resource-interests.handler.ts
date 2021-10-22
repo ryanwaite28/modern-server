@@ -20,12 +20,12 @@ import {
 import { populate_hotspot_notification_obj } from '../hotspot.chamber';
 import { SocketsService } from '../../_common/services/sockets.service';
 import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
-import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
+import { ExpressResponse } from '../../_common/types/common.types';
 
 
 
-export class ResourceInterestsService {
-  static async get_user_resource_interests(): ServiceMethodAsyncResults {
+export class ResourceInterestsRequestHandler {
+  static async get_user_resource_interests(request: Request, response: Response): ExpressResponse {
     const user_id = parseInt(request.params.user_id, 10);
     const interest_id = parseInt(request.params.interest_id, 10);
     const resource_interests_models = await CommonRepo.paginateTable(
@@ -57,7 +57,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async get_user_resource_interests_all(): ServiceMethodAsyncResults {
+  static async get_user_resource_interests_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const resource_interests = await CommonRepo.getAll(
       HotspotResourceInterests,
@@ -73,7 +73,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async get_resource_interests_all(): ServiceMethodAsyncResults {
+  static async get_resource_interests_all(request: Request, response: Response): ExpressResponse {
     const resource_id: number = parseInt(request.params.resource_id, 10);
     const resource_interests_models = await HotspotResourceInterests.findAll({
       where: { resource_id },
@@ -88,7 +88,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async get_resource_interests(): ServiceMethodAsyncResults {
+  static async get_resource_interests(request: Request, response: Response): ExpressResponse {
     const resource_id: number = parseInt(request.params.resource_id, 10);
     const interest_id: number = parseInt(request.params.interest_id, 10);
     const whereClause: PlainObject = interest_id
@@ -109,7 +109,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async check_interest(): ServiceMethodAsyncResults {
+  static async check_interest(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
@@ -124,7 +124,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async show_interest(): ServiceMethodAsyncResults {
+  static async show_interest(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
@@ -171,7 +171,7 @@ export class ResourceInterestsService {
     });
   }
 
-  static async remove_interest(): ServiceMethodAsyncResults {
+  static async remove_interest(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const resource_id: number = parseInt(request.params.resource_id, 10);
     

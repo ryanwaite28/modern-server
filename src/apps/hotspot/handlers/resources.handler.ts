@@ -18,27 +18,27 @@ import { IUser, PlainObject } from '../../_common/interfaces/common.interface';
 import { Users } from '../../_common/models/user.model';
 import { HotspotResources, HotspotResourceInterests } from '../models/resource.model';
 import { HOTSPOT_RESOURCE_TYPES } from '../enums/hotspot.enum';
-import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
+import { ExpressResponse } from '../../_common/types/common.types';
 
 
 
-export class ResourcesService {
+export class ResourcesRequestHandler {
   /** Request Handlers */
 
-  static async main(): ServiceMethodAsyncResults {
+  static async main(request: Request, response: Response): ExpressResponse {
     return response.status(HttpStatusCode.OK).json({
       msg: 'business plans router'
     });
   }
 
-  static async get_resource(): ServiceMethodAsyncResults {
+  static async get_resource(request: Request, response: Response): ExpressResponse {
     const resource_model = response.locals.resource_model;
     return response.status(HttpStatusCode.OK).json({
       data: resource_model
     });
   }
 
-  static async create_resource(): ServiceMethodAsyncResults {
+  static async create_resource(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
 
     const title = request.body.title && request.body.title.trim();
@@ -115,7 +115,7 @@ export class ResourcesService {
     });
   }
 
-  static async update_resource(): ServiceMethodAsyncResults {
+  static async update_resource(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
 
     const title = request.body.title && request.body.title.trim();
@@ -193,7 +193,7 @@ export class ResourcesService {
     });
   }
 
-  static async delete_resource(): ServiceMethodAsyncResults {
+  static async delete_resource(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
 
     const deletes = await response.locals.resource_model.destroy();
@@ -204,7 +204,7 @@ export class ResourcesService {
     });
   }
 
-  static async get_user_resources(): ServiceMethodAsyncResults {
+  static async get_user_resources(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you; 
     const resource_id = parseInt(request.params.resource_id, 10);
     const resources = await CommonRepo.paginateTable(
@@ -223,7 +223,7 @@ export class ResourcesService {
     });
   }
 
-  static async get_user_resources_all(): ServiceMethodAsyncResults {
+  static async get_user_resources_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const resources = await CommonRepo.getAll(
       HotspotResources,

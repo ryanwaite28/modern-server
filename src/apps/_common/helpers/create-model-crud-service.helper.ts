@@ -57,7 +57,9 @@ export interface IGenericModelCrudService {
   delete_model: (model_id: number) => ServiceMethodAsyncResults,
 }
 
-export function createCommonGenericModelCrudService (params: ICreateCommonGenericModelCrudService) {
+export function createCommonGenericModelCrudService (
+  params: ICreateCommonGenericModelCrudService
+): IGenericModelCrudService {
   const owner_field_name = params.owner_field || 'owner';
   const owner_id_field_name = (params.owner_field && params.owner_field + '_id') || 'owner_id';
 

@@ -19,7 +19,7 @@ import {
   MyModelStatic,
   MyModelStaticGeneric
 } from '../models/common.model-types';
-import { ExpressRouteEndHandler } from '../types/common.types';
+import { ExpressResponse, ExpressRouteEndHandler, ServiceMethodResults } from '../types/common.types';
 import { create_notification } from '../repos/notifications.repo';
 import { CommonSocketEventsHandler } from '../services/socket-events-handlers-by-app/common.socket-event-handler';
 import { IGenericCommentRepliesService } from './create-model-comment-replies-service.helper';
@@ -41,7 +41,7 @@ export interface IGenericCommentRepliesRequestHandler {
 
 export function createCommonGenericModelCommentRepliesRequestHandler (
   params: ICreateCommonGenericModelCommentRepliesRequestHandler
-) {
+): IGenericCommentRepliesRequestHandler {
 
   let Class: IGenericCommentRepliesRequestHandler;
   Class = class {

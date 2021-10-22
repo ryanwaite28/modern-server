@@ -11,7 +11,7 @@ import {
 import {
   IMyModel,
 } from '../models/common.model-types';
-import { ExpressRouteEndHandler } from '../types/common.types';
+import { ExpressResponse, ExpressRouteEndHandler, ServiceMethodResults } from '../types/common.types';
 import { ICommonGenericModelChildrenCrudService } from './create-model-children-crud-service.helper';
 
 
@@ -32,7 +32,9 @@ export interface ICommonGenericModelChildrenCrudRequestHandler {
   delete_model: ExpressRouteEndHandler,
 }
 
-export function createCommonGenericModelChildrenCrudRequestHandler(params: ICreateCommonGenericModelChildrenCrudRequestHandler) {
+export function createCommonGenericModelChildrenCrudRequestHandler(
+  params: ICreateCommonGenericModelChildrenCrudRequestHandler
+): ICommonGenericModelChildrenCrudRequestHandler {
   const parent_model_field_name = params.child_model_name + '_model';
   const parent_model_id_params_name = params.child_model_name + '_id';
 
