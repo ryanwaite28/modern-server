@@ -1,4 +1,4 @@
-import { MyModelStaticGeneric } from '../models/common.model-types';
+import { IMyModel, MyModelStatic, MyModelStaticGeneric } from '../models/common.model-types';
 import {
   fn,
   Op,
@@ -12,8 +12,8 @@ import {
 } from 'sequelize';
 import { PlainObject } from '../interfaces/common.interface';
 
-export async function paginateTable<T>(
-  model: MyModelStaticGeneric<T>,
+export async function paginateTable<T = IMyModel>(
+  model: MyModelStaticGeneric<IMyModel>,
   user_id_field: string,
   user_id?: number,
   min_id?: number,
@@ -38,11 +38,11 @@ export async function paginateTable<T>(
     limit: 5,
     order: orderBy || [['id', 'DESC']]
   });
-  return models as Model<T>[];
+  return models;
 }
 
-export async function getAll<T>(
-  model: MyModelStaticGeneric<T>,
+export async function getAll<T = IMyModel>(
+  model: MyModelStaticGeneric<IMyModel>,
   user_id_field: string,
   user_id: number,
   include?: Includeable[],
@@ -56,14 +56,14 @@ export async function getAll<T>(
   const useWhereClause = whereClause
     ? { ...whereClause, [user_id_field]: user_id }
     : { [user_id_field]: user_id };
-  const models = await (<any> model).findAll({
+  const models = await model.findAll({
     attributes,
     group,
     where: useWhereClause,
     include: include || [],
     order: orderBy || [['id', 'DESC']]
   });
-  return models as Model<T>[];
+  return models;
 }
 
 export async function getById<T>(

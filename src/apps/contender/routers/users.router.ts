@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { YouAuthorized, YouAuthorizedSlim, UserExists } from '../../_common/guards/user.guard';
-import { ContenderService } from '../services/contender.service';
+import { ContenderRequestHandler } from '../handlers/contender.handler';
 
 
 export const UsersRouter: Router = Router({ mergeParams: true });
@@ -9,6 +9,6 @@ export const UsersRouter: Router = Router({ mergeParams: true });
 
 
 
-UsersRouter.get('/:you_id/settings', YouAuthorized, ContenderService.get_settings);
+UsersRouter.get('/:you_id/settings', YouAuthorized, ContenderRequestHandler.get_settings);
 
-UsersRouter.post('/:you_id/settings', YouAuthorized, ContenderService.update_settings);
+// UsersRouter.post('/:you_id/settings', YouAuthorized, ContenderRequestHandler.update_settings);

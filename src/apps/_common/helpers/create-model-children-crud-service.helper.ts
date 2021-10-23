@@ -1,8 +1,4 @@
 import {
-  Request,
-  Response,
-} from 'express';
-import {
   HttpStatusCode
 } from '../enums/http-codes.enum';
 import {
@@ -11,18 +7,15 @@ import {
 } from '../interfaces/common.interface';
 import * as CommonRepo from '../repos/_common.repo';
 import {
-  user_attrs_slim
-} from '../common.chamber';
-import { Users } from '../models/user.model';
-import { COMMON_REACTION_TYPES } from '../enums/common.enum';
-import {
   IMyModel,
   MyModelStatic,
   MyModelStaticGeneric
 } from '../models/common.model-types';
-import { ExpressRouteEndHandler } from '../types/common.types';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
 import { create_notification } from '../repos/notifications.repo';
 import { CommonSocketEventsHandler } from '../services/socket-events-handlers-by-app/common.socket-event-handler';
+import { Includeable } from 'sequelize/types';
+import { validateData } from '../common.chamber';
 
 
 
@@ -34,195 +27,211 @@ export interface ICreateCommonGenericModelChildrenCrudService {
   parent_model_name: string,
   child_model_name: string,
   child_model: MyModelStatic | MyModelStaticGeneric<IMyModel>,
+  includes?: Includeable[],
+
   createValidators: IModelValidator[],
   updateValidators: IModelValidator[],
-  creationCallback?: (params: {
-    model: IMyModel,
-    you: IUser,
-  }) => void;
 }
 
 export interface ICommonGenericModelChildrenCrudService {
-  get_model_by_id: ExpressRouteEndHandler,
-  get_models_count: ExpressRouteEndHandler,
-  get_models_all: ExpressRouteEndHandler,
-  get_models: ExpressRouteEndHandler,
-  create_model: ExpressRouteEndHandler,
-  update_model: ExpressRouteEndHandler,
-  delete_model: ExpressRouteEndHandler,
+  get_model_by_id: (child_model_id: number) => ServiceMethodAsyncResults,
+  get_models_count: (parent_id: number) => ServiceMethodAsyncResults,
+  get_models_all: (parent_id: number) => ServiceMethodAsyncResults,
+  get_models: (parent_id: number, child_id?: number) => ServiceMethodAsyncResults,
+  create_model: (opts: {
+    data: any,
+    you: IUser,
+    parent_model: IMyModel,
+    ignoreNotification?: boolean
+  }) => ServiceMethodAsyncResults,
+  update_model: (opts: {
+    data: any, 
+    child_model_id: number
+  }) => ServiceMethodAsyncResults,
+  delete_model: (child_model_id: number) => ServiceMethodAsyncResults,
 }
 
-export function createCommonGenericModelChildrenCrudService(params: ICreateCommonGenericModelChildrenCrudService) {
-  const parent_model_field_name = params.child_model_name + '_model';
-  const parent_model_id_params_name = params.child_model_name + '_id';
 
-  const child_model_field_name = params.child_model_name + '_model';
-  const child_model_id_params_name = params.child_model_name + '_id';
 
-  return class {
+export function createCommonGenericModelChildrenCrudService(
+  params: ICreateCommonGenericModelChildrenCrudService
+): ICommonGenericModelChildrenCrudService {
+  const parent_model_id_params_name = params.parent_model_name + '_id';
+
+  // https://stackoverflow.com/questions/13955157/how-to-define-static-property-in-typescript-interface
+  let Class: ICommonGenericModelChildrenCrudService;
+  Class = class {
     /** Request Handlers */
   
-    static async get_model_by_id(request: Request, response: Response) {
-      const child_model = response.locals[child_model_field_name];
-      return response.status(HttpStatusCode.OK).json({
-        data: child_model
+    static async get_model_by_id(child_model_id: number) {
+      const data = params.child_model.findOne({
+        where: { id: child_model_id },
+        include: params.includes,
       });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async get_models_count(request: Request, response: Response) {
-      const parent_model_id: number = parseInt(request.params[parent_model_id_params_name], 10);
-      const child_models_count = await params.child_model.count({ where: { [parent_model_id_params_name]: parent_model_id } });
-      return response.status(HttpStatusCode.OK).json({
-        data: child_models_count
-      });
+    static async get_models_count(parent_id: number) {
+      const child_models_count = await params.child_model.count({ where: { [parent_model_id_params_name]: parent_id } });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: child_models_count,
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async get_models_all(request: Request, response: Response) {
-      const parent_model_id: number = parseInt(request.params[parent_model_id_params_name], 10);
+    static async get_models_all(parent_id: number) {
       const models = await CommonRepo.getAll(
         params.child_model,
         parent_model_id_params_name,
-        parent_model_id,
-        [{
-          model: Users,
-          as: 'owner',
-          attributes: user_attrs_slim
-        }]
+        parent_id,
+        params.includes,
       );
-      return response.status(HttpStatusCode.OK).json({
-        data: models
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: models,
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async get_models(request: Request, response: Response) {
-      const parent_model_id: number = parseInt(request.params[parent_model_id_params_name], 10);
-      const child_model_id: number = parseInt(request.params[child_model_id_params_name], 10);
+    static async get_models(parent_id: number, child_id?: number) {
       const models = await CommonRepo.paginateTable(
         params.child_model,
         parent_model_id_params_name,
-        parent_model_id,
-        child_model_id,
-        [{
-          model: Users,
-          as: 'owner',
-          attributes: user_attrs_slim
-        }]
+        parent_id,
+        child_id,
+        params.includes
       );
-      return response.status(HttpStatusCode.OK).json({
-        data: models
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: models,
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async create_model(request: Request, response: Response) {
-      const you: IUser = response.locals.you;
-      const data: any = request.body.payload ? JSON.parse(request.body.payload) : request.body;
-      const model_id: number = parseInt(request.params.model_id, 10);
-      const parent_model = response.locals[parent_model_field_name] as IMyModel;
-
+    static async create_model(opts: {
+      data: any,
+      you: IUser,
+      parent_model: IMyModel,
+      ignoreNotification?: boolean,
+    }) {
+      const { data, you, parent_model, ignoreNotification } = opts;
       const createObj: any = {};
-  
 
-      for (const prop of params.createValidators) {
-        if (!data.hasOwnProperty(prop.field)) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `${prop.name} is required.`
-          });
-        }
-        const isValid: boolean = prop.validator(data[prop.field]);
-        if (!isValid) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `${prop.name} is invalid.`
-          });
-        }
+      const dataValidation = validateData({
+        data, 
+        validators: params.createValidators,
+        mutateObj: createObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
+      }
+      
+      const new_model = await params.child_model.create(createObj, { include: params.includes });
+      // const model = await params.child_model.findOne({
+      //   where: { id: new_model.get('id') },
+      //   include: params.includes
+      // });
 
-        createObj[prop.field] = data[prop.field];
+      if (!ignoreNotification) {
+        create_notification({
+          from_id: you.id,
+          to_id: parent_model.get('owner_id'),
+          micro_app: params.micro_app,
+          event: params.create_model_event,
+          target_type: params.target_type,
+          target_id: new_model.get('id'),
+        }).then(async (notification_model) => {
+          const notification = await params.populate_notification_fn(notification_model);
+          CommonSocketEventsHandler.emitEventToUserSockets({
+            user_id: parent_model.get('owner_id'),
+            event: params.create_model_event,
+            data: {
+              data: new_model,
+              message: `New ${params.child_model_name}`,
+              user: you,
+              notification,
+            }
+          });
+        });
       }
 
-      
-      const new_model = await params.child_model.create(createObj);
-      const model = await params.child_model.findOne({
-        where: { id: new_model.get('id') },
-        include: [{
-          model: Users,
-          as: 'owner',
-          attributes: user_attrs_slim
-        }]
-      });
-
-      create_notification({
-        from_id: you.id,
-        to_id: parent_model.get('owner_id'),
-        micro_app: params.micro_app,
-        event: params.create_model_event,
-        target_type: params.target_type,
-        target_id: new_model.get('id'),
-      }).then(async (notification_model) => {
-        const notification = await params.populate_notification_fn(notification_model);
-        CommonSocketEventsHandler.emitEventToUserSockets({
-          user_id: parent_model.get('owner_id'),
-          event: params.create_model_event,
-          data: {
-            data: model,
-            message: `New ${params.child_model_name}`,
-            user: you,
-            notification,
-          }
-        });
-      });
-
-      return response.status(HttpStatusCode.OK).json({
-        message: `created successfully`,
-        data: model
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `created successfully`,
+          data: new_model
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async update_model(request: Request, response: Response) {
-      const child_model = response.locals[child_model_field_name] as IMyModel;
-      const child_model_id = child_model.get('id');
-      const data: any = request.body.payload ? JSON.parse(request.body.payload) : request.body;
-      const you: IUser = response.locals.you; 
-      
+    static async update_model(opts: {
+      data: any,
+      child_model_id: number
+    }) {
+      const { data, child_model_id } = opts;
       const updatesObj: any = {};
 
-      for (const prop of params.updateValidators) {
-        if (!data.hasOwnProperty(prop.field)) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `${prop.name} is required.`
-          });
-        }
-        const isValid: boolean = prop.validator(data[prop.field]);
-        if (!isValid) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `${prop.name} is invalid.`
-          });
-        }
-
-        updatesObj[prop.field] = data[prop.field];
+      const dataValidation = validateData({
+        data, 
+        validators: params.updateValidators,
+        mutateObj: updatesObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
       }
 
       const updates = await params.child_model.update(updatesObj, { where: { id: child_model_id } });
       const updated_model = await params.child_model.findOne({
         where: { id: child_model_id },
-        include: [{
-          model: Users,
-          as: 'owner',
-          attributes: user_attrs_slim
-        }]
+        include: params.includes,
       });
-      return response.status(HttpStatusCode.OK).json({
-        message: `updated successfully`,
-        updates: updates,
-        data: updated_model
-      });
+
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `updated successfully`,
+          data: {
+            updates,
+            [params.child_model_name]: updated_model
+          }
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async delete_model(request: Request, response: Response) {
-      const child_model = response.locals[child_model_field_name] as IMyModel;
-      const deletes = await child_model.destroy();
-      return response.status(HttpStatusCode.OK).json({
-        message: `deleted successfully`,
-        deletes
-      });
+    static async delete_model(child_model_id: number) {
+      const deletes = await params.child_model.destroy({ where: { id: child_model_id } });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: deletes,
+        }
+      };
+      return serviceMethodResults;
     }
-  } as ICommonGenericModelChildrenCrudService;
+
+  };
+
+  return Class;
 }

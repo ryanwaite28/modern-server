@@ -12,7 +12,7 @@ import { DeliverMeRouter } from './deliver-me/deliverme.app';
 import { ContenderRouter } from './contender/contender.app';
 
 import { StripeService } from './_common/services/stripe.service';
-import { StripeWebhookEventsHandlerService } from './_common/services/stripe-webhook-events-handler.service';
+import { StripeWebhookEventsRequestHandler } from './_common/handlers/stripe-webhook-events.handler';
 
 
 // create main apps router
@@ -23,7 +23,6 @@ export const AppsRouter: Router = Router({ mergeParams: true });
 // Mount Apps
 
 AppsRouter.use('/common', CommonRouter);
-
 AppsRouter.use('/hotspot', HotspotRouter);
 AppsRouter.use('/deliverme', DeliverMeRouter);
 AppsRouter.use('/travellrs', TravellrsRouter);
@@ -53,7 +52,7 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
 
   console.log(`stripe webhook event:`, { event });
 
-  return StripeWebhookEventsHandlerService.handleEvent(event, request, response);
+  return StripeWebhookEventsRequestHandler.handleEvent(event, request, response);
 });
 
 

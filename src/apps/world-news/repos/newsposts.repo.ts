@@ -95,7 +95,6 @@ export async function create_newspost(createObj: {
       photo_link: uploadedPhoto.results.result!.secure_url,
       photo_id: uploadedPhoto.results.result!.public_id,
       tags: uploadedPhoto.fileInfo.tags.join(',') || '',
-      industry: uploadedPhoto.fileInfo.industry.join(',') || '',
     });
     const newspost_photo_model = await NewsPostPhotos.create({
       newspost_id: new_newspost_model.get('id'),
@@ -104,7 +103,7 @@ export async function create_newspost(createObj: {
     console.log(`newspost_photo_model upload successful.`);
   }
   const newspost = await get_newspost_by_id(new_newspost_model.get('id'));
-  return newspost;
+  return newspost!;
 }
 
 export async function update_newspost(

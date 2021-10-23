@@ -1,7 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import {
   HttpStatusCode
 } from '../enums/http-codes.enum';
@@ -13,16 +10,15 @@ import {
   user_attrs_slim
 } from '../common.chamber';
 import { Users } from '../models/user.model';
-import { COMMON_REACTION_TYPES } from '../enums/common.enum';
 import {
   IMyModel,
   MyModelStatic,
   MyModelStaticGeneric
 } from '../models/common.model-types';
-import { createCommonGenericModelReactionsService, IGenericModelReactionsService } from './create-model-reactions-service.helper';
-import { ExpressRouteEndHandler } from '../types/common.types';
+import { ServiceMethodResults, ServiceMethodAsyncResults } from '../types/common.types';
 import { create_notification } from '../repos/notifications.repo';
 import { CommonSocketEventsHandler } from '../services/socket-events-handlers-by-app/common.socket-event-handler';
+import { Includeable } from 'sequelize/types';
 
 
 export interface ICreateCommonGenericModelCommentRepliesService {
@@ -34,39 +30,64 @@ export interface ICreateCommonGenericModelCommentRepliesService {
 }
 
 export interface IGenericCommentRepliesService {
-  get_comment_reply_by_id: ExpressRouteEndHandler,
-  get_comment_replies_count: ExpressRouteEndHandler,
-  get_comment_replies_all: ExpressRouteEndHandler,
-  get_comment_replies: ExpressRouteEndHandler,
-  create_comment_reply: ExpressRouteEndHandler,
-  update_comment_reply: ExpressRouteEndHandler,
-  delete_comment_reply: ExpressRouteEndHandler,
+  get_comment_reply_by_id: (reply_id: number) => ServiceMethodAsyncResults,
+  get_comment_replies_count: (comment_id: number) => ServiceMethodAsyncResults,
+  get_comment_replies_all: (comment_id: number) => ServiceMethodAsyncResults,
+  get_comment_replies: (comment_id: number, reply_id?: number) => ServiceMethodAsyncResults,
+  create_comment_reply: (opts: {
+    body: string,
+    comment_model: IMyModel,
+    you: IUser,
+    ignoreNotification?: boolean,
+  }) => ServiceMethodAsyncResults,
+  update_comment_reply: (opts: {
+    body: string,
+    reply_id: number,
+  }) => ServiceMethodAsyncResults,
+  delete_comment_reply: (reply_id: number) => ServiceMethodAsyncResults,
 }
 
 export function createCommonGenericModelCommentRepliesService (
   params: ICreateCommonGenericModelCommentRepliesService
-) {
-  return class {
+): IGenericCommentRepliesService {
+
+  let Class: IGenericCommentRepliesService;
+  Class = class {
     /** Request Handlers */
   
-    static async get_comment_reply_by_id(request: Request, response: Response) {
-      const reply_model = response.locals.reply_model;
-      return response.status(HttpStatusCode.OK).json({
-        data: reply_model
+    static async get_comment_reply_by_id(reply_id: number) {
+      const reply_model = params.comment_reply_model.findOne({
+        where: { id: reply_id },
+        include: [{
+          model: Users,
+          as: 'owner',
+          attributes: user_attrs_slim
+        }],
       });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: reply_model
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async get_comment_replies_count(request: Request, response: Response) {
-      const comment_id: number = parseInt(request.params.comment_id, 10);
+    static async get_comment_replies_count(comment_id: number) {
       const replies_count = await params.comment_reply_model.count({ where: { comment_id } });
-      return response.status(HttpStatusCode.OK).json({
-        data: replies_count
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: replies_count
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async get_comment_replies_all(request: Request, response: Response) {
-      const comment_id: number = parseInt(request.params.comment_id, 10);
-      const replys = await CommonRepo.getAll(
+    static async get_comment_replies_all(comment_id: number) {
+      const replies = await CommonRepo.getAll(
         params.comment_reply_model,
         'comment_id',
         comment_id,
@@ -76,15 +97,18 @@ export function createCommonGenericModelCommentRepliesService (
           attributes: user_attrs_slim
         }]
       );
-      return response.status(HttpStatusCode.OK).json({
-        data: replys
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: replies
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async get_comment_replies(request: Request, response: Response) {
-      const comment_id: number = parseInt(request.params.comment_id, 10);
-      const reply_id = parseInt(request.params.reply_id, 10);
-      const businesses = await CommonRepo.paginateTable(
+    static async get_comment_replies(comment_id: number, reply_id?: number) {
+      const replies = await CommonRepo.paginateTable(
         params.comment_reply_model,
         'comment_id',
         comment_id,
@@ -95,21 +119,34 @@ export function createCommonGenericModelCommentRepliesService (
           attributes: user_attrs_slim
         }]
       );
-      return response.status(HttpStatusCode.OK).json({
-        data: businesses
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: replies
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async create_comment_reply(request: Request, response: Response) {
-      const you: IUser = response.locals.you;
-      const comment_id: number = parseInt(request.params.comment_id, 10);
-      const comment_model = response.locals.comment_model as IMyModel;
-      let body: string = request.body.body;
+    static async create_comment_reply(opts: {
+      body: string,
+      comment_model: IMyModel,
+      you: IUser,
+      ignoreNotification?: boolean,
+    }) {
+      const { body, you, comment_model, ignoreNotification } = opts;
       if (!body) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `Reply body is required`
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Reply body is required`
+          }
+        };
+        return serviceMethodResults;
       }
+      const comment_id = comment_model.get('id');
       const reply_model = await params.comment_reply_model.create({ body, comment_id, owner_id: you.id });
       const reply = await params.comment_reply_model.findOne({
         where: { id: reply_model.get('id') },
@@ -120,41 +157,54 @@ export function createCommonGenericModelCommentRepliesService (
         }]
       });
 
-      create_notification({
-        from_id: you.id,
-        to_id: comment_model.get('owner_id'),
-        micro_app: params.micro_app,
-        event: params.create_model_event,
-        target_type: params.target_type,
-        target_id: reply_model.get('id'),
-      }).then(async (notification_model) => {
-        const notification = await params.populate_notification_fn(notification_model);
-        CommonSocketEventsHandler.emitEventToUserSockets({
-          user_id: comment_model.get('owner_id'),
+      if (!ignoreNotification) {
+        create_notification({
+          from_id: you.id,
+          to_id: comment_model.get('owner_id'),
+          micro_app: params.micro_app,
           event: params.create_model_event,
-          data: {
-            data: reply,
-            message: `New reply`,
-            user: you,
-            notification,
-          }
+          target_type: params.target_type,
+          target_id: reply_model.get('id'),
+        }).then(async (notification_model) => {
+          const notification = await params.populate_notification_fn(notification_model);
+          CommonSocketEventsHandler.emitEventToUserSockets({
+            user_id: comment_model.get('owner_id'),
+            event: params.create_model_event,
+            data: {
+              data: reply,
+              message: `New reply`,
+              user: you,
+              notification,
+            }
+          });
         });
-      });
+      }
 
-      return response.status(HttpStatusCode.OK).json({
-        message: `Reply created successfully`,
-        data: reply
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `reply created`,
+          data: reply
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async update_comment_reply(request: Request, response: Response) {
-      const you: IUser = response.locals.you; 
-      let body: string = request.body.body;
-      const reply_id = parseInt(request.params.reply_id, 10);
+    static async update_comment_reply(opts: {
+      body: string,
+      reply_id: number,
+    }) {
+      const { body, reply_id } = opts;
       if (!body) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `Reply body is required`
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Reply body is required`
+          }
+        };
+        return serviceMethodResults;
       }
       const updates = await params.comment_reply_model.update({ body }, { where: { id: reply_id } });
       const reply = await params.comment_reply_model.findOne({
@@ -165,20 +215,35 @@ export function createCommonGenericModelCommentRepliesService (
           attributes: user_attrs_slim
         }]
       });
-      return response.status(HttpStatusCode.OK).json({
-        message: `Reply updated successfully`,
-        updates: updates,
-        data: reply
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `Reply updated successfully`,
+          data: {
+            updates,
+            reply
+          }
+        }
+      };
+      return serviceMethodResults;
     }
   
-    static async delete_comment_reply(request: Request, response: Response) {
-      const reply_id = parseInt(request.params.reply_id, 10);
+    static async delete_comment_reply(reply_id: number) {
       const deletes = await params.comment_reply_model.destroy({ where: { id: reply_id } });
-      return response.status(HttpStatusCode.OK).json({
-        message: `Reply deleted successfully`,
-        deletes
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `Reply deleted successfully`,
+          data: {
+            deletes
+          }
+        }
+      };
+      return serviceMethodResults;
     }
-  } as IGenericCommentRepliesService;
+  };
+
+  return Class;
 }

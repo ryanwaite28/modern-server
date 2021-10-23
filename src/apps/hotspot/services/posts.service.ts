@@ -1,8 +1,5 @@
 import { UploadedFile } from 'express-fileupload';
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import {
   HttpStatusCode
 } from '../../_common/enums/http-codes.enum';
@@ -13,26 +10,29 @@ import * as CommonRepo from '../../_common/repos/_common.repo';
 import * as HotspotPostsRepo from '../repos/posts.repo';
 import {
   user_attrs_slim,
-  allowedImages
+  allowedImages,
+  createGenericServiceMethodSuccess,
+  createGenericServiceMethodError
 } from '../../_common/common.chamber';
 import { IStoreImage, store_image } from '../../../cloudinary-manager';
 import { Photos } from '../../_common/models/photo.model';
 import { HotspotPosts, HotspotPostPhotos, HotspotPostReactions } from '../models/post.model';
 import { Users } from '../../_common/models/user.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
+import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
+
+
 
 export class PostsService {
   /** Request Handlers */
 
-  static async get_post_by_id(request: Request, response: Response) {
-    const post_model = response.locals.post_model;
-    return response.status(HttpStatusCode.OK).json({
-      data: post_model
-    });
+  static async get_post_by_id(post_id: number): ServiceMethodAsyncResults {
+    const post_model = await HotspotPostsRepo.get_post_by_id(post_id);
+
+    return createGenericServiceMethodSuccess(undefined, post_model);
   }
 
-  static async get_user_posts_all(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
+  static async get_user_posts_all(user_id: number): ServiceMethodAsyncResults {
     const posts = await CommonRepo.getAll(
       HotspotPosts,
       'owner_id',
@@ -50,14 +50,11 @@ export class PostsService {
         }]
       }]
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: posts
-    });
+
+    return createGenericServiceMethodSuccess(undefined, posts);
   }
 
-  static async get_user_posts(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const post_id = parseInt(request.params.post_id, 10);
+  static async get_user_posts(user_id: number, post_id?: number): ServiceMethodAsyncResults {
     const posts = await CommonRepo.paginateTable(
       HotspotPosts,
       'owner_id',
@@ -76,54 +73,37 @@ export class PostsService {
         }]
       }]
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: posts
-    });
+
+    return createGenericServiceMethodSuccess(undefined, posts);
   }
 
-  static async create_post(request: Request, response: Response) {
-    const you: IUser = response.locals.you;
-    const data: PlainObject = JSON.parse(request.body.payload);
-    
-    let title: string = data.title;
-    let body: string = data.body;
-    let tags: string[] = data.tags;
-    let filesInfo: PlainObject[] = data.filesInfo || [];
-    const photo_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.photos);
-    const video_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.videos);
-    const audio_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.audios);
-
-    console.log({ files: request.files });
-
-    // console.log({
-    //   body: request.body,
-    //   files: request.files,
-    //   photo_files,
-    //   photo_files_cstr: photo_files && photo_files.constructor,
-    // });
-
-    // return response.status(HttpStatusCode.BAD_REQUEST).json({
-    //   message: `HotspotPost body is required`
-    // });
+  static async create_post(opts: {
+    you_id: number,
+    photo_files: UploadedFile | undefined,
+    video_files: UploadedFile | undefined,
+    audio_files: UploadedFile | undefined,
+    filesInfo: PlainObject[],
+    data: PlainObject | {
+      title: string,
+      body: string,
+      tags: string[],
+    }
+  }): ServiceMethodAsyncResults {
+    const { you_id, photo_files, video_files, audio_files, filesInfo, data } = opts;
+    let { body, title, tags } = data;
 
     if (!body) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `HotspotPost body is required`
-      });
+      return createGenericServiceMethodError(`HotspotPost body is required`);
     }
     if (!tags) {
       tags = [];
     }
-    const all_tags_valid = tags.length === 0 || tags.every(tag => (typeof (tag) === 'string') && tag.length <= 30);
+    const all_tags_valid = tags.length === 0 || tags.every((tag: string | any) => (typeof (tag) === 'string') && tag.length <= 30);
     if (!all_tags_valid) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `All elements in tags list must be a string`
-      });
+      return createGenericServiceMethodError(`All elements in tags list must be a string`);
     }
     if (tags.length > 20) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Maximum of tags list is 20`
-      });
+      return createGenericServiceMethodError(`Maximum of tags list is 20`);
     }
 
     const uploadedPhotos: { fileInfo: PlainObject; results: IStoreImage }[] = [];
@@ -135,19 +115,14 @@ export class PostsService {
         : [photo_files]; // when single file; make an array for consistency
 
       if (photos.length > 3) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `Maximum of photo files is 3`
-        });
+        return createGenericServiceMethodError(`Maximum of photo files is 3`);
       }
       
       for (const photo of photos) {
         const type = photo.mimetype.split('/')[1];
         const isInvalidType = !allowedImages.includes(type);
         if (isInvalidType) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            error: true,
-            message: 'Invalid file type: jpg, jpeg or png required...'
-          });
+          return createGenericServiceMethodError('Invalid file type: jpg, jpeg or png required...');
         }
       }
 
@@ -163,66 +138,55 @@ export class PostsService {
     }
 
     const post_model = await HotspotPostsRepo.create_post({
+      owner_id: you_id,
       title,
       body,
       tags,
       uploadedPhotos,
-      owner_id: you.id
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `HotspotPost created successfully`,
-      data: post_model
-    });
+    return createGenericServiceMethodSuccess(`HotspotPost created successfully`, post_model);
   }
 
-  static async update_post(request: Request, response: Response) {
-    const post_id = parseInt(request.params.post_id, 10);
-    const you: IUser = response.locals.you; 
-    let body: string = request.body.body;
-    let tags: string[] = request.body.tags;
-    let industry: string[] = request.body.industry;
+  static async update_post(opts: {
+    post_id: number,
+    photo_files: UploadedFile | undefined,
+    video_files: UploadedFile | undefined,
+    audio_files: UploadedFile | undefined,
+    filesInfo: PlainObject[],
+    data: PlainObject | {
+      title: string,
+      body: string,
+      tags: string[],
+    }
+  }): ServiceMethodAsyncResults {
+    const { post_id, photo_files, video_files, audio_files, filesInfo, data } = opts;
+    let { body, title, tags } = data;
+
     if (!body) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `HotspotPost body is required`
-      });
+      return createGenericServiceMethodError(`body is required`);
     }
     if (!tags) {
       tags = [];
     }
-    if (!industry) {
-      industry = [];
-    }
-    const all_tags_valid = tags.length === 0 || tags.every(tag => (typeof (tag) === 'string'));
+
+    const all_tags_valid = tags.length === 0 || tags.every((tag: string | any) => (typeof (tag) === 'string') && tag.length <= 30);
     if (!all_tags_valid) {
-      if (!body) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `All elements in tags list must be a string`
-        });
-      }
+      return createGenericServiceMethodError(`All elements in tags list must be a string`);
     }
     if (tags.length > 20) {
-      if (!body) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `Maximum of tags list is 20`
-        });
-      }
+      return createGenericServiceMethodError(`Maximum of tags list is 20`);
     }
-    const updates = await HotspotPostsRepo.update_post({ body, industry, tags }, post_id);
+
+    const updates = await HotspotPostsRepo.update_post({ body, title, tags }, post_id);
     const post = await HotspotPostsRepo.get_post_by_id(post_id);
-    return response.status(HttpStatusCode.OK).json({
-      message: `HotspotPost updated successfully`,
-      updates: updates,
-      data: post
-    });
+
+    return createGenericServiceMethodSuccess(`Post updated successfully`, { updates, post });
   }
 
-  static async delete_post(request: Request, response: Response) {
-    const post_id = parseInt(request.params.post_id, 10);
+  static async delete_post(post_id: number): ServiceMethodAsyncResults {
     const deletes = await HotspotPostsRepo.delete_post(post_id);
-    return response.status(HttpStatusCode.OK).json({
-      message: `HotspotPost deleted successfully`,
-      deletes
-    });
+
+    return createGenericServiceMethodSuccess(`Post deleted successfully`, deletes);
   }
 }

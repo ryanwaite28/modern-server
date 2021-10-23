@@ -1,14 +1,3 @@
-import {
-  fn,
-  Op,
-  WhereOptions,
-  FindOptions,
-  Includeable,
-  Model,
-  FindAttributeOptions,
-  GroupOption,
-  Order
-} from 'sequelize';
 import { user_attrs_slim } from '../common.chamber';
 import { Follows, Users } from '../models/user.model';
 
@@ -52,7 +41,7 @@ export async function get_user_followers_all(
   id: number
 ) {
   try {
-    const results = await Follows.findAll({
+    const followers = await Follows.findAll({
       where: { follows_id: id },
       include: [{
         model: Users,
@@ -60,7 +49,7 @@ export async function get_user_followers_all(
         attributes: user_attrs_slim
       }]
     });
-    return results;
+    return followers;
   } catch (e) {
     console.log({
       errorMessage: `get_user_followers_all error - `,
@@ -75,7 +64,7 @@ export async function get_user_followings_all(
   id: number
 ) {
   try {
-    const results = await Follows.findAll({
+    const followings = await Follows.findAll({
       where: { user_id: id },
       include: [{
         model: Users,
@@ -83,7 +72,7 @@ export async function get_user_followings_all(
         attributes: user_attrs_slim
       }]
     });
-    return results;
+    return followings;
   } catch (e) {
     console.log({
       errorMessage: `get_user_followings_all error - `,

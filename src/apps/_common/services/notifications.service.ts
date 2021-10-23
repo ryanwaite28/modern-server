@@ -1,7 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import {
   IUser
 } from '../interfaces/common.interface';
@@ -19,6 +16,8 @@ import { populate_deliverme_notification_obj } from '../../deliver-me/deliverme.
 import { populate_myfavors_notification_obj } from '../../my-favors/myfavors.chamber';
 import { TokensService } from './tokens.service';
 import { Notifications, Users } from '../models/user.model';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
+
 
 
 export class NotificationsService {
@@ -30,13 +29,11 @@ export class NotificationsService {
   
   // request handlers
 
-  static async get_user_notifications(request: Request, response: Response) {
-    const you: IUser = { ...response.locals.you }; 
-    const notification_id = parseInt(request.params.notification_id, 10);
+  static async get_user_notifications(user_id: number, notification_id: number): ServiceMethodAsyncResults {
     const notifications_models = await CommonRepo.paginateTable(
       Notifications,
       'to_id',
-      you.id,
+      user_id,
       notification_id
     );
 
@@ -53,17 +50,21 @@ export class NotificationsService {
       }
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      data: newList,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: newList,
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_user_notifications_all(request: Request, response: Response) {
-    const you: IUser = response.locals.you; 
+  static async get_user_notifications_all(user_id: number): ServiceMethodAsyncResults {
     const notifications_models = await CommonRepo.getAll(
       Notifications,
       'to_id',
-      you.id,
+      user_id,
     );
     
     const newList: any = [];
@@ -77,30 +78,38 @@ export class NotificationsService {
       }
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      data: newList
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: newList
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async update_user_last_opened(request: Request, response: Response) {
-    const you: IUser = { ...response.locals.you }; 
+  static async update_user_last_opened(user_id: number): ServiceMethodAsyncResults {
     // update user last opened
-    await Users.update(<any> { notifications_last_opened: fn('NOW') }, { where: { id: you.id } });
+    await Users.update(<any> { notifications_last_opened: fn('NOW') }, { where: { id: user_id } });
     const newYouModel = await Users.findOne({
-      where: { id: you.id },
+      where: { id: user_id },
       attributes: { exclude: ['password'] }
     });
+
     const newYou = <any> newYouModel!.toJSON();
     // create new token and return
-    const jwt = TokensService.newJwtToken(request, newYou, true);
+    const jwt = TokensService.newUserJwtToken(newYou);
 
-    return response.status(HttpStatusCode.OK).json({
-      you: newYou,
-      token: jwt
-    });
-  }
-
-  static async get_notifications_polling(request: Request, response: Response) {
-    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: {
+          you: newYou,
+          token: jwt
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 }

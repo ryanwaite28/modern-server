@@ -30,13 +30,14 @@ export interface ICreateUpdateFavor {
   helpers_wanted: number,
   payment_session_id: string,
   date_needed?: Date | string,
+  time_needed?: string,
 
   uploadedPhotos?: { fileInfo: PlainObject; results: IStoreImage }[];
 }
 
 export interface ICreateFavorUpdateProps {
   user_id: number;
-  delivery_id: number;
+  favor_id: number;
 
   icon_link?: string;
   icon_id?: string;

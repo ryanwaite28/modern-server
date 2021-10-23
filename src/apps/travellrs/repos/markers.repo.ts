@@ -9,41 +9,48 @@ import {
   Markers,
   MarkerPhotos,
   MarkerVideos,
-  MarkerAudios
+  MarkerAudios,
+  MarkerReactions
 } from '../models/marker.model';
-import { getRandomModels } from '../../_common/repos/_common.repo';
+import { getAll, getRandomModels, paginateTable } from '../../_common/repos/_common.repo';
+
+
+
+export const markerMasterIncludes = [{
+  model: Users,
+  as: 'owner',
+  attributes: user_attrs_slim
+}, {
+  model: MarkerPhotos,
+  as: 'photos',
+  include: [{
+    model: Photos,
+    as: 'photo_marker',
+  }]
+}, {
+  model: MarkerVideos,
+  as: 'videos',
+  include: [{
+    model: Videos,
+    as: 'video_marker',
+  }]
+}, {
+  model: MarkerAudios,
+  as: 'audios',
+  include: [{
+    model: Audios,
+    as: 'audio_marker',
+  }]
+}];
+
+
 
 export async function get_marker_by_id(id: number, slim: boolean = false) {
   const marker = slim 
   ? await Markers.findByPk(id)
   : await Markers.findOne({
       where: { id },
-      include: [{
-        model: Users,
-        as: 'owner',
-        attributes: user_attrs_slim
-      }, {
-        model: MarkerPhotos,
-        as: 'photos',
-        include: [{
-          model: Photos,
-          as: 'photo_marker',
-        }]
-      }, {
-        model: MarkerVideos,
-        as: 'videos',
-        include: [{
-          model: Videos,
-          as: 'video_marker',
-        }]
-      }, {
-        model: MarkerAudios,
-        as: 'audios',
-        include: [{
-          model: Audios,
-          as: 'audio_marker',
-        }]
-      }]
+      include: markerMasterIncludes
     });
   return marker;
 }
@@ -114,6 +121,111 @@ export async function get_random_markers(limit: number = 10) {
       model: Users,
       as: 'owner',
       attributes: user_attrs_slim,
+    }]
+  );
+}
+
+export function get_user_markers_all(user_id: number) {
+  return getAll(
+    Markers,
+    'owner_id',
+    user_id,
+    [{
+      model: Users,
+      as: 'owner',
+      attributes: user_attrs_slim
+    }, {
+      model: MarkerPhotos,
+      as: 'photos',
+      include: [{
+        model: Photos,
+        as: 'photo_marker',
+      }]
+    }, {
+      model: MarkerVideos,
+      as: 'videos',
+      include: [{
+        model: Videos,
+        as: 'video_marker',
+      }]
+    }, {
+      model: MarkerAudios,
+      as: 'audios',
+      include: [{
+        model: Audios,
+        as: 'audio_marker',
+      }]
+    }]
+  );
+}
+
+export function get_user_markers(user_id: number, marker_id?: number) {
+  return paginateTable(
+    Markers,
+    'owner_id',
+    user_id,
+    marker_id,
+    [{
+      model: Users,
+      as: 'owner',
+      attributes: user_attrs_slim
+    }, {
+      model: MarkerPhotos,
+      as: 'photos',
+      include: [{
+        model: Photos,
+        as: 'photo_marker',
+      }]
+    }, {
+      model: MarkerVideos,
+      as: 'videos',
+      include: [{
+        model: Videos,
+        as: 'video_marker',
+      }]
+    }, {
+      model: MarkerAudios,
+      as: 'audios',
+      include: [{
+        model: Audios,
+        as: 'audio_marker',
+      }]
+    }]
+  );
+}
+
+export function get_user_reaction(user_id: number, marker_id: number) {
+  return MarkerReactions.findOne({
+    where: {
+      marker_id,
+      owner_id: user_id
+    }
+  });
+}
+
+export function get_marker_reactions_all(marker_id: number) {
+  return getAll(
+    MarkerReactions,
+    'marker_id',
+    marker_id,
+    [{
+      model: Users,
+      as: 'owner',
+      attributes: user_attrs_slim
+    }]
+  );
+}
+
+export function get_marker_reactions(marker_id: number, reaction_id: number) {
+  return paginateTable(
+    MarkerReactions,
+    'marker_id',
+    marker_id,
+    reaction_id,
+    [{
+      model: Users,
+      as: 'owner',
+      attributes: user_attrs_slim
     }]
   );
 }

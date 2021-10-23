@@ -1,9 +1,6 @@
+import { Request } from 'express';
 import { UploadedFile } from 'express-fileupload';
 import * as bcrypt from 'bcrypt-nodejs';
-import {
-  Request,
-  Response,
-} from 'express';
 import {
   HttpStatusCode
 } from '../enums/http-codes.enum';
@@ -33,7 +30,10 @@ import {
   uniqueValue,
   allowedImages,
   validateName,
-  capitalize
+  capitalize,
+  validateData,
+  create_user_required_props,
+  validateAndUploadImageFile
 } from '../common.chamber';
 import { delete_cloudinary_image, store_image } from '../../../cloudinary-manager';
 import { send_email } from '../../../email-client';
@@ -44,78 +44,107 @@ import { get_user_unseen_notifications_count } from '../repos/notifications.repo
 import { get_user_unread_conversations_messages_count } from '../repos/conversations.repo';
 import { get_user_unread_personal_messages_count } from '../repos/messagings.repo';
 import { StripeService } from './stripe.service';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
+import { IMyModel } from '../models/common.model-types';
 
 export class UsersService {
 
   /** Request Handlers */
 
-  static async main(request: Request, response: Response) {
-    return response.status(HttpStatusCode.OK).json({
-      msg: 'users router'
-    });
-  }
-
-  static async sign_out(request: Request, response: Response) {
-    return response.status(HttpStatusCode.OK).json({
-      online: false,
-      successful: true
-    });
-  }
-
-  static async check_session(request: Request, response: Response) {
+  static async check_session(request: Request): ServiceMethodAsyncResults {
     try {
       const auth = AuthorizeJWT(request, false);
       if (auth.you) {
         const you_model = await UserRepo.get_user_by_id(auth.you.id);
         auth.you = you_model!.toJSON() as IUser;
       }
-      response.status(auth.status).json(auth);
-    } catch (e) {
+
+      const serviceMethodResults: ServiceMethodResults = {
+        status: auth.status,
+        error: false,
+        info: {
+          data: auth
+        }
+      };
+      return serviceMethodResults;
+    }
+    catch (e) {
       console.log('error: ', e);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        e,
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
         error: true,
-        message: `could not check session`
-      });
+        info: {
+          error: e,
+          message: `could not check session`
+        }
+      };
+      return serviceMethodResults;
     }
   }
 
-  static async get_user_by_id(request: Request, response: Response) {
-    const id = parseInt(request.params.id, 10);
-    const user = await UserRepo.get_user_by_id(id);
-    return response.status(HttpStatusCode.OK).json({
-      user
-    });
+  static async get_user_by_id(user_id: number): ServiceMethodAsyncResults {
+    const user: IMyModel | null = await UserRepo.get_user_by_id(user_id);
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: user
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_user_by_phone(request: Request, response: Response) {
-    const phone = request.params.phone;
-    const user = await UserRepo.get_user_by_phone(phone);
-    return response.status(HttpStatusCode.OK).json({
-      user
-    });
+  static async get_user_by_phone(phone: string): ServiceMethodAsyncResults {
+    const user: IMyModel | null = await UserRepo.get_user_by_phone(phone);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: user
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async send_feedback(request: Request, response: Response) {
-    const you: IUser = response.locals.you;
-    const rating = request.body.rating;
-    const title = request.body.title;
-    const summary = request.body.rating;
+  static async send_feedback(opts: {
+    you: IUser,
+    rating: number,
+    title: string,
+    summary: string,
+  }): ServiceMethodAsyncResults {
+    let { you, rating, title, summary } = opts;
 
     if (!rating) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `rating is required`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `rating is required`
+        }
+      };
+      return serviceMethodResults;
     }
     if (!title) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `title is required`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `title is required`
+        }
+      };
+      return serviceMethodResults;
     }
     if (!summary) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `summary is required`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `summary is required`
+        }
+      };
+      return serviceMethodResults;
     }
 
     const new_feedback_model = await SiteFeedbacks.create({
@@ -125,129 +154,143 @@ export class UsersService {
       user_id: you.id
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Feedback submitted successfully`,
-      data: new_feedback_model,
-      success: true
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: {
+          message: `Feedback submitted successfully`,
+          feedback: new_feedback_model,
+          success: true
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_unseen_counts(request: Request, response: Response) {
+  static async get_unseen_counts(user: IUser): ServiceMethodAsyncResults {
     try {
-      const you: IUser = response.locals.you; 
-      const unseen_messages = await get_user_unread_personal_messages_count(you.id);
-      const unseen_conversations = await get_user_unread_conversations_messages_count(you.id);
-      const unseen_notifications = await get_user_unseen_notifications_count(you.id, you.notifications_last_opened);
-      const unseen_clique_member_requests = await get_clique_member_requests_count(you.id);
+      const unseen_messages = await get_user_unread_personal_messages_count(user.id);
+      const unseen_conversations = await get_user_unread_conversations_messages_count(user.id);
+      const unseen_notifications = await get_user_unseen_notifications_count(user.id, user.notifications_last_opened);
+      const unseen_clique_member_requests = await get_clique_member_requests_count(user.id);
 
-
-      response.status(HttpStatusCode.OK).json({
-        data: {
-          unseen_messages,
-          unseen_conversations,
-          unseen_notifications,
-          unseen_clique_member_requests,
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: {
+            unseen_messages,
+            unseen_conversations,
+            unseen_notifications,
+            unseen_clique_member_requests,
+          }
         }
-      });
+      };
+      return serviceMethodResults;
     } catch (e) {
       console.log(`get_unseen_counts error:`, e);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        error: e
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        error: true,
+        info: {
+          error: e,
+        }
+      };
+      return serviceMethodResults;
     }
   }
   
-  static async get_random_users(request: Request, response: Response) {
-    const limit = request.params.limit
+  static async get_random_users(limit: any): ServiceMethodAsyncResults {
     const limitIsValid = (/[0-9]+/).test(limit);
-    const useLimit = limitIsValid
-      ? parseInt(request.params.limit, 10)
+    const useLimit: number = limitIsValid
+      ? parseInt(limit, 10)
       : 10;
-    const users = await UserRepo.get_random_users(useLimit);
-    return response.status(HttpStatusCode.OK).json({
-      data: users
-    });
+    const users: IMyModel[] = await UserRepo.get_random_users(useLimit);
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: users
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async sign_up(request: Request, response: Response) {
+  static async sign_up(data: {
+    firstname: string,
+    middlename?: string,
+    lastname: string,
+    username: string,
+    displayname: string,
+    email: string,
+    password: string,
+    confirmPassword: string,
+
+    host: string,
+  }): ServiceMethodAsyncResults {
     const {
       firstname,
       middlename,
       lastname,
       username,
       displayname,
-
       email,
       password,
       confirmPassword,
-    } = request.body;
 
-    /**
-     * index description:
-     * 0 - the property to look up on the response body
-     * 1 - the label of the property/field
-     * 2 - a validation function
-     * 3 - a validation message
-    */
-    const required_fields: [
-      string, string, (arg: any) => boolean, string
-    ][] = [
-      // ['gender', 'Gender', validateGender, 'must be a 0, 1 or 2'],
-      // ['type', 'Type', validateAccountType, 'please choose an account type'],
-      ['username', 'Username', validateUsername, 'must be: at least 2 characters, alphanumeric, dashes, underscores, periods'],
-      ['displayname', 'DisplayName', validateDisplayName, 'must be: at least 2 characters, alphanumeric, dashes, underscores, periods, spaces'],
-      ['firstname', 'First Name', validateName, 'must be: at least 2 characters, letters only'],
-      // ['middlename', 'Middle Name', validateUsername, 'must be: at least 2 characters, letters only'],
-      ['lastname', 'Last Name', validateUsername, 'must be: at least 2 characters, letters only'],
+      host,
+    } = data;
 
-      ['email', 'Email', validateEmail, 'is in bad format'],
-      ['password', 'Password', validatePassword, 'Password must be: at least 7 characters, upper and/or lower case alphanumeric'],
-      ['confirmPassword', 'Confirm Password', validatePassword, 'Password must be: at least 7 characters, upper and/or lower case alphanumeric'],
-    ];
-
-    required_fields.forEach((field) => {
-      const value = request.body[field[0]];
-      if (!value) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${field[1]} field is required`
-        });
-      }
-      const check_validation = field[2](value);
-      if (!check_validation) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${field[1]} ${field[3]}`
-        });
-      }
+    const dataValidation: ServiceMethodResults = validateData({
+      data,
+      validators: create_user_required_props,
     });
+    if (dataValidation.error) {
+      return dataValidation;
+    }
 
     if (password !== confirmPassword) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
         error: true,
-        message: 'Passwords must match'
-      });
+        info: {
+          message: 'Passwords must match'
+        }
+      };
+      return serviceMethodResults;
     }
 
     const check_email = await UserRepo.get_user_by_email(email);
     if (check_email) {
-      return response.status(HttpStatusCode.FORBIDDEN).json({
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
         error: true,
-        message: 'Email already in use'
-      });
+        info: {
+          message: 'Email already in use'
+        }
+      };
+      return serviceMethodResults;
     }
 
     const check_username = await UserRepo.get_user_by_email(username);
     if (check_username) {
-      return response.status(HttpStatusCode.FORBIDDEN).json({
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
         error: true,
-        message: 'Username already in use'
-      });
+        info: {
+          message: 'Username already in use'
+        }
+      };
+      return serviceMethodResults;
     }
   
     /* Data Is Valid */
   
     const createInfo = {
       firstname: capitalize(firstname),
-      middlename: request.body.middlename && capitalize(request.body.middlename),
+      middlename: middlename && capitalize(middlename) || '',
       lastname: capitalize(lastname),
       // gender: parseInt(gender, 10),
       username: username.toLowerCase(),
@@ -267,7 +310,6 @@ export class UsersService {
       });
       const new_email_verf: PlainObject = new_email_verf_model.get({ plain: true });
 
-      const host: string = request.get('origin')!;
       const verify_link = (<string> host).endsWith('/')
         ? (host + 'modern/verify-email/' + new_email_verf.verification_code)
         : (host + '/modern/verify-email/' + new_email_verf.verification_code);
@@ -299,91 +341,133 @@ export class UsersService {
     }
 
     // create JWT
-    const jwt = TokensService.newJwtToken(request, new_user, true);
-    return response.status(HttpStatusCode.OK).json({
-      online: true,
-      you: new_user,
-      message: 'Signed Up!',
-      token: jwt,
-    });
+    const jwt = TokensService.newUserJwtToken(new_user);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: 'Signed Up!',
+        data: {
+          online: true,
+          you: new_user,
+          token: jwt,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async sign_in(request: Request, response: Response) {
+  static async sign_in(email_or_username: string, password: string): ServiceMethodAsyncResults {
     try {
-      let { email, password } = request.body;
-      if (email) { email = email.toLowerCase(); }
-      if (!email) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+      if (email_or_username) { email_or_username = email_or_username.toLowerCase(); }
+      if (!email_or_username) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: 'Email Address field is required'
-        });
+          info: {
+            message: 'Email Address/Username field is required'
+          }
+        };
+        return serviceMethodResults;
       }
       if (!password) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: 'Password field is required'
-        });
+          info: {
+            message: 'Password field is required'
+          }
+        };
+        return serviceMethodResults;
       }
 
-      const check_account_model = await Users.findOne({ where: { email } });
+      const check_account_model = await Users.findOne({
+        where: {
+          [Op.or]: [
+            { email: email_or_username },
+            { username: email_or_username }
+          ]
+        }
+      });
       if (!check_account_model) {
-        return response.status(HttpStatusCode.UNAUTHORIZED).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.UNAUTHORIZED,
           error: true,
-          message: 'Invalid credentials.'
-        });
+          info: {
+            message: 'Invalid credentials.'
+          }
+        };
+        return serviceMethodResults;
       }
       try {
         const checkPassword = <string> check_account_model.get('password');
         const badPassword = bcrypt.compareSync(password, checkPassword!) === false;
         if (badPassword) {
-          return response.status(HttpStatusCode.UNAUTHORIZED).json({
+          const serviceMethodResults: ServiceMethodResults = {
+            status: HttpStatusCode.UNAUTHORIZED,
             error: true,
-            message: 'Invalid credentials.'
-          });
+            info: {
+              message: 'Invalid credentials.'
+            }
+          };
+          return serviceMethodResults;
         }
       } catch (e) {
-        const errorObj = {
-          e,
-          check_account_model,
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.INTERNAL_SERVER_ERROR,
           error: true,
-          message: `could not process authentication/credentials, something went wrong...`
+          info: {
+            message: `could not process authentication/credentials, something went wrong...`,
+            error: e,
+          }
         };
-        console.log(errorObj);
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json(errorObj);
+        return serviceMethodResults;
       }
 
       const you = <IUser> check_account_model.get({ plain: true });
       delete you.password;
       
       // create JWT
-      const jwt = TokensService.newJwtToken(request, you, true);
-      
-      return response.status(HttpStatusCode.OK).json({
-        online: true,
-        you: you,
-        message: 'Signed In!',
-        token: jwt,
-      });
-    } catch (e) {
-      const errorObj = {
-        e,
-        error: true,
-        message: `could not sign in, something went wrong...`
+      const jwt = TokensService.newUserJwtToken(you);
+
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: 'Signed In!',
+          data: {
+            online: true,
+            you: you,
+            token: jwt,
+          }
+        }
       };
-      console.log(errorObj);
-      response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json(errorObj);
+      return serviceMethodResults;
+    } catch (e) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        error: true,
+        info: {
+          message: `could not sign in, something went wrong...`,
+          error: e,
+        }
+      };
+      return serviceMethodResults;
     }
   }
 
-  static async send_sms_verification(request: Request, response: Response) {
+  static async send_sms_verification(you: IUser, phone: string): ServiceMethodAsyncResults {
     try {
-      const you: IUser = response.locals.you;
-      const phone = request.params.phone_number;
       if (!phone) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: `Phone number is required`
-        });
+          info: {
+            message: `Phone number is required`
+          }
+        };
+        return serviceMethodResults;
       }
 
       if (phone.toLowerCase() === 'x') {
@@ -392,22 +476,35 @@ export class UsersService {
         const newYou = newYouModel!.toJSON() as any;
         delete newYou.password;
 
-        const jwt = TokensService.newJwtToken(request, newYou, true);
+        const jwt = TokensService.newUserJwtToken(newYou);
 
-        return response.status(HttpStatusCode.OK).json({
-          updates,
-          you: newYou,
-          token: jwt,
-          message: `Phone number cleared successfully`
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Phone number cleared successfully`,
+            data: {
+              updates,
+              you: newYou,
+              token: jwt,
+            }
+          }
+        };
+        return serviceMethodResults;
       }
 
       const phoneNumberIsOutOfRange = !(/^[0-9]{10,12}$/).test(phone);
       if (phoneNumberIsOutOfRange) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: `Phone number is out of range; must be between 10-12 digits`
-        });
+          info: {
+            data: {
+              message: `Phone number is out of range; must be between 10-12 digits`,
+            }
+          }
+        };
+        return serviceMethodResults;
       }
 
       // // check if there is a pending code
@@ -428,18 +525,33 @@ export class UsersService {
           sms_results = await send_verify_sms_request(phone);
 
           const updates = await UserRepo.update_user({ phone }, { id: you.id });
-          return response.status(HttpStatusCode.OK).json({
-            sms_results,
-            sms_request_id: sms_results.request_id,
-            message: `SMS verification sent, check your phone!`
-          });
+          const serviceMethodResults: ServiceMethodResults = {
+            status: HttpStatusCode.OK,
+            error: false,
+            info: {
+              message: `SMS verification sent, check your phone!`,
+              data: {
+                updates,
+                sms_results,
+                sms_request_id: sms_results.request_id,
+              }
+            }
+          };
+          return serviceMethodResults;
         } catch (e) {
           console.log(`could not cancel...`, sms_results, e);
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            e,
-            sms_results,
-            message: `Could not send sms...`
-          });
+          const serviceMethodResults: ServiceMethodResults = {
+            status: HttpStatusCode.BAD_REQUEST,
+            error: true,
+            info: {
+              message: `Could not send sms...`,
+              error: e,
+              data: {
+                sms_results,
+              }
+            }
+          };
+          return serviceMethodResults;
         }
       } else {
         // sms sent successfully; store it on the request session
@@ -447,31 +559,51 @@ export class UsersService {
         // (<IRequest> request).session.sms_phone = phone;
 
         const updates = await UserRepo.update_user({ phone }, { id: you.id });
-        return response.status(HttpStatusCode.OK).json({
-          sms_results,
-          sms_request_id: sms_results.request_id,
-          message: `SMS verification sent, check your phone!`
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.OK,
+          error: false,
+          info: {
+            message: `SMS verification sent, check your phone!`,
+            data: {
+              updates,
+              sms_results,
+              sms_request_id: sms_results.request_id,
+            }
+          }
+        };
+        return serviceMethodResults;
       }
     } catch (e) {
       console.log(`send_sms_verification error; something went wrong...`, e);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        e,
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
         error: true,
-        message: `send_sms_verification error; something went wrong...`
-      });
+        info: {
+          message: `send_sms_verification error; something went wrong...`,
+          error: e,
+        }
+      };
+      return serviceMethodResults;
     }
   }
 
-  static async verify_sms_code(request: Request, response: Response) {
+  static async verify_sms_code(opts: {
+    you: IUser,
+    request_id: string,
+    code: string,
+    phone: string,
+  }): ServiceMethodAsyncResults {
     try {
-      const you: IUser = response.locals.you;
-      const { request_id, code, phone } = request.params;
+      let { you, request_id, code, phone } = opts;
       if (!request_id) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: `Verification request id is required`
-        });
+          info: {
+            message: `Verification request id is required`
+          }
+        };
+        return serviceMethodResults;
       }
       // if (!phone) {
       //   return response.status(HttpStatusCode.BAD_REQUEST).json({
@@ -480,21 +612,28 @@ export class UsersService {
       //   });
       // }
       if (!code) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: `Verification code is required`
-        });
+          info: {
+            message: `Verification code is required`
+          }
+        };
+        return serviceMethodResults;
       }
 
       // try to verify phone
       const sms_verify_results: PlainObject = await check_verify_sms_request({ request_id, code });
       console.log(sms_verify_results);
       if (sms_verify_results.error_text) {
-        // successful, notify user
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          sms_verify_results,
-          message: `Invalid sms verification code`
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Invalid sms verification code`
+          }
+        };
+        return serviceMethodResults;
       }
 
       const updates = await UserRepo.update_user({ phone_verified: true }, { id: you.id });
@@ -502,51 +641,72 @@ export class UsersService {
       const newYou = newYouModel!.toJSON() as any;
       delete newYou.password;
 
-      const jwt = TokensService.newJwtToken(request, newYou, true);
+      const jwt = TokensService.newUserJwtToken(newYou);
 
-      return response.status(HttpStatusCode.OK).json({
-        sms_verify_results,
-        updates,
-        you: newYou,
-        token: jwt,
-        message: `Phone number verified and updated successfully`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `Phone number verified and updated successfully`,
+          data: {
+            sms_verify_results,
+            updates,
+            you: newYou,
+            token: jwt,
+          }
+        }
+      };
+      return serviceMethodResults;
     } catch (e) {
       console.log(`verify_sms_code error; something went wrong...`, e);
-      (<IRequest> request).session.sms_verification = undefined;
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        e,
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
         error: true,
-        message: `verify_sms_code error; something went wrong...`
-      });
+        info: {
+          message: `verify_sms_code error; something went wrong...`,
+          error: e,
+        }
+      };
+      return serviceMethodResults;
     }
   }
 
-  static async verify_email(request: Request, response: Response) {
-    const verification_code = request.params.verification_code;
-
+  static async verify_email(verification_code: string): ServiceMethodAsyncResults {
     const email_verf_model = await EmailVerfRepo.query_email_verification({ verification_code });
     if (!email_verf_model) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
         error: true,
-        message: `Invalid verification code.`
-      });
+        info: {
+          message: `Invalid verification code.`
+        }
+      };
+      return serviceMethodResults;
     }
 
     const email_verf: PlainObject = email_verf_model.get({ plain: true });
     const user_model = await UserRepo.get_user_by_id(email_verf.user_id);
     if (!user_model) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
         error: true,
-        message: `Verification code corrupted: could not fetch user from code`
-      });
+        info: {
+          message: `Verification code corrupted: could not fetch user from code`
+        }
+      };
+      return serviceMethodResults;
     }
 
     const user = <IUser> user_model.get({ plain: true });
     if (user.email_verified) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Already verified!`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `Already verified!`
+        }
+      };
+      return serviceMethodResults;
     }
 
     const updates = await UserRepo.update_user(
@@ -559,18 +719,42 @@ export class UsersService {
     );
 
     user.email_verified = true;
-    const jwt = TokensService.newJwtToken(request, user, true);
-    
-    return response.status(HttpStatusCode.OK).json({
-      updates,
-      email_verf_updates,
-      message: `Email successfully verified!`,
-      token: jwt
-    });
+    const jwt = TokensService.newUserJwtToken(user);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Email successfully verified!`,
+        data: {
+          updates,
+          email_verf_updates,
+          token: jwt
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async update_info(request: Request, response: Response) {
+  static async update_info(opts: {
+    you: IUser,
+    email: string,
+    username: string,
+    paypal: string,
+    bio: string,
+    headline: string,
+    tags: string,
+
+    city: string, state: string, country: string, zipcode: string,
+    location: string,
+    lat: number, lng: number,
+
+    can_message: boolean,
+    can_converse: boolean,
+    host: string,
+  }): ServiceMethodAsyncResults {
     let {
+      you,
       email,
       username,
       paypal,
@@ -584,12 +768,12 @@ export class UsersService {
 
       can_message,
       can_converse,
-    } = request.body;
+      host,
+    } = opts;
 
     let email_changed = false;
     let paypal_changed = false;
 
-    const you: IUser = response.locals.you;
     const updatesObj: { [key:string]: any; } = {
       can_message,
       can_converse,
@@ -613,10 +797,14 @@ export class UsersService {
       if (emailIsDifferent) {
         const check_email = await UserRepo.get_user_by_email(email);
         if (check_email) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
+          const serviceMethodResults: ServiceMethodResults = {
+            status: HttpStatusCode.FORBIDDEN,
             error: true,
-            message: `Email is taken`
-          });
+            info: {
+              message: `Email is taken`
+            }
+          };
+          return serviceMethodResults;
         } else {
           updatesObj.email = email;
           updatesObj.email_verified = false;
@@ -630,10 +818,14 @@ export class UsersService {
       if (usernameIsDifferent) {
         const check_username = await UserRepo.get_user_by_email(username);
         if (check_username) {
-          return response.status(HttpStatusCode.FORBIDDEN).json({
+          const serviceMethodResults: ServiceMethodResults = {
+            status: HttpStatusCode.FORBIDDEN,
             error: true,
-            message: 'Username already in use'
-          });
+            info: {
+              message: 'Username already in use'
+            }
+          };
+          return serviceMethodResults;
         } else {
           updatesObj.username = username;
         }
@@ -647,10 +839,14 @@ export class UsersService {
       if (paypalIsDifferent) {
         const check_paypal = await UserRepo.get_user_by_paypal(paypal);
         if (check_paypal) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
+          const serviceMethodResults: ServiceMethodResults = {
+            status: HttpStatusCode.FORBIDDEN,
             error: true,
-            message: `Paypal Email is taken`
-          });
+            info: {
+              message: `Paypal Email is taken`
+            }
+          };
+          return serviceMethodResults;
         } else {
           updatesObj.paypal = paypal;
           updatesObj.paypal_verified = false;
@@ -673,7 +869,6 @@ export class UsersService {
       });
       const new_email_verf: PlainObject = new_email_verf_model.get({ plain: true });
   
-      const host: string = request.get('origin')!;
       const verify_link = (<string> host).endsWith('/')
         ? (host + 'verify-email/' + new_email_verf.verification_code)
         : (host + '/verify-email/' + new_email_verf.verification_code);
@@ -702,111 +897,153 @@ export class UsersService {
         }); 
     }
 
-    const jwt = TokensService.newJwtToken(request, newYou, true);
+    const jwt = TokensService.newUserJwtToken(newYou);
     
-    // send the response
-
-    return response.status(HttpStatusCode.OK).json({
-      updates,
-      data: newYou,
-      token: jwt,
-      email_changed,
-      message: `Info updated successfully`
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Info updated successfully`,
+        data: {
+          user: newYou,
+          updates,
+          token: jwt,
+          email_changed,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async update_phone(request: Request, response: Response) {
+  static async update_phone(opts: {
+    you: IUser,
+    request_id: string,
+    code: string,
+    phone: string,
+    sms_results: PlainObject,
+  }): ServiceMethodAsyncResults {
     try {
-      const you_model = await UserRepo.get_user_by_id(response.locals.you.id);
-      const you: IUser = <IUser> you_model!.toJSON();
-      const { phone, request_id, code } = request.body.phone;
+      let { you, request_id, code, phone, sms_results } = opts;
 
-      const sms_results = (<IRequest> request).session.sms_verification;
       if (!sms_results) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: `no sms verification in progress...`
-        });
+          info: {
+            message: `no sms verification in progress...`
+          }
+        };
+        return serviceMethodResults;
       }
       if (sms_results.request_id !== request_id) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: `sms request_id is invalid...`
-        });
+          info: {
+            message: `sms request_id is invalid...`
+          }
+        };
+        return serviceMethodResults;
       }
 
       // try to verify phone
       const sms_verify_results: PlainObject = await check_verify_sms_request({ request_id, code });
       console.log(sms_verify_results);
       if (sms_verify_results.error_text) {
-        // successful, notify user
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          sms_verify_results,
-          message: `Invalid sms verification code`
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Invalid sms verification code`,
+            data: {
+              sms_verify_results
+            }
+          }
+        };
+        return serviceMethodResults;
       }
-      // successful, update user
-      (<IRequest> request).session.sms_verification = undefined;
 
       const updates = await UserRepo.update_user({ phone }, { id: you.id });
       const newYouModel = await UserRepo.get_user_by_id(you.id);
       const newYou = newYouModel!.toJSON() as any;
       delete newYou.password;
 
-      const jwt = TokensService.newJwtToken(request, newYou, true);
+      const jwt = TokensService.newUserJwtToken(newYou);
 
-      return response.status(HttpStatusCode.OK).json({
-        sms_verify_results,
-        updates,
-        data: newYou,
-        token: jwt,
-        message: `Phone number updated successfully`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `Phone number updated successfully`,
+          data: {
+            sms_verify_results,
+            updates,
+            user: newYou,
+            token: jwt,
+          }
+        }
+      };
+      return serviceMethodResults;
     } catch (e) {
       console.log('error:', e);
-      response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        e,
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
         error: true,
-        message: 'Could not update phone...'
-      });
-      throw e;
+        info: {
+          message: 'Could not update phone...',
+          error: e,
+        }
+      };
+      return serviceMethodResults;
     }
   }
 
-  static async update_password(request: Request, response: Response) {
+  static async update_password(opts: {
+    you: IUser,
+    password: string,
+    confirmPassword: string,
+  }): ServiceMethodAsyncResults {
     try {
-      const you_model = await UserRepo.get_user_by_id(response.locals.you.id);
-      const you: IUser = <IUser> you_model!.toJSON();
-      // const oldPassword = request.body.oldPassword;
-      const password = request.body.password;
-      const confirmPassword = request.body.confirmPassword;
-  
-      // if (!oldPassword) {
-      //   return response.status(HttpStatusCode.BAD_REQUEST).json({
-      //     error: true,
-      //     message: `Current password field is required.`
-      //   });
-      // }
+      let { you, password, confirmPassword } = opts;
       if (!password) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: `Password field is required.`
-        });
+          info: {
+            message: `Password field is required.`
+          }
+        };
+        return serviceMethodResults;
       }
       if (!confirmPassword) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: `Confirm Password field is required.`
-        });
+          info: {
+            message: `Confirm Password field is required.`
+          }
+        };
+        return serviceMethodResults;
       }
       if (!validatePassword(password)) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
           error: true,
-          message: 'Password must be: at least 7 characters, upper and/or lower case alphanumeric'
-        });
+          info: {
+            message: 'Password must be: at least 7 characters, upper and/or lower case alphanumeric'
+          }
+        };
+        return serviceMethodResults;
       }
       if (password !== confirmPassword) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({ error: true, message: 'Passwords must match' });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: 'Passwords must match'
+          }
+        };
+        return serviceMethodResults;
       }
       // const checkOldPassword = bcrypt.compareSync(oldPassword, youModel!.get('password'));
       // const currentPasswordIsBad = checkOldPassword === false;
@@ -822,42 +1059,58 @@ export class UsersService {
       const updates = await UserRepo.update_user(updatesObj, { id: you.id });
       Object.assign(you, updatesObj);
 
-      const jwt = TokensService.newJwtToken(request, you, true);
+      const jwt = TokensService.newUserJwtToken(you);
 
-      return response.status(HttpStatusCode.OK).json({
-        updates,
-        data: you,
-        token: jwt,
-        message: 'Password updated successfully'
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: 'Password updated successfully',
+          data: {
+            updates,
+            user: you,
+            token: jwt,
+          }
+        }
+      };
+      return serviceMethodResults;
     } catch (e) {
       console.log('error:', e);
-      response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        e,
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
         error: true,
-        message: 'Could not update password...'
-      });
-      throw e;
+        info: {
+          message: 'Could not update password...',
+          error: e,
+        }
+      };
+      return serviceMethodResults;
     }
   }
 
-  static async update_icon(request: Request, response: Response) {
+  static async update_icon(opts: {
+    you: IUser,
+    icon_file: UploadedFile | undefined,
+    should_delete: boolean,
+  }): ServiceMethodAsyncResults {
     try {
-      const you: IUser = response.locals.you;
+      const { you, icon_file, should_delete } = opts;
       const updatesObj = {
         icon_id: '',
         icon_link: ''
       };
       
-      const icon_file: UploadedFile | undefined = request.files && (<UploadedFile> request.files.icon);
-      console.log(request.body, icon_file);
       if (!icon_file) {
         // clear icon
-        if (!request.body.should_delete) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
+        if (!should_delete) {
+          const serviceMethodResults: ServiceMethodResults = {
+            status: HttpStatusCode.BAD_REQUEST,
             error: true,
-            message: `Picture file is required`
-          });
+            info: {
+              message: `Picture file is required`,
+            }
+          };
+          return serviceMethodResults;
         }
 
         const whereClause = { id: you.id };
@@ -866,73 +1119,90 @@ export class UsersService {
     
         Object.assign(you, updatesObj);
         const user = { ...you };
-        const jwt = TokensService.newJwtToken(request, user, true);
+        const jwt = TokensService.newUserJwtToken(user);
         delete user.password;
-        return response.status(HttpStatusCode.OK).json({
-          updates,
-          token: jwt,
-          data: user,
-          message: 'Icon cleared successfully.' 
-        });
-      }
-  
-      const type = icon_file.mimetype.split('/')[1];
-      const isInvalidType = !allowedImages.includes(type);
-      if (isInvalidType) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          error: true,
-          message: 'Invalid file type: jpg, jpeg or png required...'
-        });
-      }
-  
-      const results = await store_image(icon_file, you.icon_id);
-      if (!results.result) {
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: 'Could not upload file...'
-        });
+
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.OK,
+          error: false,
+          info: {
+            message: 'Icon cleared successfully.',
+            data: {
+              user,
+              updates,
+              token: jwt,
+            }
+          }
+        };
+        return serviceMethodResults;
       }
 
-      updatesObj.icon_id = results.result.public_id,
-      updatesObj.icon_link = results.result.secure_url
+      const imageValidation = await validateAndUploadImageFile(icon_file, {
+        treatNotFoundAsError: true,
+        mutateObj: updatesObj,
+        id_prop: 'icon_id',
+        link_prop: 'icon_link',
+      });
+      if (imageValidation.error) {
+        return imageValidation;
+      }
+  
       const updates = await UserRepo.update_user(updatesObj, { id: you.id });
   
       const user = { ...you, ...updatesObj };
       // console.log({ updates, results, user });
       delete user.password;
-      const jwt = TokensService.newJwtToken(request, user, true);
-      return response.status(HttpStatusCode.OK).json({
-        updates,
-        token: jwt,
-        data: user,
-        message: 'Icon updated successfully.' 
-      });
+      const jwt = TokensService.newUserJwtToken(user);
+
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: 'Icon updated successfully.' ,
+          data: {
+            updates,
+            user,
+            token: jwt,
+          }
+        }
+      };
+      return serviceMethodResults;
     } catch (e) {
       console.log('error:', e);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
         error: true,
-        message: 'Could not update icon...' 
-      });
+        info: {
+          message: 'Could not update icon...' ,
+        }
+      };
+      return serviceMethodResults;
     }
   }
 
-  static async update_wallpaper(request: Request, response: Response) {
+  static async update_wallpaper(opts: {
+    you: IUser,
+    wallpaper_file: UploadedFile | undefined,
+    should_delete: boolean,
+  }): ServiceMethodAsyncResults {
     try {
-      const you: IUser = response.locals.you;
+      const { you, wallpaper_file, should_delete } = opts;
       const updatesObj = {
         wallpaper_id: '',
         wallpaper_link: ''
       };
 
-      const wallpaper_file: UploadedFile | undefined = request.files && (<UploadedFile> request.files.wallpaper);
-      console.log(request.body, wallpaper_file);
       if (!wallpaper_file) {
         // clear wallpaper
-        if (!request.body.should_delete) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
+        if (!should_delete) {
+          const serviceMethodResults: ServiceMethodResults = {
+            status: HttpStatusCode.BAD_REQUEST,
             error: true,
-            message: `Picture file is required`
-          });
+            info: {
+              message: `Picture file is required`
+            }
+          };
+          return serviceMethodResults;
         }
 
         const whereClause = { id: you.id };
@@ -942,61 +1212,83 @@ export class UsersService {
         Object.assign(you, updatesObj);
         const user = { ...you };
         delete user.password;
-        const jwt = TokensService.newJwtToken(request, user, true);
-        return response.status(HttpStatusCode.OK).json({
-          updates,
-          token: jwt,
-          data: user,
-          message: 'Wallpaper cleared successfully.' 
-        });
-      }
-  
-      const type = wallpaper_file.mimetype.split('/')[1];
-      const isInvalidType = !allowedImages.includes(type);
-      if (isInvalidType) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          error: true,
-          message: 'Invalid file type: jpg, jpeg or png required...'
-        });
-      }
-  
-      const results = await store_image(wallpaper_file, you.icon_id);
-      if (!results.result) {
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: 'Could not upload file...'
-        });
-      }
+        const jwt = TokensService.newUserJwtToken(user);
 
-      updatesObj.wallpaper_id = results.result.public_id,
-      updatesObj.wallpaper_link = results.result.secure_url
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.OK,
+          error: false,
+          info: {
+            message: 'Wallpaper cleared successfully.',
+            data: {
+              updates,
+              user,
+              token: jwt,
+            }
+          }
+        };
+        return serviceMethodResults;
+      }
+  
+      const imageValidation = await validateAndUploadImageFile(wallpaper_file, {
+        treatNotFoundAsError: true,
+        mutateObj: updatesObj,
+        id_prop: 'wallpaper_id',
+        link_prop: 'wallpaper_link',
+      });
+      if (imageValidation.error) {
+        return imageValidation;
+      }
+      
       const whereClause = { id: you.id };
       const updates = await UserRepo.update_user(updatesObj, whereClause);
   
       Object.assign(you, updatesObj);
       const user = { ...you };
       delete user.password;
-      const jwt = TokensService.newJwtToken(request, you, true);
-      return response.status(HttpStatusCode.OK).json({
-        updates,
-        token: jwt,
-        data: user,
-        message: 'Wallpaper updated successfully.' 
-      });
+      const jwt = TokensService.newUserJwtToken(user);
+
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: 'Wallpaper updated successfully.',
+          data: {
+            updates,
+            user,
+            token: jwt,
+          }
+        }
+      };
+      return serviceMethodResults;
     } catch (e) {
       console.log('error:', e);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
         error: true,
-        message: 'Could not update wallpaper...' 
-      });
+        info: {
+          message: 'Could not update wallpaper...',
+          error: e,
+        }
+      };
+      return serviceMethodResults;
     }
   }
 
-  static async create_stripe_account(request: Request, response: Response) {
-    const you: IUser = response.locals.you;
-    const you_model = await UserRepo.get_user_by_id(you.id);
+  static async create_stripe_account(you_id: number, host: string): ServiceMethodAsyncResults {
+    const you_model: IMyModel | null = await UserRepo.get_user_by_id(you_id);
+    if (!you_model) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.NOT_FOUND,
+        error: true,
+        info: {
+          message: `User not found`,
+        }
+      };
+      return serviceMethodResults;
+    }
 
-    const host: string = request.get('origin')!;
+    const you = you_model!.toJSON() as IUser;
+
     const useHost = host.endsWith('/') ? host.substr(0, host.length - 1) : host;
     const refresh_url = `${useHost}/modern/users/${you.id}/settings`;
     const return_url = `${useHost}/modern/users/${you.id}/verify-stripe-account`;
@@ -1029,25 +1321,53 @@ export class UsersService {
 
     console.log(log, JSON.stringify(log));
 
-    return response.status(HttpStatusCode.OK).json({
-      onboarding_url: accountLinks.url
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: {
+          onboarding_url: accountLinks.url,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async verify_stripe_account(request: Request, response: Response) {
-    const you_model = await UserRepo.get_user_by_id(response.locals.you.id);
+  static async verify_stripe_account(you_id: number): ServiceMethodAsyncResults {
+    const you_model: IMyModel | null = await UserRepo.get_user_by_id(you_id);
+    if (!you_model) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.NOT_FOUND,
+        error: true,
+        info: {
+          message: `User not found`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
     let you = you_model!.toJSON() as IUser;
 
     if (!you.stripe_account_id) {
-      return response.status(HttpStatusCode.PRECONDITION_FAILED).json({
-        message: `You must create a stripe account first and connect it with Modern Apps.`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.PRECONDITION_FAILED,
+        error: true,
+        info: {
+          message: `You must create a stripe account first and connect it with Modern Apps.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     if (you.stripe_account_verified) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Your stripe account is verified and valid!`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `Your stripe account is verified and valid!`
+        }
+      };
+      return serviceMethodResults;
     }
 
     const results = await StripeService.account_is_complete(you.stripe_account_id);
@@ -1057,11 +1377,18 @@ export class UsersService {
       await you_model!.update({ stripe_account_verified: true });
       you = you_model!.toJSON() as IUser;
       // create JWT
-      const jwt = TokensService.newJwtToken(request, you, true);
+      const jwt = TokensService.newUserJwtToken(you);
       (<any> results).token = jwt;
       (<any> results).you = you;
     }
 
-    return response.status(results.status).json(results);
+    const serviceMethodResults: ServiceMethodResults = {
+      status: results.status,
+      error: results.error,
+      info: {
+        data: results
+      }
+    };
+    return serviceMethodResults;
   }
 }

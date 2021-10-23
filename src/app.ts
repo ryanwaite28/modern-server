@@ -40,6 +40,7 @@ io.engine.generateId = (req) => {
   return uniqueValue(); // must be unique across all Socket.IO servers
 };
 
+// SocketsService.set_io(io);
 SocketsService.handle_io_connections(io);
 
 app.use((

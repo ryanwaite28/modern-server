@@ -1,10 +1,7 @@
 import { UploadedFile } from 'express-fileupload';
+import { Request, Response } from 'express';
 import {
-  Request,
-  Response,
-} from 'express';
-import {
-  allowedImages,
+  allowedImages, validateAndUploadImageFile,
 } from '../common.chamber';
 import {
   HttpStatusCode
@@ -27,12 +24,11 @@ import {
   ConversationLastOpeneds,
   ConversationMessages
 } from '../models/conversations.model';
+import { ServiceMethodResults } from '../types/common.types';
 
 export class ConversationsService {
-  static async get_user_conversations_all(request: Request, response: Response) {
+  static async get_user_conversations_all(you_id: number) {
     try {
-      const you_id = parseInt(request.params.you_id, 10);
-
       // get all the conversations that the user is a part of
       const conversations_member_models = await ConversationMembers.findAll({
         where: { user_id: you_id },
@@ -77,20 +73,34 @@ export class ConversationsService {
 
       // sort by last opened
 
-      return response.status(HttpStatusCode.OK).json({
-        data: newList
-      });
-    } catch (e) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: newList
+        }
+      };
+      return serviceMethodResults;
+    }
+    catch (e) {
       console.log(`get_user_conversations_all error:`, e);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        error: e
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `could not get user conversations...`,
+          error: e,
+        }
+      };
+      return serviceMethodResults;
     }
   }
 
-  static async get_user_conversations(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const conversation_timestamp = request.params.conversation_timestamp;
+  static async get_user_conversations(opts: {
+    you_id: number,
+    conversation_timestamp: string,
+  }) {
+    const { you_id, conversation_timestamp } = opts;
 
     const whereClause: PlainObject = { user_id: you_id };
     if (conversation_timestamp) {
@@ -135,18 +145,33 @@ export class ConversationsService {
 
     // sort by last opened
 
-    return response.status(HttpStatusCode.OK).json({
-      data: newList
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.BAD_REQUEST,
+      error: true,
+      info: {
+        data: newList
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async create_conservation(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const title = (request.body.title || '').trim();
+  static async create_conservation(opts: {
+    you_id: number,
+    title: string,
+    icon_file: UploadedFile | undefined,
+  }) {
+    let { title, you_id, icon_file } = opts;
+    title = (title || '').trim();
+
     if (!title) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `title cannot be empty`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `title cannot be empty`
+        }
+      };
+      return serviceMethodResults;
     }
 
     const createObj: PlainObject = {
@@ -154,27 +179,14 @@ export class ConversationsService {
       creator_id: you_id
     };
 
-    const icon_file: UploadedFile | undefined = request.files && (<UploadedFile> request.files.icon);
-    if (icon_file) {
-      const type = icon_file.mimetype.split('/')[1];
-      const isInvalidType = !allowedImages.includes(type);
-      if (isInvalidType) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          error: true,
-          message: 'Invalid file type: jpg, jpeg or png required...'
-        });
-      }
-
-      const results = await store_image(icon_file);
-      if (!results.result) {
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: 'Could not upload file...'
-        });
-      }
-
-      createObj.icon_id = results.result.public_id,
-      createObj.icon_link = results.result.secure_url
+    const imageValidation = await validateAndUploadImageFile(icon_file, {
+      treatNotFoundAsError: false,
+      mutateObj: createObj,
+      id_prop: 'icon_id',
+      link_prop: 'icon_link',
+    });
+    if (imageValidation.error) {
+      return imageValidation;
     }
 
     const new_conversation_model = await Conversations.create(createObj);
@@ -193,81 +205,71 @@ export class ConversationsService {
     conversation.last_opened = new_conversation_last_opened_model.get('last_opened');
     conversation.members_count = 1;
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Conversation created!`,
-      data: conversation,
-      new_conversation_last_opened_model,
-      new_conversation_member_model,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Conversation created!`,
+        data: {
+          conversation,
+          last_opened: new_conversation_last_opened_model,
+          new_member: new_conversation_member_model,
+        },
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async update_conservation(request: Request, response: Response) {
-    const you_id = parseInt(request.params.you_id, 10);
-    const conversation_id = parseInt(request.params.conversation_id, 10);
-
-    const conversation_model = response.locals.conversation_model;
-
-    if (!conversation_model) {
-      return response.status(HttpStatusCode.FORBIDDEN).json({
-        message: `Conversation not found`
-      });
-    }
-    const isNotOwner = parseInt(conversation_model.get('creator_id'), 10) !== you_id;
-    if (isNotOwner) {
-      return response.status(HttpStatusCode.FORBIDDEN).json({
-        message: `You are not the conversation owner`
-      });
-    }
-
-    const title = (request.body.title || '').trim();
+  static async update_conservation(opts: {
+    conversation_id: number,
+    title: string,
+    icon_file?: UploadedFile
+  }) {
+    let { title, conversation_id, icon_file } = opts;
+    title = (title || '').trim();
     if (!title) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `title cannot be empty`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `title cannot be empty`
+        }
+      };
+      return serviceMethodResults;
     }
 
     const updatesObj: PlainObject = {
       title,
     };
 
-    const icon_file: UploadedFile | undefined = request.files && (<UploadedFile> request.files.icon);
-    if (icon_file) {
-      const type = icon_file.mimetype.split('/')[1];
-      const isInvalidType = !allowedImages.includes(type);
-      if (isInvalidType) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          error: true,
-          message: 'Invalid file type: jpg, jpeg or png required...'
-        });
-      }
-
-      const results = await store_image(icon_file, conversation_model.get('icon_id'));
-      if (!results.result) {
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: 'Could not upload file...'
-        });
-      }
-
-      updatesObj.icon_id = results.result.public_id,
-      updatesObj.icon_link = results.result.secure_url
+    const imageValidation = await validateAndUploadImageFile(icon_file, {
+      treatNotFoundAsError: false,
+      mutateObj: updatesObj,
+      id_prop: 'icon_id',
+      link_prop: 'icon_link',
+    });
+    if (imageValidation.error) {
+      return imageValidation;
     }
 
     const updates = await Conversations.update(updatesObj, { where: { id: conversation_id } });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Conversation updated!`,
-      data: updatesObj,
-      updates
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Conversation updated!`,
+        data: {
+          updates,
+        },
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async delete_conservation(request: Request, response: Response) {
-    const conversation_model = response.locals.conversation_model;
-    const conversation_id = response.locals.conversation_model.get('id');
-    const deletes = await conversation_model.destroy();
-
-    ConversationMembers.destroy({ where: { conversation_id } })
+  static async delete_conservation(conversation_id: number) {
+    const c_deletes = await Conversations.destroy({ where: { id: conversation_id } });
+    const m_deletes = await ConversationMembers.destroy({ where: { conversation_id } })
       .then((deletes: any) => {
         // console.log(`removed members for conversation: ${conversation_id}`, deletes);
       })
@@ -275,9 +277,17 @@ export class ConversationsService {
         // console.log(`could not remove members for conversation: ${conversation_id}`, error);
       });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Conversation deleted!`,
-      deletes
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Conversation deleted!`,
+        data: {
+          c_deletes,
+          m_deletes,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 }

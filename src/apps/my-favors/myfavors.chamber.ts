@@ -36,7 +36,7 @@ const payout_min = 3;
 export const create_update_favor_required_props: IModelValidator[] = [
   { field: 'title', name: 'Title', validator: genericTextValidator },
   { field: 'description', name: 'Description', validator: genericTextValidator },
-  { field: 'category', name: 'Category', validator: (arg: any) => arg === '' || genericTextValidator(arg) },
+  { field: 'category', name: 'Category', validator: (arg: any) => !arg || genericTextValidator(arg) },
 
   { field: 'location', name: 'Location', validator: genericTextValidator },
   { field: 'address', name: 'Address', validator: genericTextValidator },

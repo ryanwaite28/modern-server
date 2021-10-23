@@ -20,6 +20,9 @@ import {
 } from '../models/interviews.model';
 import { get_interview_by_id } from '../repos/interviews.repo';
 import { ContenderInterviewsService } from '../services/interview.service';
+import { createCommonGenericModelReactionsRequestHandler } from '../../_common/helpers/create-model-reactions-request-handler.helper';
+import { createCommonGenericModelCommentsRequestHandler } from '../../_common/helpers/create-model-comments-request-handler.helper';
+import { createCommonGenericModelCommentRepliesRequestHandler } from '../../_common/helpers/create-model-comment-replies-request-handler.helper';
 
 
 
@@ -52,8 +55,12 @@ const InterviewReactionsService = createCommonGenericModelReactionsService({
   populate_notification_fn: populate_contender_notification_obj,
   reaction_model: ContenderInterviewReactions
 });
+const InterviewReactionsRequestHandler = createCommonGenericModelReactionsRequestHandler({
+  base_model_name: `interview`,
+  reactionsService: InterviewReactionsService,
+});
 const InterviewReactionsRouter = createCommonGenericModelReactionsRouter({
-  reactionService: InterviewReactionsService,
+  reactionRequestHandler: InterviewReactionsRequestHandler,
 });
 InterviewsRouter.use('/:interview_id', InterviewRouteGuards.existsGuard, InterviewReactionsRouter);
 
@@ -84,8 +91,12 @@ const InterviewCommentsGuard = createModelRouteGuards({
   model_owner_field: 'owner_id',
   request_param_id_name: 'comment_id',
 });
-const InterviewCommentsRouter = createGenericCommentsRouter({
+const InterviewCommentsRequestHandler = createCommonGenericModelCommentsRequestHandler({
+  base_model_name: 'interview',
   commentsService: InterviewCommentsService,
+});
+const InterviewCommentsRouter = createGenericCommentsRouter({
+  commentsRequestHandler: InterviewCommentsRequestHandler,
   commentGuardsOpts: InterviewCommentsGuard,
 });
 InterviewsRouter.use(`/:interview_id/comments`, InterviewRouteGuards.existsGuard, InterviewCommentsRouter);
@@ -106,8 +117,12 @@ const InterviewCommentReactionsService = createCommonGenericModelReactionsServic
   populate_notification_fn: populate_contender_notification_obj,
   reaction_model: ContenderInterviewCommentReactions
 });
+const InterviewCommentReactionsRequestHandler = createCommonGenericModelReactionsRequestHandler({
+  base_model_name: 'interview',
+  reactionsService: InterviewCommentReactionsService,
+});
 const InterviewCommentReactionsRouter = createCommonGenericModelReactionsRouter({
-  reactionService: InterviewCommentReactionsService,
+  reactionRequestHandler: InterviewCommentReactionsRequestHandler, 
 });
 InterviewsRouter.use(`/:interview_id/comments/:comment_id`, InterviewRouteGuards.existsGuard, InterviewCommentsGuard.existsGuard, InterviewCommentReactionsRouter);
 
@@ -138,8 +153,11 @@ const InterviewCommentReplyGuard = createModelRouteGuards({
   model_owner_field: 'owner_id',
   request_param_id_name: 'reply_id',
 });
+const InterviewCommentRepliesRequestHandler = createCommonGenericModelCommentRepliesRequestHandler({
+  commentRepliesService: InterviewCommentRepliesService
+});
 const InterviewCommentRepliesRouter = createGenericCommentRepliesRouter({
-  repliesService: InterviewCommentRepliesService,
+  repliesRequestHandler: InterviewCommentRepliesRequestHandler,
   replyGuardsOpts: InterviewCommentReplyGuard,
 });
 InterviewsRouter.use(`/:interview_id/comments/:comment_id/replies`, InterviewRouteGuards.existsGuard, InterviewCommentsGuard.existsGuard, InterviewCommentRepliesRouter);
@@ -160,13 +178,11 @@ const InterviewCommentReplyReactionsService = createCommonGenericModelReactionsS
   populate_notification_fn: populate_contender_notification_obj,
   reaction_model: ContenderInterviewCommentReplyReactions
 });
-const InterviewCommentReplyReactionsRouter = createCommonGenericModelReactionsRouter({
-  reactionService: InterviewCommentReplyReactionsService,
+const InterviewCommentReplyReactionsRequestHandler = createCommonGenericModelReactionsRequestHandler({
+  base_model_name: 'interview',
+  reactionsService: InterviewCommentReplyReactionsService
 });
-InterviewsRouter.use(
-  `/:interview_id/comments/:comment_id/replies/:reply_id`, 
-  InterviewRouteGuards.existsGuard, 
-  InterviewCommentsGuard.existsGuard, 
-  InterviewCommentReplyGuard.existsGuard, 
-  InterviewCommentReplyReactionsRouter
-);
+const InterviewCommentReplyReactionsRouter = createCommonGenericModelReactionsRouter({
+  reactionRequestHandler: InterviewCommentReplyReactionsRequestHandler,
+});
+InterviewsRouter.use(`/:interview_id/comments/:comment_id/replies/:reply_id`, InterviewRouteGuards.existsGuard, InterviewCommentsGuard.existsGuard, InterviewCommentReplyGuard.existsGuard, InterviewCommentReplyReactionsRouter);

@@ -6,9 +6,10 @@ import { Server } from 'socket.io';
 import { IUserModel } from '../models/common.model-types';
 import { SocketsService } from '../services/sockets.service';
 import socket_io from 'socket.io';
+import { ServiceMethodAsyncResults } from '../types/common.types';
 
-export interface PlainObject {
-  [key: string]: any;
+export interface PlainObject<T = any> {
+  [key: string]: T;
 }
 
 export interface IRequest extends Request {
@@ -247,5 +248,16 @@ export interface IToken extends ICommonModel {
 export interface IModelValidator {
   field: string;
   name: string;
-  validator: (arg: any) => boolean
+  validator: (arg: any) => boolean,
+  errorMessage?: string,
+}
+
+
+/**
+ * @description 
+ * 
+ */
+ export type IAppService = {
+
+  [key:string]: ServiceMethodAsyncResults;
 }

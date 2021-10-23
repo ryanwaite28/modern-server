@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import {
   YouAuthorized,
-  UserExists
 } from '../guards/user.guard';
 import { IGenericModelCrudService } from './create-model-crud-service.helper';
 import { createModelRouteGuards, ICreateModelGuardParams, IModelGuards } from './create-model-guards.helper';
@@ -15,7 +14,9 @@ export interface ICreateCommonGenericModelCrudRouter {
   modelCrudService: IGenericModelCrudService,
 }
 
-export function createCommonGenericModelCrudRouter(params: ICreateCommonGenericModelCrudRouter) {
+export function createCommonGenericModelCrudRouter(
+  params: ICreateCommonGenericModelCrudRouter
+): Router {
   const model_id_field = params.model_name + `_id`;
 
   const routeGuards: IModelGuards = params.makeGuard

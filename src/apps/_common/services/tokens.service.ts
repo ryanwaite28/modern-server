@@ -52,4 +52,10 @@ export class TokensService {
 
     return jwt;
   }
+
+  public static newUserJwtToken(you: IUser): string {
+    // create JWT
+    const jwt = <string> generateJWT(you);
+    return jwt;
+  }
 }

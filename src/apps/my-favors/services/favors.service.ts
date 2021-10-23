@@ -1,22 +1,17 @@
-import {
-  Request,
-  Response,
-} from 'express';
 import { UploadedFile } from 'express-fileupload';
 import {
   fn, col, cast, Op
 } from 'sequelize';
 import { COMMON_TRANSACTION_STATUS, MODERN_APP_NAMES } from '../../_common/enums/common.enum';
-import { IRequest, PlainObject } from '../../_common/interfaces/common.interface';
+import { IUser, PlainObject } from '../../_common/interfaces/common.interface';
 import { IMyModel } from '../../_common/models/common.model-types';
 import { create_notification } from '../../_common/repos/notifications.repo';
 import { getAll, paginateTable } from '../../_common/repos/_common.repo';
 import { GoogleService } from '../../_common/services/google.service';
 import { CommonSocketEventsHandler } from '../../_common/services/socket-events-handlers-by-app/common.socket-event-handler';
 import { StripeService } from '../../_common/services/stripe.service';
-import { store_image } from '../../../cloudinary-manager';
 import { send_sms } from '../../../sms-client';
-import { allowedImages, getUserFullName, user_attrs_slim, validatePhone } from '../../_common/common.chamber';
+import { getUserFullName, user_attrs_slim, validateAndUploadImageFile, validateData, validatePhone } from '../../_common/common.chamber';
 import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
 import { UserPaymentIntents, Users } from '../../_common/models/user.model';
 import { FavorCancellations, FavorHelpers, FavorMessages, Favors, FavorUpdates } from '../models/favor.model';
@@ -25,6 +20,9 @@ import { MyfavorsUserProfileSettings } from '../models/myfavors.model';
 import { create_favor_update_required_props, create_update_favor_required_props, favor_date_needed_validator, myfavors_user_settings_required_props, populate_myfavors_notification_obj } from '../myfavors.chamber';
 import { ICreateUpdateFavor } from '../interfaces/myfavors.interface';
 import { MYFAVORS_EVENT_TYPES, MYFAVORS_NOTIFICATION_TARGET_TYPES } from '../enums/myfavors.enum';
+import { SocketsService } from '../../_common/services/sockets.service';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../../_common/types/common.types';
+import { CatchServiceError } from '../../_common/decorators/common.decorator';
 
 
 
@@ -63,23 +61,61 @@ const favorCommonFindCriteria = {
   order: [fn('RANDOM')],
 };
 
+const check_favor_args = async (favor_id?: number, favorModel?: IMyModel) => {
+  if (!favor_id && !favorModel) {
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.BAD_REQUEST,
+      error: true,
+      info: {
+        message: `favor id or favor model is required.`
+      }
+    };
+    return serviceMethodResults;
+  }
+  const favor_model: IMyModel | null = favorModel || await FavorsRepo.get_favor_by_id(favor_id!);
+  if (!favor_model) {
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.NOT_FOUND,
+      error: true,
+      info: {
+        message: `favor not found...`,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  const serviceMethodResults: ServiceMethodResults = {
+    status: HttpStatusCode.OK,
+    error: false,
+    info: {
+      data: favor_model,
+    }
+  };
+  return serviceMethodResults;
+};
+
+
+
 export class FavorsService {
 
-  static async search_favors(request: Request, response: Response) {
-    const you = response.locals.you;
-    const city: string = request.body.city;
-    const state: string = request.body.state;
+  @CatchServiceError()
+  static async search_favors(opts: {
+    you_id: number,
+    city: string,
+    state: string,
+  }): ServiceMethodAsyncResults {
+    let { you_id, city, state } = opts;
 
     const useFind = Object.assign({}, favorCommonFindCriteria);
     (<any> useFind.where)['city'] = city;
     (<any> useFind.where)['state'] = state;
     (<any> useFind.where)['owner_id'] = {
-      [Op.ne]: you.id
+      [Op.ne]: you_id
     };
 
-    const results: any = [];
-    const resultsMap: any = {};
-    const excludeIds: any = [];
+    const results: any[] = [];
+    const resultsMap: PlainObject = {};
+    const excludeIds: any[] = [];
 
     while (results.length < 5) {
       (<any> useFind.where)['id'] = {
@@ -104,38 +140,61 @@ export class FavorsService {
       }
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: results,
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async send_favor_message(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async send_favor_message(opts: {
+    you: IUser,
+    body: string,
+    favor_model?: IMyModel,
+    favor_id?: number,
+  }): ServiceMethodAsyncResults {
+    const { you, body, favor_id, favor_model } = opts;
+    
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data.toJSON();
 
     if (favorObj.owner_id !== you.id) {
       // if not owner, check if is helper
       const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === you.id);
   
       if (!helper) {
-        return response.status(HttpStatusCode.OK).json({
-          message: `Not a helper of this favor.`,
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Not a helper of this favor.`,
+          }
+        };
+        return serviceMethodResults;
       }
     }
     
-
-    const body = request.body.body;
-    if (!body || !body.trim()) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Body cannot be empty`
-      });
+    if (!body.trim()) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Body cannot be empty`
+        }
+      };
+      return serviceMethodResults;
     }
 
     // create the new message
     const new_message_model = await FavorMessages.create({
-      body,
+      body: body.trim(),
       favor_id: favorObj.id,
       user_id: you.id
     });
@@ -145,7 +204,7 @@ export class FavorsService {
       include: [{
         model: Users,
         as: 'user',
-        attributes: user_attrs_slim
+        attributes: user_attrs_slim,
       }]
     });
 
@@ -175,7 +234,7 @@ export class FavorsService {
   
         const eventData = {
           event,
-          message: `New favor message for: ${favor_model.get('title')}`,
+          message: `New favor message for: ${favorObj.title}`,
           micro_app: MODERN_APP_NAMES.MYFAVORS,
           data: new_message!.toJSON() as any,
           user_id: you.id,
@@ -183,7 +242,7 @@ export class FavorsService {
         }
         const TO_ROOM = `${MYFAVORS_EVENT_TYPES.TO_FAVOR}:${favorObj.id}`;
         // console.log({ TO_ROOM, eventData });
-        (<IRequest> request).io.to(TO_ROOM).emit(TO_ROOM, eventData);
+        SocketsService.get_io().to(TO_ROOM).emit(TO_ROOM, eventData);
         
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
@@ -193,27 +252,49 @@ export class FavorsService {
       });
     }
 
-    
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor message sent successfully!`,
-      data: new_message,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor message sent successfully!`,
+        data: new_message,
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async create_favor_update(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async create_favor_update(opts: {
+    you: IUser,
+    favor_model?: IMyModel,
+    favor_id?: number,
+    update_image: UploadedFile | undefined,
+    data: {
+      message: string,
+      helper_lat: number,
+      helper_lng: number,
+    }
+  }): ServiceMethodAsyncResults {
+    const { you, data, update_image, favor_id, favor_model } = opts;
+    
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data.toJSON();
 
     if (favorObj.owner_id !== you.id) {
       // if not owner, check if is helper
       const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === you.id);
-  
       if (!helper) {
-        return response.status(HttpStatusCode.OK).json({
-          message: `Not a helper of this favor.`,
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Not a helper of this favor.`,
+          }
+        };
+        return serviceMethodResults;
       }
     }
 
@@ -222,49 +303,25 @@ export class FavorsService {
       favor_id: favorObj.id,
     };
 
-    const data: PlainObject = JSON.parse(request.body.payload);
-    const update_image: UploadedFile | undefined = request.files && (
-      <UploadedFile> request.files.update_image
-    );
-
-    // console.log(`request.body`, request.body);
-    // console.log(`data`, data);
-    
-    for (const prop of create_favor_update_required_props) {
-      if (!data.hasOwnProperty(prop.field)) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is required.`
-        });
-      }
-      const isValid: boolean = prop.validator(data[prop.field]);
-      if (!isValid) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is invalid.`
-        });
-      }
-      createObj[prop.field] = data[prop.field];
-    }
-    if (update_image) {
-      const type = update_image.mimetype.split('/')[1];
-      const isInvalidType = !allowedImages.includes(type);
-      if (isInvalidType) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          error: true,
-          message: 'Invalid file type: jpg, jpeg or png required...'
-        });
-      }
-      const results = await store_image(update_image);
-      if (!results.result) {
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: 'Could not upload file...'
-        });
-      }
-      createObj.icon_id = results.result.public_id,
-      createObj.icon_link = results.result.secure_url
+    const dataValidation = validateData({
+      data, 
+      validators: create_favor_update_required_props,
+      mutateObj: createObj
+    });
+    if (dataValidation.error) {
+      return dataValidation;
     }
 
-    // console.log(`createObj`, createObj);
+    const imageValidation = await validateAndUploadImageFile(update_image, {
+      treatNotFoundAsError: false,
+      mutateObj: createObj,
+      id_prop: 'icon_id',
+      link_prop: 'icon_link',
+    });
+    if (imageValidation.error) {
+      return imageValidation;
+    }
+
     const new_favor_update_model = await FavorsRepo.create_favor_update(createObj);
 
     let notify_users = [];
@@ -331,22 +388,33 @@ export class FavorsService {
       });
     }
 
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor new update!`,
-      data: new_favor_update_model,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor new update!`,
+        data: new_favor_update_model,
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_favor_by_id(request: Request, response: Response) {
-    const favor = response.locals.favor_model.toJSON();
-    return response.status(HttpStatusCode.OK).json({
-      data: favor
-    });
+  @CatchServiceError()
+  static async get_favor_by_id(favor_id: number): ServiceMethodAsyncResults {
+    const favor: IMyModel | null = await FavorsRepo.get_favor_by_id(favor_id);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: true,
+      info: {
+        data: favor
+      }
+    };
+    return serviceMethodResults;
   }
   
-  static async get_user_favors_all(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
+  @CatchServiceError()
+  static async get_user_favors_all(user_id: number): ServiceMethodAsyncResults {
     const results = await getAll(
       Favors,
       'owner_id',
@@ -357,14 +425,19 @@ export class FavorsService {
       undefined,
       [['id', 'DESC']]
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: results
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_user_favors(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const favor_id: number | undefined = request.params.favor_id ? parseInt(request.params.favor_id, 10) : undefined;
+  @CatchServiceError()
+  static async get_user_favors(user_id: number, favor_id: number | undefined): ServiceMethodAsyncResults {
     const results = await paginateTable(
       Favors,
       'owner_id',
@@ -376,14 +449,19 @@ export class FavorsService {
       undefined,
       [['id', 'DESC']]
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: results
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_user_favor_helpings_all_active(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    
+  @CatchServiceError()
+  static async get_user_favor_helpings_all_active(user_id: number): ServiceMethodAsyncResults {
     const results = await getAll(
       FavorHelpers,
       'user_id',
@@ -399,17 +477,19 @@ export class FavorsService {
       undefined,
       [['id', 'DESC']]
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: results
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_user_favor_helpings_active(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const favor_id: number | undefined = request.params.favor_id ? parseInt(request.params.favor_id, 10) : undefined;
-
-    console.log({ user_id, favor_id, carrier: true });
-
+  @CatchServiceError()
+  static async get_user_favor_helpings_active(user_id: number, favor_id: number | undefined): ServiceMethodAsyncResults {
     const results = await paginateTable(
       FavorHelpers,
       'user_id',
@@ -426,14 +506,19 @@ export class FavorsService {
       undefined,
       [['id', 'DESC']]
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: results
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_user_favor_helpings_all_past(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    
+  @CatchServiceError()
+  static async get_user_favor_helpings_all_past(user_id: number): ServiceMethodAsyncResults {
     const results = await getAll(
       FavorHelpers,
       'user_id',
@@ -449,17 +534,19 @@ export class FavorsService {
       undefined,
       [['id', 'DESC']]
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: results
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_user_favor_helpings_past(request: Request, response: Response) {
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const favor_id: number | undefined = request.params.favor_id ? parseInt(request.params.favor_id, 10) : undefined;
-
-    console.log({ user_id, favor_id, carrier: true });
-
+  @CatchServiceError()
+  static async get_user_favor_helpings_past(user_id: number, favor_id: number | undefined): ServiceMethodAsyncResults {
     const results = await paginateTable(
       FavorHelpers,
       'user_id',
@@ -476,23 +563,38 @@ export class FavorsService {
       undefined,
       [['id', 'DESC']]
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: results
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async create_favor(request: Request, response: Response) {
+  @CatchServiceError()
+  static async create_favor(opts: {
+    you: IUser,
+    favor_image: UploadedFile | undefined,
+    data: PlainObject | ICreateUpdateFavor,
+  }): ServiceMethodAsyncResults {
     try {
-      const you = response.locals.you;
+      const { you, favor_image, data } = opts;
       const createObj: PlainObject = {
         owner_id: you.id
       };
-
-      const data: PlainObject = JSON.parse(request.body.payload);
-      let date_needed: any = data.date_needed;
-      let time_needed: any = data.time_needed;
+      
+      let date_needed: Date | string = data.date_needed;
+      let time_needed: string | undefined = data.time_needed;
       const date_str = `${date_needed}T${time_needed}`;
-      let datetime_needed: Date | null = date_needed && time_needed && new Date(date_str);
+      let datetime_needed: Date | null = date_needed.constructor === Date
+        ? date_needed
+        : date_needed && time_needed
+          ? new Date(date_str) 
+          : null;
+
       console.log({ date_needed, time_needed, date_str, datetime_needed });
       if (!datetime_needed) {
         datetime_needed = null;
@@ -501,166 +603,225 @@ export class FavorsService {
         const isValidDate = favor_date_needed_validator(date_str);
         console.log({ isValidDate });
         if (!isValidDate) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `Date Time is invalid.`
-          });
+          const serviceMethodResults: ServiceMethodResults = {
+            status: HttpStatusCode.BAD_REQUEST,
+            error: true,
+            info: {
+              message: `Date Time is invalid.`
+            }
+          };
+          return serviceMethodResults;
         }
         createObj['date_needed'] = datetime_needed.toISOString();
       }
 
-      const favor_image: UploadedFile | undefined = request.files && (<UploadedFile> request.files.favor_image);
-
-      console.log(`request.body`, request.body);
-      console.log(`data`, data);
-
-      for (const prop of create_update_favor_required_props) {
-        if (!data.hasOwnProperty(prop.field)) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `${prop.name} is required.`
-          });
-        }
-        const isValid: boolean = prop.validator(data[prop.field]);
-        if (!isValid) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            message: `${prop.name} is invalid.`
-          });
-        }
-
-        createObj[prop.field] = data[prop.field];
+      const dataValidation = validateData({
+        data, 
+        validators: create_update_favor_required_props,
+        mutateObj: createObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
       }
-
-      if (favor_image) {
-        const type = favor_image.mimetype.split('/')[1];
-        const isInvalidType = !allowedImages.includes(type);
-        if (isInvalidType) {
-          return response.status(HttpStatusCode.BAD_REQUEST).json({
-            error: true,
-            message: 'Invalid file type: jpg, jpeg or png required...'
-          });
-        }
-
-        const results = await store_image(favor_image);
-        if (!results.result) {
-          return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-            error: true,
-            message: 'Could not upload file...'
-          });
-        }
-
-        createObj.item_image_id = results.result.public_id,
-        createObj.item_image_link = results.result.secure_url
+  
+      const imageValidation = await validateAndUploadImageFile(favor_image, {
+        treatNotFoundAsError: false,
+        mutateObj: createObj,
+        id_prop: 'item_image_id',
+        link_prop: 'item_image_link',
+      });
+      if (imageValidation.error) {
+        return imageValidation;
       }
 
       console.log(`createObj`, createObj);
 
       const new_favor_model = await FavorsRepo.create_favor(createObj as ICreateUpdateFavor);
-      console.log({new_favor_model});
+      console.log({ new_favor_model });
 
-      return response.status(HttpStatusCode.OK).json({
-        message: `New Favor Created!`,
-        data: new_favor_model
-      });
-    } catch (e) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `New Favor Created!`,
+          data: new_favor_model
+        }
+      };
+      return serviceMethodResults;
+    }
+    catch (e) {
       console.log(e);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        message: `Could not create new favor`,
-        error: e
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        error: true,
+        info: {
+          message: `Could not create new favor`,
+          error: e,
+        }
+      };
+      return serviceMethodResults;
     }
   }
 
-  static async update_favor(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async update_favor(opts: {
+    you: IUser,
+    favor_model?: IMyModel,
+    favor_id?: number,
+    data: PlainObject | ICreateUpdateFavor,
+  }): ServiceMethodAsyncResults {
+    const { you, favor_id, favor_model, data } = opts;
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data.toJSON();
 
     if (favorObj.fulfilled) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Favor is already fulfilled.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor is already fulfilled.`,
+        }
+      };
+      return serviceMethodResults;
     }
     if (favorObj.startd) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Favor is already started.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor is already started.`,
+        }
+      };
+      return serviceMethodResults;
     }
     if (favorObj.owner_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Not favor owner.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Not favor owner.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     const updateObj: any = {
       owner_id: you.id
     };
 
-    for (const prop of create_update_favor_required_props) {
-      if (!request.body.hasOwnProperty(prop.field)) {
-        continue;
-      }
-      const isValid: boolean = prop.validator(request.body[prop.field]);
-      if (!isValid) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is required.`
-        });
-      }
-
-      updateObj[prop.field] = request.body[prop.field];
+    const dataValidation = validateData({
+      data, 
+      validators: create_update_favor_required_props,
+      mutateObj: updateObj
+    });
+    if (dataValidation.error) {
+      return dataValidation;
     }
 
-    const updates = await FavorsRepo.update_favor(updateObj as ICreateUpdateFavor, favor_model.get('id'));
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor Updated!`,
-      data: updates
-    });
+    const updates = await FavorsRepo.update_favor(updateObj as ICreateUpdateFavor, favorObj.id);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor Updated!`,
+        data: updates,
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async delete_favor(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async delete_favor(favor_id?: number, favor_model?: IMyModel): ServiceMethodAsyncResults {
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data.toJSON();
 
     if (favorObj.fulfilled) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Favor is already fulfilled.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor is already fulfilled.`,
+        }
+      };
+      return serviceMethodResults;
     }
     if (favorObj.startd) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Favor is already started.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor is already started.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
-    const deletes = await FavorsRepo.delete_favor(favor_model.get('id'));
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor Deleted!`,
-      data: deletes
-    });
+    const deletes = await FavorsRepo.delete_favor(favorObj.id);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor Deleted!`,
+        data: deletes,
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async assign_favor(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async assign_favor(opts: {
+    you: IUser,
+    favor_id?: number,
+    favor_model?: IMyModel
+  }): ServiceMethodAsyncResults {
+    const { you, favor_id, favor_model } = opts;
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data.toJSON();
 
     if (favorObj.owner_id === you.id) {
       // if not owner, check if is helper
-      return response.status(HttpStatusCode.OK).json({
-        message: `Favor owner cannot be assigned as helper.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor owner cannot be assigned as helper.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === you.id);
     if (helper) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Already a helper of this favor.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Already a helper of this favor.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     if (favorObj.favor_helpers.length === favorObj.helpers_wanted) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Max helpers wanted reached.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Max helpers wanted reached.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     // the lead helper is sent when there are no other helpers
@@ -718,26 +879,46 @@ export class FavorsService {
       });
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor helper assigned!`,
-      new_helper,
-      data,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor helper assigned!`,
+        data: {
+          new_helper,
+          favor: data,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async unassign_favor(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async unassign_favor(opts: {
+    you: IUser,
+    favor_id?: number,
+    favor_model?: IMyModel
+  }): ServiceMethodAsyncResults {
+    const { you, favor_id, favor_model } = opts;
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data.toJSON();
 
     if (favorObj.owner_id !== you.id) {
       // if not owner, check if is helper
       const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === you.id);
   
       if (!helper) {
-        return response.status(HttpStatusCode.OK).json({
-          message: `Not a helper of this favor.`,
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Not a helper of this favor.`,
+          }
+        };
+        return serviceMethodResults;
       }
     }
 
@@ -792,22 +973,41 @@ export class FavorsService {
       });
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor helper unassigned!`,
-      deletes,
-      data,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor helper unassigned!`,
+        data: {
+          deletes,
+          favor: data,
+        },
+      }
+    };
+    return serviceMethodResults;
   }
   
-  static async mark_favor_as_started(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async mark_favor_as_started(opts: {
+    you: IUser,
+    favor_id?: number,
+    favor_model?: IMyModel
+  }): ServiceMethodAsyncResults {
+    const { you, favor_id, favor_model } = opts;
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data.toJSON();
 
     if (favorObj.datetime_started) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Favor is already started.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor is already started.`,
+        }
+      };
     }
 
     if (favorObj.owner_id !== you.id) {
@@ -815,20 +1015,30 @@ export class FavorsService {
       const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === you.id);
   
       if (!helper) {
-        return response.status(HttpStatusCode.OK).json({
-          message: `Not a helper of this favor.`,
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Not a helper of this favor.`,
+          }
+        };
+        return serviceMethodResults;
       }
   
       if (!helper.is_lead) {
-        return response.status(HttpStatusCode.OK).json({
-          message: `Not lead helper of this favor.`,
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Not lead helper of this favor.`,
+          }
+        };
+        return serviceMethodResults;
       }
     }
 
-    favor_model.datetime_started = fn('NOW');
-    const updates = await favor_model.save({ fields: ['datetime_started'] });
+    check.info.data.datetime_started = fn('NOW');
+    const updates = await check.info.data.save({ fields: ['datetime_started'] });
     
     const data = await FavorsRepo.get_favor_by_id(favorObj.id);
 
@@ -876,22 +1086,42 @@ export class FavorsService {
       });
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor started!`,
-      data,
-      updates,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor started!`,
+        data: {
+          updates,
+          favor: data,
+        },
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async mark_favor_as_fulfilled(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async mark_favor_as_fulfilled(opts: {
+    you: IUser,
+    favor_id?: number,
+    favor_model?: IMyModel
+  }): ServiceMethodAsyncResults {
+    const { you, favor_id, favor_model } = opts;
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data.toJSON();
 
     if (favorObj.datetime_fulfilled) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Favor is already fulfilled.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor is already fulfilled.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     if (favorObj.owner_id !== you.id) {
@@ -899,20 +1129,30 @@ export class FavorsService {
       const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === you.id);
   
       if (!helper) {
-        return response.status(HttpStatusCode.OK).json({
-          message: `Not a helper of this favor.`,
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Not a helper of this favor.`,
+          }
+        };
+        return serviceMethodResults;
       }
   
       if (!helper.is_lead) {
-        return response.status(HttpStatusCode.OK).json({
-          message: `Not lead helper of this favor.`,
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Not lead helper of this favor.`,
+          }
+        };
+        return serviceMethodResults;
       }
     }
 
-    favor_model.datetime_fulfilled = fn('NOW');
-    const updates = await favor_model.save({ fields: ['datetime_fulfilled'] });
+    check.info.data.datetime_fulfilled = fn('NOW');
+    const updates = await check.info.data.save({ fields: ['datetime_fulfilled'] });
     
     const data = await FavorsRepo.get_favor_by_id(favorObj.id);
 
@@ -960,22 +1200,43 @@ export class FavorsService {
       });
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor fulfilled!`,
-      data,
-      updates,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor fulfilled!`,
+        data: {
+          updates,
+          favor: data,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async mark_favor_as_canceled(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async mark_favor_as_canceled(opts: {
+    you: IUser,
+    favor_id?: number,
+    favor_model?: IMyModel,
+    reason?: string,
+  }): ServiceMethodAsyncResults {
+    const { you, favor_id, favor_model, reason } = opts;
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data.toJSON();
 
     if (favorObj.canceled) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Favor is already canceled.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `Favor is already canceled.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     if (favorObj.owner_id !== you.id) {
@@ -983,21 +1244,31 @@ export class FavorsService {
       const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === you.id);
   
       if (!helper) {
-        return response.status(HttpStatusCode.OK).json({
-          message: `Not a helper of this favor.`,
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Not a helper of this favor.`,
+          }
+        };
+        return serviceMethodResults;
       }
   
       if (!helper.is_lead) {
-        return response.status(HttpStatusCode.OK).json({
-          message: `Not lead helper of this favor.`,
-        });
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Not lead helper of this favor.`,
+          }
+        };
+        return serviceMethodResults;
       }
     }
 
-    favor_model.canceled = true;
-    favor_model.datetime_started = null;
-    const updates = await favor_model.save({ fields: ['canceled', 'started'] });
+    check.info.data.canceled = true;
+    check.info.data.datetime_started = null;
+    const updates = await check.info.data.save({ fields: ['canceled', 'started'] });
 
     const trackingDeletes = await FavorUpdates.destroy({ 
       where: { favor_id: favorObj.id }
@@ -1010,7 +1281,7 @@ export class FavorsService {
     });
     const cancellation = await FavorCancellations.create({
       favor_id: favorObj.id,
-      reason: request.body.reason || ''
+      reason: reason || '',
     });
 
     const data = await FavorsRepo.get_favor_by_id(favorObj.id);
@@ -1059,54 +1330,103 @@ export class FavorsService {
       });
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor canceled!`,
-      data,
-      updates,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor canceled!`,
+        data: {
+          updates,
+          favor: data,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
-  static async mark_favor_as_uncanceled(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+
+  @CatchServiceError()
+  static async mark_favor_as_uncanceled(opts: {
+    you: IUser,
+    favor_id?: number,
+    favor_model?: IMyModel
+  }): ServiceMethodAsyncResults {
+    const { you, favor_id, favor_model } = opts;
+    const check: ServiceMethodResults<IMyModel> = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data!.toJSON();
 
     if (!favorObj.canceled) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Favor is not canceled.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `Favor is not canceled.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
-    favor_model.canceled = false;
-    const updates = await favor_model.save({ fields: ['canceled'] });
+    check.info.data!.canceled = false;
+    const updates = await check.info.data!.save({ fields: ['canceled'] });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor uncanceled!`,
-      updates,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor uncanceled!`,
+        data: updates
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async mark_helper_as_helped(request: Request, response: Response) {
-    const you = response.locals.you;
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async mark_helper_as_helped(opts: {
+    you: IUser,
+    user_id: number,
+    favor_id?: number,
+    favor_model?: IMyModel
+  }): ServiceMethodAsyncResults {
+    const { you, user_id, favor_id, favor_model } = opts;
+    const check: ServiceMethodResults<IMyModel> = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data!.toJSON();
 
     if (favorObj.canceled) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Favor is canceled.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor is canceled.`,
+        }
+      };
+      return serviceMethodResults;
     }
     if (favorObj.canceled) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Favor is fulfilled.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor is fulfilled.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === user_id);
     if (!helper) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Helper user not found by id: ${user_id}`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Helper user not found by id: ${user_id}`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     const updates = await FavorHelpers.update({ helped: true }, { 
@@ -1150,35 +1470,65 @@ export class FavorsService {
       });
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor helper marked as helped!`,
-      data,
-      updates,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Favor helper marked as helped!`,
+        data: {
+          updates,
+          favor: data,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async mark_helper_as_unhelped(request: Request, response: Response) {
-    const you = response.locals.you;
-    const user_id: number = parseInt(request.params.user_id, 10);
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+  @CatchServiceError()
+  static async mark_helper_as_unhelped(opts: {
+    you: IUser,
+    user_id: number,
+    favor_id?: number,
+    favor_model?: IMyModel
+  }): ServiceMethodAsyncResults {
+    const { you, user_id, favor_id, favor_model } = opts;
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
+    }
+    const favorObj: any = check.info.data.toJSON();
 
     if (favorObj.canceled) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Favor is canceled.`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor is canceled.`,
+        }
+      };
+      return serviceMethodResults;
     }
-    if (favorObj.canceled) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Favor is fulfilled.`,
-      });
+    if (favorObj.fulfilled) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Favor is fulfilled.`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === user_id);
     if (!helper) {
-      return response.status(HttpStatusCode.OK).json({
-        message: `Helper user not found by id: ${user_id}`,
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Helper user not found by id: ${user_id}`,
+        }
+      };
+      return serviceMethodResults;
     }
 
     const updates = await FavorHelpers.update({ helped: true }, { 
@@ -1222,185 +1572,119 @@ export class FavorsService {
       });
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Favor helper marked as unhelped!`,
-      data,
-      updates,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.BAD_REQUEST,
+      error: true,
+      info: {
+        message: `Favor helper marked as unhelped!`,
+        data: {
+          updates,
+          favor: data,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async get_settings(request: Request, response: Response) {
-    const you = response.locals.you;
-
+  @CatchServiceError()
+  static async get_settings(you_id: number): ServiceMethodAsyncResults {
     let settings = await MyfavorsUserProfileSettings.findOne({
-      where: { user_id: you.id }
+      where: { user_id: you_id }
     });
     if (!settings) {
       settings = await MyfavorsUserProfileSettings.create({
-        user_id: you.id
+        user_id: you_id
       });
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      data: settings
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: true,
+      info: {
+        data: settings
+      }
+    };
+    return serviceMethodResults;
   }
 
-  static async update_settings(request: Request, response: Response) {
-    const you = response.locals.you;
-    const data = request.body;
+  @CatchServiceError()
+  static async update_settings(opts: {
+    you_id: number,
+    data: PlainObject,
+  }): ServiceMethodAsyncResults {
+    const { you_id, data } = opts;
 
     const updatesObj: any = {};
 
     let settings = await MyfavorsUserProfileSettings.findOne({
-      where: { user_id: you.id }
+      where: { user_id: you_id }
     });
     if (!settings) {
       settings = await MyfavorsUserProfileSettings.create({
-        user_id: you.id
+        user_id: you_id
       });
     }
 
-    for (const prop of myfavors_user_settings_required_props) {
-      if (!data.hasOwnProperty(prop.field)) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is required.`
-        });
-      }
-      const isValid: boolean = prop.validator(data[prop.field]);
-      if (!isValid) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `${prop.name} is invalid.`
-        });
-      }
-      updatesObj[prop.field] = data[prop.field];
+    const dataValidation = validateData({
+      data, 
+      validators: myfavors_user_settings_required_props,
+      mutateObj: updatesObj
+    });
+    if (dataValidation.error) {
+      return dataValidation;
     }
 
     const updates = await settings.update(updatesObj);
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Updated settings successfully!`,
-      updates,
-      data: settings,
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Updated settings successfully!`,
+        data: {
+          updates,
+          data: settings,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 
-
-
-  /*
-  static async create_checkout_session(request: Request, response: Response) {
-    const you = response.locals.you;
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj = favor_model!.toJSON() as any;
-    
-
-    if (favorObj.owner_id !== you.id) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are not the owner of this favor.`,
-      });
+  @CatchServiceError()
+  static async pay_helper(opts: {
+    you: IUser,
+    user: IUser,
+    favor_id?: number,
+    favor_model?: IMyModel
+  }): ServiceMethodAsyncResults {
+    const { you, user, favor_id, favor_model } = opts;
+    const check: ServiceMethodResults = await check_favor_args(favor_id, favor_model);
+    if (check.error) {
+      return check;
     }
-
-    if (!favorObj.owner.stripe_account_verified) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `Owner's stripe account is not setup`,
-      });
-    }
-
-    const payment_session_id = favorObj.payment_session_id;
-
-    const host: string = request.get('origin')!;
-    const useHost = host.endsWith('/') ? host.substr(0, host.length - 1) : host;
-    const successUrl = `${useHost}/modern/apps/myfavors/favors/${favorObj.id}/payment-success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${useHost}/modern/apps/myfavors/favors/${favorObj.id}/payment-cancel?session_id={CHECKOUT_SESSION_ID}`;
-    
-    // const createPaymentOpts = {
-    //   payment_method_types: ['card'],
-    //   line_items: [
-    //     {
-    //       price_data: {
-    //         currency: 'usd',
-    //         product_data: {
-    //           name: `Favor of ${favorObj.title} by ${getUserFullName(favorObj.carrier)}`,
-    //         },
-    //         unit_amount: parseFloat(favorObj.payout + '00'),
-    //       },
-    //       quantity: 1,
-    //     },
-    //   ],
-    //   mode: 'payment',
-    //   success_url: successUrl,
-    //   cancel_url: cancelUrl,
-    // };
-
-    // const session = await stripe.checkout.sessions.create(createPaymentOpts);
-    
-    // console.log({ createPaymentOpts }, JSON.stringify(createPaymentOpts));
-    // console.log({ session });
-
-    let paymentIntent;
-    
-    try {
-      const chargeFeeData = StripeService.add_on_stripe_processing_fee(favorObj.payout_per_helper);
-      paymentIntent = await StripeService.stripe.paymentIntents.create({
-        payment_method_types: ['card'],
-        amount: chargeFeeData.new_total,
-        currency: 'usd',
-        application_fee_amount: chargeFeeData.app_fee, 
-        transfer_data: {
-          destination: favorObj.carrier.stripe_account_id,
-        },
-      },
-      // { stripeAccount: you.stripe_account_id }
-      );
-    } catch (err) {
-      console.log((<any> err).message);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        message: (<any> err).message,
-        err
-      });
-    }
-    
-
-    // check if favor already has a session. if so, over-write with new one
-    // await favor_model.update({ paymentIntent });
-
-    const newIntent = await UserPaymentIntents.create({
-      user_id: owner_id,
-      payment_intent_id: paymentIntent.id,
-      payment_intent_event: MYFAVORS_EVENT_TYPES.FAVOR_COMPLETED,
-      micro_app: MODERN_APP_NAMES.MYFAVORS,
-      target_type: MYFAVORS_NOTIFICATION_TARGET_TYPES.FAVOR,
-      target_id: favor_id,
-    });
-
-    // console.log({ newIntent, paymentIntent });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `Payment intent created`,
-      payment_client_secret: paymentIntent.client_secret,
-      stripe_pk: process.env.STRIPE_PK
-    });
-  }
-  */
-
-  static async pay_helper(request: Request, response: Response) {
-    const you = response.locals.you;
-    const user = response.locals.user;
-
-    const favor_model: IMyModel = response.locals.favor_model;
-    const favorObj: any = favor_model.toJSON();
+    const favorObj: any = check.info.data.toJSON();
 
     const helper = favorObj.favor_helpers.find((helper: any) => helper.user_id === user.id);
 
     if (!helper) {
-      return response.status(HttpStatusCode.FORBIDDEN).json({
-        message: `No helper user found by id ${user.id}`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.FORBIDDEN,
+        error: true,
+        info: {
+          message: `No helper user found by id ${user.id}`
+        }
+      };
+      return serviceMethodResults;
     }
     if (helper.paid) {
-      return response.status(HttpStatusCode.FORBIDDEN).json({
-        message: `Helper already paid`
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Helper already paid`
+        }
+      };
+      return serviceMethodResults;
     }
 
     // if (!helper.helped) {
@@ -1432,12 +1716,18 @@ export class FavorsService {
       },
       // { stripeAccount: you.stripe_account_id }
       );
-    } catch (err) {
+    }
+    catch (err) {
       console.log((<any> err).message);
-      return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-        message: (<any> err).message,
-        err
-      });
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        error: true,
+        info: {
+          message: (<any> err).message,
+          error: err,
+        }
+      };
+      return serviceMethodResults;
     }
     
     const newIntent = await UserPaymentIntents.create({
@@ -1452,10 +1742,17 @@ export class FavorsService {
 
     console.log({ newIntent, paymentIntent });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Payment intent created`,
-      payment_client_secret: paymentIntent.client_secret,
-      stripe_pk: process.env.STRIPE_PK
-    });
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Payment intent created`,
+        data: {
+          payment_client_secret: paymentIntent.client_secret,
+          stripe_pk: process.env.STRIPE_PK,
+        }
+      }
+    };
+    return serviceMethodResults;
   }
 }
