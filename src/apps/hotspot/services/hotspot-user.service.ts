@@ -1,44 +1,30 @@
-import {
-  Request,
-  Response,
-} from 'express';
 import { Op, where, fn, col } from 'sequelize';
-import { user_attrs_med, user_attrs_slim } from '../../_common/common.chamber';
-import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
-import { IUser } from '../../_common/interfaces/common.interface';
+import { createGenericServiceMethodError, createGenericServiceMethodSuccess, user_attrs_med, user_attrs_slim } from '../../_common/common.chamber';
 import { Photos } from '../../_common/models/photo.model';
 import { Users } from '../../_common/models/user.model';
 import { Cliques } from '../models/clique.model';
 import { HotspotPosts, HotspotPostPhotos } from '../models/post.model';
 import { HotspotResources } from '../models/resource.model';
 import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
+import { HotspotUserFollowingTags } from '../models/hotspot.model';
+import { IMyModel } from '../../_common/models/common.model-types';
 
 
 
 export class HotspotUsersService {
 
-  /** Request Handlers */
+  static async get_search_results(opts: {
+    model: string,
+    query: string,
+    min_id?: number,
+  }): ServiceMethodAsyncResults {
+    const { model, query, min_id } = opts;
 
-  static async main(): ServiceMethodAsyncResults {
-    return response.status(HttpStatusCode.OK).json({
-      msg: 'hotspot app router'
-    });
-  }
-
-  static async get_search_results(): ServiceMethodAsyncResults {
-    const model = String(request.query.model || '');
-    const q = String(request.query.q || '');
-    const min_id = String(request.query.feed_type || '') || null;
-    
     if (!model) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `model query param is required`
-      });
+      return createGenericServiceMethodError(`model query param is required`);
     }
-    if (!q) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `q query param is required`
-      });
+    if (!query) {
+      return createGenericServiceMethodError(`q query param is required`);
     }
 
     const partialWhereClause: any = min_id
@@ -51,26 +37,25 @@ export class HotspotUsersService {
           where: { 
             ...partialWhereClause,
             [Op.or]: [
-              { displayname: where(fn('LOWER', col('displayname')), 'LIKE', '%' + q + '%'), },
-              { username: where(fn('LOWER', col('username')), 'LIKE', '%' + q + '%'), },
+              { displayname: where(fn('LOWER', col('displayname')), 'LIKE', '%' + query + '%'), },
+              { username: where(fn('LOWER', col('username')), 'LIKE', '%' + query + '%'), },
             ]
           },
           attributes: user_attrs_med,
           limit: 10,
           order: [['id', 'DESC']]
         });
-        return response.status(HttpStatusCode.OK).json({
-          data: results
-        });
+
+        return createGenericServiceMethodSuccess(undefined, results);
       }
       case 'cliques': {
         const results = await Cliques.findAll({
           where: { 
             ...partialWhereClause,
             [Op.or]: [
-              { title: where(fn('LOWER', col('title')), 'LIKE', '%' + q + '%'), },
-              { summary: where(fn('LOWER', col('summary')), 'LIKE', '%' + q + '%'), },
-              { industry: where(fn('LOWER', col('industry')), 'LIKE', '%' + q + '%'), },
+              { title: where(fn('LOWER', col('title')), 'LIKE', '%' + query + '%'), },
+              { summary: where(fn('LOWER', col('summary')), 'LIKE', '%' + query + '%'), },
+              { industry: where(fn('LOWER', col('industry')), 'LIKE', '%' + query + '%'), },
             ]
           },
           include: [{
@@ -81,18 +66,17 @@ export class HotspotUsersService {
           limit: 10,
           order: [['id', 'DESC']]
         });
-        return response.status(HttpStatusCode.OK).json({
-          data: results
-        });
+
+        return createGenericServiceMethodSuccess(undefined, results);
       }
       case 'resources': {
         const results = await HotspotResources.findAll({
           where: { 
             ...partialWhereClause,
             [Op.or]: [
-              { title: where(fn('LOWER', col('title')), 'LIKE', '%' + q + '%'), },
-              { description: where(fn('LOWER', col('description')), 'LIKE', '%' + q + '%'), },
-              { industry: where(fn('LOWER', col('industry')), 'LIKE', '%' + q + '%'), },
+              { title: where(fn('LOWER', col('title')), 'LIKE', '%' + query + '%'), },
+              { description: where(fn('LOWER', col('description')), 'LIKE', '%' + query + '%'), },
+              { industry: where(fn('LOWER', col('industry')), 'LIKE', '%' + query + '%'), },
             ]
           },
           include: [{
@@ -103,41 +87,45 @@ export class HotspotUsersService {
           limit: 10,
           order: [['id', 'DESC']]
         });
-        return response.status(HttpStatusCode.OK).json({
-          data: results
-        });
+
+        return createGenericServiceMethodSuccess(undefined, results);
       }
       default: {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          message: `unknown model passed...`
-        });
+        return createGenericServiceMethodError(`unknown model passed...`);
       }
     }
   }
 
-  static async get_user_feed(): ServiceMethodAsyncResults {
-    const min_id = parseInt(request.params.min_id, 10);
-    const you: IUser = response.locals.you;
-    const feed_type = String(request.query.feed_type || '');
+  static async get_user_feed(opts: {
+    user_id: number,
+    min_id: number,
+    feed_type: string,
+    limit?: number | string
+  }): ServiceMethodAsyncResults {
+    const { user_id, min_id, feed_type, limit } = opts;
+
     if (!feed_type) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `feed_type query param is required`
-      });
+      return createGenericServiceMethodError(`feed_type query param is required`);
     }
 
-    const you_tags = you.tags.split(',').filter((tag: string) => !!tag);
+    const you_tags_models = await HotspotUserFollowingTags.findAll({
+      where: {
+        user_id,
+      }
+    });
+
+    const you_tags = you_tags_models.map((tag_model: IMyModel) => tag_model.get('tag_name') as string);
 
     const you_tags_like_list_curry = (prop: string) => you_tags.map((tag: string) => ({ [prop]: { [Op.like]: '%' + tag + '%' } }));
 
-    const limit_str = request.query.limit || '';
-    const limitIsValid = (/[0-9]+/).test(<string> limit_str);
-    const limit = limitIsValid
-      ? parseInt(request.params.limit, 10)
+    const limitIsValid = (/[0-9]+/).test(<string> limit);
+    const useLimit = limitIsValid
+      ? parseInt(<any>limit, 10)
       : 10;
 
     const partialWhere: any = (prop: string) => min_id
-      ? { [Op.and]: [{ id: { [Op.lt]: min_id } }, { [prop]: { [Op.ne]: you.id  }}] }
-      : { [prop]: { [Op.ne]: you.id } };
+      ? { [Op.and]: [{ id: { [Op.lt]: min_id } }, { [prop]: { [Op.ne]: user_id  }}] }
+      : { [prop]: { [Op.ne]: user_id } };
     let results;
 
     const useTagsOr = you_tags.length
@@ -155,7 +143,7 @@ export class HotspotUsersService {
         results = await Users.findAll({
           where: { ...partialWhere('id'), ...useTagsOr },
           attributes: user_attrs_med,
-          limit,
+          limit: useLimit,
           order: [['id', 'DESC']]
         });
         break;
@@ -163,7 +151,7 @@ export class HotspotUsersService {
       case 'new-posts': {
         results = await HotspotPosts.findAll({
           where: { ...partialWhere('owner_id'), ...useTagsOr },
-          limit,
+          limit: useLimit,
           include: [{
             model: Users,
             as: 'owner',
@@ -182,8 +170,6 @@ export class HotspotUsersService {
       }
     }
 
-    return response.status(HttpStatusCode.OK).json({
-      data: results
-    });
+    return createGenericServiceMethodSuccess(undefined, results);
   }
 }

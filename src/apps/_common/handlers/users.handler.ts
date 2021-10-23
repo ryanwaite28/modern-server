@@ -1,7 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import { UploadedFile } from 'express-fileupload';
 import { IRequest, IUser, PlainObject } from '../interfaces/common.interface';
 import { UsersService } from '../services/users.service';

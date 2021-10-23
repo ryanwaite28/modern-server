@@ -4,7 +4,7 @@ import { IUser } from '../../_common/interfaces/common.interface';
 import { IMyModel } from '../../_common/models/common.model-types';
 import { UploadedFile } from 'express-fileupload';
 import { DeliveriesService } from '../services/deliveries.service';
-import { ExpressResponse, ServiceMethodResults } from 'src/apps/_common/types/common.types';
+import { ExpressResponse, ServiceMethodResults } from '../../_common/types/common.types';
 
 export class DeliveriesRequestHandler {
 

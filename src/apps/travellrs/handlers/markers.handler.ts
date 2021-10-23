@@ -1,8 +1,5 @@
 import { UploadedFile } from 'express-fileupload';
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import {
   HttpStatusCode
 } from '../../_common/enums/http-codes.enum';
@@ -10,8 +7,8 @@ import {
   IUser, PlainObject,
 } from '../../_common/interfaces/common.interface';
 import { MarkersService } from '../services/markers.service';
-import { CatchRequestHandlerError } from 'src/apps/_common/decorators/common.decorator';
-import { ExpressResponse, ServiceMethodResults } from 'src/apps/_common/types/common.types';
+import { CatchRequestHandlerError } from '../../_common/decorators/common.decorator';
+import { ExpressResponse, ServiceMethodResults } from '../../_common/types/common.types';
 
 export class MarkersRequestHandler {
   /** Request Handlers */

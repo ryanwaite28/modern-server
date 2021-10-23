@@ -1,7 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import {
   HttpStatusCode
 } from '../../_common/enums/http-codes.enum';

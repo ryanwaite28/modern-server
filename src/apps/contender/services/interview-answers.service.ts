@@ -1,34 +1,21 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
+import { createGenericServiceMethodSuccess } from '../../_common/common.chamber';
+import { IMyModel } from '../../_common/models/common.model-types';
 import {
   HttpStatusCode
 } from '../../_common/enums/http-codes.enum';
-import { 
-  populate_common_notification_obj,
-  user_attrs_slim
-} from '../../_common/common.chamber';
+import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
 import {
-  PlainObject,
-  IUser,
-  IRequest
-} from '../../_common/interfaces/common.interface';
+  get_interview_answer_by_id,
+} from '../repos/interviews.repo';
 
-import * as UserRepo from '../../_common/repos/users.repo';
-import * as FollowsRepo from '../../_common/repos/follows.repo';
-import * as CommonRepo from '../../_common/repos/_common.repo';
-import { create_notification } from '../../_common/repos/notifications.repo';
-import { Follows, Users } from '../../_common/models/user.model';
-import { COMMON_EVENT_TYPES } from '../../_common/enums/common.enum';
-import { SocketsService } from '../../_common/services/sockets.service';
 
-export class ContenderInterviewAnswersService {
+
+export class ContenderInterviewsService {
   
-  static async get_interview_answer_by_id(request: Request, response: Response): ExpressResponse {
-    return response.status(HttpStatusCode.OK).json({
-      data: response.locals.interview_answer_model
-    });
+  static async get_interview_answer_by_id(interview_answer_id: number): ServiceMethodAsyncResults {
+    const interview_answer_model: IMyModel | null = await get_interview_answer_by_id(interview_answer_id);
+    return createGenericServiceMethodSuccess(undefined, interview_answer_model);
   }
 
 }

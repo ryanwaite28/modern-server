@@ -16,8 +16,8 @@ import * as CommonRepo from '../../_common/repos/_common.repo';
 import { Photos } from '../../_common/models/photo.model';
 import { Users } from '../../_common/models/user.model';
 import { NewsPosts, NewsPostPhotos } from '../models/newspost.model';
-import { ServiceMethodAsyncResults, ServiceMethodResults } from 'src/apps/_common/types/common.types';
-import { IMyModel } from 'src/apps/_common/models/common.model-types';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../../_common/types/common.types';
+import { IMyModel } from '../../_common/models/common.model-types';
 
 export class NewsPostsService {
 

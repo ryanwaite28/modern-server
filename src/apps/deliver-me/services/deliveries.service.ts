@@ -1,7 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import {
   HttpStatusCode
 } from '../../_common/enums/http-codes.enum';
@@ -1512,8 +1509,10 @@ export class DeliveriesService {
       error: false,
       info: {
         message: `Payment intent created`,
-        payment_client_secret: paymentIntent.client_secret,
-        stripe_pk: process.env.STRIPE_PK
+        data: {
+          payment_client_secret: paymentIntent.client_secret,
+          stripe_pk: process.env.STRIPE_PK
+        }
       }
     };
     return serviceMethodResults;

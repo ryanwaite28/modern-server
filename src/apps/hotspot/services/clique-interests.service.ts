@@ -21,7 +21,7 @@ import {
 import { SocketsService } from '../../_common/services/sockets.service';
 import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
-import { IMyModel } from 'src/apps/_common/models/common.model-types';
+import { IMyModel } from '../../_common/models/common.model-types';
 
 
 export class CliqueInterestsService {

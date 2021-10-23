@@ -10,7 +10,7 @@ import {
 } from '../../_common/models/common.model-types';
 import { Users } from '../../_common/models/user.model';
 import { createCommonGenericModelSocialModels } from '../../_common/helpers/create-model-social-models.helper';
-import { MODERN_APP_NAMES } from 'src/apps/_common/enums/common.enum';
+import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 
 export const Markers = <MyModelStatic> sequelize.define('travellrs_markers', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },

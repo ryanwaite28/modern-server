@@ -1,7 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import { CatchRequestHandlerError } from '../decorators/common.decorator';
 import { ConversationMessagesService } from '../services/conversation-messages.service';
 import { ExpressResponse, ServiceMethodResults } from '../types/common.types';

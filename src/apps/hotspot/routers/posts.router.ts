@@ -19,9 +19,9 @@ import { get_post_by_id } from '../repos/posts.repo';
 import { MODERN_APP_NAMES } from '../../../apps/_common/enums/common.enum';
 import { HOTSPOT_EVENT_TYPES, HOTSPOT_NOTIFICATION_TARGET_TYPES } from '../enums/hotspot.enum';
 import { populate_hotspot_notification_obj } from '../hotspot.chamber';
-import { createCommonGenericModelReactionsRequestHandler } from 'src/apps/_common/helpers/create-model-reactions-request-handler.helper';
-import { createCommonGenericModelCommentsRequestHandler } from 'src/apps/_common/helpers/create-model-comments-request-handler.helper';
-import { createCommonGenericModelCommentRepliesRequestHandler } from 'src/apps/_common/helpers/create-model-comment-replies-request-handler.helper';
+import { createCommonGenericModelReactionsRequestHandler } from '../../_common/helpers/create-model-reactions-request-handler.helper';
+import { createCommonGenericModelCommentsRequestHandler } from '../../_common/helpers/create-model-comments-request-handler.helper';
+import { createCommonGenericModelCommentRepliesRequestHandler } from '../../_common/helpers/create-model-comment-replies-request-handler.helper';
 
 
 

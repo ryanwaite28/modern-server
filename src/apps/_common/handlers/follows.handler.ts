@@ -1,7 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import { FollowsService } from '../services/follows.service';
 import { ExpressResponse, ServiceMethodResults } from '../types/common.types';
 

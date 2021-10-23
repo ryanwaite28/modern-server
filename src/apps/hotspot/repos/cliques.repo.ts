@@ -39,7 +39,6 @@ export async function create_clique(
   params: {
     title: string;
     summary: string;
-    industry: string;
     owner_id: number;
     icon_link?: string;
     icon_id?: string;
@@ -53,7 +52,6 @@ export async function update_clique(
   newState: Partial<{
     title: string;
     summary: string;
-    industry: string;
     icon_link?: string;
     icon_id?: string;
   }>,

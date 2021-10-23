@@ -20,9 +20,9 @@ import {
 } from '../models/interviews.model';
 import { get_interview_by_id } from '../repos/interviews.repo';
 import { ContenderInterviewsService } from '../services/interview.service';
-import { createCommonGenericModelReactionsRequestHandler } from 'src/apps/_common/helpers/create-model-reactions-request-handler.helper';
-import { createCommonGenericModelCommentsRequestHandler } from 'src/apps/_common/helpers/create-model-comments-request-handler.helper';
-import { createCommonGenericModelCommentRepliesRequestHandler } from 'src/apps/_common/helpers/create-model-comment-replies-request-handler.helper';
+import { createCommonGenericModelReactionsRequestHandler } from '../../_common/helpers/create-model-reactions-request-handler.helper';
+import { createCommonGenericModelCommentsRequestHandler } from '../../_common/helpers/create-model-comments-request-handler.helper';
+import { createCommonGenericModelCommentRepliesRequestHandler } from '../../_common/helpers/create-model-comment-replies-request-handler.helper';
 
 
 

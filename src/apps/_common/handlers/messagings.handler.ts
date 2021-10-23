@@ -1,7 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { Messagings, Messages } from '../models/messages.model';
 import { user_attrs_slim } from '../common.chamber';

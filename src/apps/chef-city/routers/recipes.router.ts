@@ -6,7 +6,7 @@ import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 import { populate_chefcity_notification_obj } from '../chefcity.chamber';
 import { CHEFCITY_EVENT_TYPES } from '../enums/chefcity.enum';
 import { RecipeReactions, RecipeComments, RecipeCommentReactions, RecipeCommentReplies, RecipeCommentReplyReactions } from '../models/recipe.model';
-import { MountGenericModelSocialRouterServiceHandler } from 'src/apps/_common/helpers/mount-model-social-router-service-handler.helper';
+import { MountGenericModelSocialRouterServiceHandler } from '../../_common/helpers/mount-model-social-router-service-handler.helper';
 import { RecipesRequestHandler } from '../handlers/recipes.handler';
 
 

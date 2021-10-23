@@ -1,8 +1,5 @@
 import { UploadedFile } from 'express-fileupload';
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import {
   allowedImages, validateAndUploadImageFile,
 } from '../common.chamber';

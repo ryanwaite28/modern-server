@@ -1085,8 +1085,8 @@ export const createGenericServiceMethodError = (message: string, status?: HttpSt
   return serviceMethodResults;
 };
 
-export const createGenericServiceMethodSuccess = (message?: string, data?: any): ServiceMethodResults => {
-  const serviceMethodResults: ServiceMethodResults = {
+export const createGenericServiceMethodSuccess = <T = any> (message?: string, data?: T): ServiceMethodResults => {
+  const serviceMethodResults: ServiceMethodResults<T> = {
     status: HttpStatusCode.OK,
     error: false,
     info: {

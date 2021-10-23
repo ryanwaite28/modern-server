@@ -333,10 +333,7 @@ export async function delete_modell(id: number) {
 
 // new service
 
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import {
   HttpStatusCode
 } from '../../_common/enums/http-codes.enum';

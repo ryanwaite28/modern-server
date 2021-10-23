@@ -1,7 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import { MessagesService } from '../services/messages.service';
 import { ExpressResponse, ServiceMethodResults } from '../types/common.types';
 

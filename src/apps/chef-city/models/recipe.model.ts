@@ -14,7 +14,7 @@ import {
 
 import { Users } from '../../_common/models/user.model';
 import { createCommonGenericModelSocialModels } from '../../_common/helpers/create-model-social-models.helper';
-import { MODERN_APP_NAMES } from 'src/apps/_common/enums/common.enum';
+import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 
 export const Recipes = <MyModelStaticGeneric<IRecipeModel>> sequelize.define('chefcity_recipes', {
   user_id:                  { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },

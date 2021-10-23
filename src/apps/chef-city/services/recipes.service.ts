@@ -16,7 +16,7 @@ import { delete_cloudinary_image } from '../../../cloudinary-manager';
 import { Recipes, RecipeIngredients } from '../../chef-city/models/recipe.model';
 import { Users } from '../../_common/models/user.model';
 import { IMyModel, IRecipeModel } from '../../_common/models/common.model-types';
-import { ServiceMethodAsyncResults, ServiceMethodResults } from 'src/apps/_common/types/common.types';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../../_common/types/common.types';
 
 export class RecipesService {
 

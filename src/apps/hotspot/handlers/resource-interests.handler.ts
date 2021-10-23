@@ -1,26 +1,7 @@
-import {
-  Request,
-  Response,
-} from 'express';
-import * as HotspotResourceInterestsRepo from '../repos/resource-interests.repo';
-import * as CommonRepo from '../../_common/repos/_common.repo';
-import { Op } from 'sequelize';
-import { HotspotResourceInterests, HotspotResources } from '../models/resource.model';
-import {
-  user_attrs_slim
-} from '../../_common/common.chamber';
-import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
-import { PlainObject, IRequest } from '../../_common/interfaces/common.interface';
-import { Users } from '../../_common/models/user.model';
-import { create_notification } from '../../_common/repos/notifications.repo';
-import {
-  HOTSPOT_EVENT_TYPES,
-  HOTSPOT_NOTIFICATION_TARGET_TYPES
-} from '../enums/hotspot.enum';
-import { populate_hotspot_notification_obj } from '../hotspot.chamber';
-import { SocketsService } from '../../_common/services/sockets.service';
-import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
-import { ExpressResponse } from '../../_common/types/common.types';
+import { Request, Response } from 'express';
+import { IUser } from '../../_common/interfaces/common.interface';
+import { ExpressResponse, ServiceMethodResults } from '../../_common/types/common.types';
+import { ResourceInterestsService } from '../services/resource-interests.service';
 
 
 
@@ -28,174 +9,54 @@ export class ResourceInterestsRequestHandler {
   static async get_user_resource_interests(request: Request, response: Response): ExpressResponse {
     const user_id = parseInt(request.params.user_id, 10);
     const interest_id = parseInt(request.params.interest_id, 10);
-    const resource_interests_models = await CommonRepo.paginateTable(
-      HotspotResourceInterests,
-      'user_id',
-      user_id,
-      interest_id,
-      [{
-        model: HotspotResources,
-        as: 'resource',
-        include: [{
-          model: Users,
-          as: 'owner',
-          attributes: user_attrs_slim
-        }],
-      }]
-    );
-    const new_list: any[] = [];
-    for (const resource_interest_model of resource_interests_models) {
-      const interest: PlainObject = resource_interest_model.toJSON();
-      const interests_count = await HotspotResourceInterestsRepo.get_resource_interests_count(
-        interest.resource_id
-      );
-      interest.resource.interests_count = interests_count;
-      new_list.push(interest);
-    }
-    return response.status(HttpStatusCode.OK).json({
-      data: new_list
-    });
+
+    const serviceMethodResults: ServiceMethodResults = await ResourceInterestsService.get_user_resource_interests(user_id, interest_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   static async get_user_resource_interests_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
-    const resource_interests = await CommonRepo.getAll(
-      HotspotResourceInterests,
-      'user_id',
-      user_id,
-      [{
-        model: HotspotResources,
-        as: 'resource',
-      }]
-    );
-    return response.status(HttpStatusCode.OK).json({
-      data: resource_interests
-    });
+    
+    const serviceMethodResults: ServiceMethodResults = await ResourceInterestsService.get_user_resource_interests_all(user_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   static async get_resource_interests_all(request: Request, response: Response): ExpressResponse {
     const resource_id: number = parseInt(request.params.resource_id, 10);
-    const resource_interests_models = await HotspotResourceInterests.findAll({
-      where: { resource_id },
-      include: [{
-        model: Users,
-        as: 'user',
-        attributes: user_attrs_slim
-      }]
-    });
-    return response.status(HttpStatusCode.OK).json({
-      data: resource_interests_models
-    });
+    
+    const serviceMethodResults: ServiceMethodResults = await ResourceInterestsService.get_resource_interests_all(resource_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   static async get_resource_interests(request: Request, response: Response): ExpressResponse {
     const resource_id: number = parseInt(request.params.resource_id, 10);
     const interest_id: number = parseInt(request.params.interest_id, 10);
-    const whereClause: PlainObject = interest_id
-      ? { resource_id, id: { [Op.lt]: interest_id } }
-      : { resource_id };
-    const resource_interests_models = await HotspotResourceInterests.findAll({
-      where: whereClause,
-      include: [{
-        model: Users,
-        as: 'user',
-        attributes: user_attrs_slim
-      }],
-      limit: 10,
-      order: [['id', 'DESC']]
-    });
-    return response.status(HttpStatusCode.OK).json({
-      data: resource_interests_models
-    });
+  
+    const serviceMethodResults: ServiceMethodResults = await ResourceInterestsService.get_resource_interests(resource_id, interest_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   static async check_interest(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
-    const interest_model = await HotspotResourceInterests.findOne({
-      where: {
-        resource_id,
-        user_id: you_id
-      }
-    });
-    return response.status(HttpStatusCode.OK).json({
-      data: interest_model
-    });
+    const serviceMethodResults: ServiceMethodResults = await ResourceInterestsService.check_interest(you_id, resource_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   static async show_interest(request: Request, response: Response): ExpressResponse {
-    const you_id: number = parseInt(request.params.you_id, 10);
+    const you: IUser = response.locals.you;
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
-    const interest_model = await HotspotResourceInterests.findOne({
-      where: {
-        resource_id,
-        user_id: you_id
-      }
-    });
-    if (interest_model) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are already showing interest to this business plan`,
-        data: interest_model
-      });
-    }
-
-    const new_interest_model = await HotspotResourceInterests.create({
-      resource_id,
-      user_id: you_id
-    });
-
-    // SocketsService.get_io().to(`resource-${resource_id}`).emit(HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST, {
-    //   event_type: HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST,
-    //   data: { user: response.locals.you }
-    // });
-    create_notification({
-      from_id: you_id,
-      micro_app: MODERN_APP_NAMES.HOTSPOT,
-      to_id: response.locals.resource_model.get('owner_id'),
-      event: HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST,
-      target_type: HOTSPOT_NOTIFICATION_TARGET_TYPES.RESOURCE,
-      target_id: resource_id
-    }).then(async (notification_model) => {
-      const notification = await populate_hotspot_notification_obj(notification_model);
-      SocketsService.emitEventForUser(response.locals.resource_model.get('owner_id'), {
-        event_type: HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST,
-        data: { user: response.locals.you, notification }
-      });
-    });
-
-    return response.status(HttpStatusCode.OK).json({
-      message: `You are now showing interest!`,
-      data: new_interest_model
-    });
+    const serviceMethodResults: ServiceMethodResults = await ResourceInterestsService.show_interest({ you, resource_id });
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   static async remove_interest(request: Request, response: Response): ExpressResponse {
-    const you_id: number = parseInt(request.params.you_id, 10);
+    const you: IUser = response.locals.you;
     const resource_id: number = parseInt(request.params.resource_id, 10);
     
-    const interest_model = await HotspotResourceInterests.findOne({
-      where: {
-        resource_id,
-        user_id: you_id
-      }
-    });
-    if (!interest_model) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: `You are not showing interest to this resource`,
-        data: interest_model
-      });
-    }
-
-    const deletes = await interest_model.destroy();
-    SocketsService.get_io().to(`resource-${resource_id}`).emit(HOTSPOT_EVENT_TYPES.RESOURCE_UNINTEREST, {
-      event_type: HOTSPOT_EVENT_TYPES.RESOURCE_UNINTEREST,
-      data: { user: response.locals.you }
-    });
-    return response.status(HttpStatusCode.OK).json({
-      message: `You are no longer showing interest`,
-      deletes
-    });
+    const serviceMethodResults: ServiceMethodResults = await ResourceInterestsService.remove_interest({ you, resource_id });
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 }

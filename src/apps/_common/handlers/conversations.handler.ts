@@ -1,7 +1,4 @@
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import { UploadedFile } from 'express-fileupload';
 import { ExpressResponse, ServiceMethodResults } from '../types/common.types';
 import { ConversationsService } from '../services/conversations.service';

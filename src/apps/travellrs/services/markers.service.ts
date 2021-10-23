@@ -13,7 +13,7 @@ import {
 import { store_image } from '../../../cloudinary-manager';
 import { Markers, MarkerPhotos, MarkerReactions, MarkerAudios, MarkerVideos } from '../models/marker.model';
 import { COMMON_REACTION_TYPES } from '../../_common/enums/common.enum';
-import { ServiceMethodResults } from 'src/apps/_common/types/common.types';
+import { ServiceMethodResults } from '../../_common/types/common.types';
 import { create_marker_required_props } from '../travellrs.chamber';
 
 export class MarkersService {

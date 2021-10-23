@@ -1,8 +1,5 @@
 import { UploadedFile } from 'express-fileupload';
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import {
   HttpStatusCode
 } from '../../_common/enums/http-codes.enum';
@@ -10,7 +7,7 @@ import {
   IUser,
   PlainObject,
 } from '../../_common/interfaces/common.interface';
-import { ExpressResponse, ServiceMethodResults } from 'src/apps/_common/types/common.types';
+import { ExpressResponse, ServiceMethodResults } from '../../_common/types/common.types';
 import { NewsPostsService } from '../services/newsposts.service';
 
 export class NewsPostsRequestHandler {

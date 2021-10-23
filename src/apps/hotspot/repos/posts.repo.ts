@@ -68,7 +68,6 @@ export async function create_post(createObj: {
       photo_link: uploadedPhoto.results.result!.secure_url,
       photo_id: uploadedPhoto.results.result!.public_id,
       tags: uploadedPhoto.fileInfo.tags.join(',') || '',
-      industry: uploadedPhoto.fileInfo.industry.join(',') || '',
     });
     const post_photo_model = await HotspotPostPhotos.create({
       post_id: new_post_model.get('id'),
@@ -82,16 +81,16 @@ export async function create_post(createObj: {
 
 export async function update_post(
   updatesObj: {
+    title: string;
     body: string;
     tags: string[];
-    industry: string[];
   },
   id: number
 ) {
   const updates = await HotspotPosts.update(<any> {
     body: updatesObj.body,
+    title: updatesObj.title,
     tags: updatesObj.tags.join(`,`),
-    industry: updatesObj.industry.join(`,`),
   }, { where: { id } });
   return updates;
 }

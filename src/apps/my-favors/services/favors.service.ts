@@ -20,9 +20,9 @@ import { MyfavorsUserProfileSettings } from '../models/myfavors.model';
 import { create_favor_update_required_props, create_update_favor_required_props, favor_date_needed_validator, myfavors_user_settings_required_props, populate_myfavors_notification_obj } from '../myfavors.chamber';
 import { ICreateUpdateFavor } from '../interfaces/myfavors.interface';
 import { MYFAVORS_EVENT_TYPES, MYFAVORS_NOTIFICATION_TARGET_TYPES } from '../enums/myfavors.enum';
-import { SocketsService } from 'src/apps/_common/services/sockets.service';
-import { ServiceMethodAsyncResults, ServiceMethodResults } from 'src/apps/_common/types/common.types';
-import { CatchServiceError } from 'src/apps/_common/decorators/common.decorator';
+import { SocketsService } from '../../_common/services/sockets.service';
+import { ServiceMethodAsyncResults, ServiceMethodResults } from '../../_common/types/common.types';
+import { CatchServiceError } from '../../_common/decorators/common.decorator';
 
 
 

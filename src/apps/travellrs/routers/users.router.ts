@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UserExists } from 'src/apps/_common/guards/user.guard';
+import { UserExists } from '../../_common/guards/user.guard';
 import { MarkersRequestHandler } from '../handlers/markers.handler';
 
 

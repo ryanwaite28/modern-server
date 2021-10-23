@@ -1,11 +1,11 @@
 import { UploadedFile } from 'express-fileupload';
-import {
-  Request,
-  Response,
-} from 'express';
+import { Request, Response } from 'express';
 import { 
   allowedImages,
-  user_attrs_slim
+  createGenericServiceMethodError,
+  createGenericServiceMethodSuccess,
+  user_attrs_slim,
+  validateAndUploadImageFile
 } from '../../_common/common.chamber';
 import {
   HttpStatusCode
@@ -26,71 +26,47 @@ import { fn, col, cast, Op } from 'sequelize';
 import { CliqueMembers, Cliques, CliqueInterests } from '../models/clique.model';
 import { Users } from '../../_common/models/user.model';
 import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
+import { IMyModel } from '../../_common/models/common.model-types';
 
 
 
 export class CliquesService {
-  /** Request Handlers */
 
-  static async main(): ServiceMethodAsyncResults {
-    return response.status(HttpStatusCode.OK).json({
-      msg: 'cliques router'
-    });
+  static async get_clique_by_id(clique_id: number): ServiceMethodAsyncResults {
+    const clique_model = await CliquesRepo.get_clique_by_id(clique_id);
+    
+    return createGenericServiceMethodSuccess(undefined, clique_model);
   }
 
-  static async get_clique(): ServiceMethodAsyncResults {
-    const clique_model = response.locals.clique_model;
-    return response.status(HttpStatusCode.OK).json({
-      data: clique_model
-    });
-  }
-
-  static async create_clique(): ServiceMethodAsyncResults {
-    const you: IUser = response.locals.you;
-
-    const title = request.body.title && request.body.title.trim();
-    const summary = request.body.summary;
-    const industry = request.body.industry;
+  static async create_clique(opts: {
+    you: IUser,
+    title: string,
+    summary: string,
+    icon_file: UploadedFile | undefined,
+  }): ServiceMethodAsyncResults {
+    const { you, title, summary, icon_file } = opts;
 
     if (!title) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: 'title is required; it was empty...'
-      });
+      return createGenericServiceMethodError('title is required; it was empty...');
     }
     if (!summary) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: 'summary is required; it was empty...'
-      });
+      return createGenericServiceMethodError('summary is required; it was empty...');
     }
 
     const createObj: any = {
       title,
       summary,
-      industry,
       creator_id: you.id,
     };
 
-    const icon_file: UploadedFile | undefined = request.files && (<UploadedFile> request.files.icon);
-    if (icon_file) {
-      const type = icon_file.mimetype.split('/')[1];
-      const isInvalidType = !allowedImages.includes(type);
-      if (isInvalidType) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          error: true,
-          message: 'Invalid file type: jpg, jpeg or png required...'
-        });
-      }
-
-      const results = await store_image(icon_file);
-      if (!results.result) {
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: 'Could not upload file...'
-        });
-      }
-
-      createObj.icon_id = results.result.public_id,
-      createObj.icon_link = results.result.secure_url
+    const imageValidation = await validateAndUploadImageFile(icon_file, {
+      treatNotFoundAsError: false,
+      mutateObj: createObj,
+      id_prop: 'icon_id',
+      link_prop: 'icon_link',
+    });
+    if (imageValidation.error) {
+      return imageValidation;
     }
 
     const new_clique_model = await CliquesRepo.create_clique(createObj);
@@ -104,89 +80,58 @@ export class CliquesService {
       user_id: you.id
     });
 
-    return response.status(HttpStatusCode.OK).json({
-      message: `Clique created successfully!`,
-      data: clique_model!.toJSON(),
-    });
+    return createGenericServiceMethodSuccess(`Clique created successfully!`, clique_model);
   }
 
-  static async update_clique(): ServiceMethodAsyncResults {
-    const you: IUser = response.locals.you;
-
-    const title = request.body.title && request.body.title.trim();
-    const summary = request.body.summary;
-    const industry = request.body.industry;
+  static async update_clique(opts: {
+    you: IUser,
+    clique_id: number,
+    title: string,
+    summary: string,
+    icon_file: UploadedFile | undefined,
+  }): ServiceMethodAsyncResults {
+    const { you, title, summary, clique_id, icon_file } = opts;
 
     if (!title) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: 'title is required; it was empty...'
-      });
+      return createGenericServiceMethodError('title is required; it was empty...');
     }
     if (!summary) {
-      return response.status(HttpStatusCode.BAD_REQUEST).json({
-        message: 'summary is required; it was empty...'
-      });
+      return createGenericServiceMethodError('summary is required; it was empty...');
     }
 
-    const clique_id: number = parseInt(request.params.clique_id, 10);
     const updateObj: any = {
       title,
       summary,
-      industry,
     };
 
-    const icon_file: UploadedFile | undefined = request.files && (<UploadedFile> request.files.icon);
-    if (icon_file) {
-      const type = icon_file.mimetype.split('/')[1];
-      const isInvalidType = !allowedImages.includes(type);
-      if (isInvalidType) {
-        return response.status(HttpStatusCode.BAD_REQUEST).json({
-          error: true,
-          message: 'Invalid file type: jpg, jpeg or png required...'
-        });
-      }
-
-      const results = await store_image(icon_file, response.locals.clique_model.get('icon_id'));
-      if (!results.result) {
-        return response.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: 'Could not upload file...'
-        });
-      }
-
-      updateObj.icon_id = results.result.public_id,
-      updateObj.icon_link = results.result.secure_url
+    const imageValidation = await validateAndUploadImageFile(icon_file, {
+      treatNotFoundAsError: false,
+      mutateObj: updateObj,
+      id_prop: 'icon_id',
+      link_prop: 'icon_link',
+    });
+    if (imageValidation.error) {
+      return imageValidation;
     }
 
     const where = { id: clique_id, owner_id: you.id };
     const updates = await CliquesRepo.update_clique(updateObj, where);
     const clique_model = await CliquesRepo.get_clique_by_id(clique_id);
 
-    return response.status(HttpStatusCode.OK).json({
-      updates,
-      message: `Clique updated successfully!`,
-      data: clique_model!.toJSON()
-    });
+    return createGenericServiceMethodSuccess(`Clique updated successfully!`, { updates, clique: clique_model });
   }
 
-  static async delete_clique(): ServiceMethodAsyncResults {
-    const you: IUser = response.locals.you;
+  static async delete_clique(clique_id: number): ServiceMethodAsyncResults {
+    const deletes = await CliquesRepo.delete_clique({ id: clique_id });
 
-    const deletes = await response.locals.clique_model.destroy();
-    
-    return response.status(HttpStatusCode.OK).json({
-      deletes,
-      message: `Clique deleted successfully!`,
-    });
+    return createGenericServiceMethodSuccess(`Clique deleted successfully!`, deletes);
   }
 
-  static async get_user_cliques(): ServiceMethodAsyncResults {
-    const you: IUser = response.locals.you; 
-    const clique_id = parseInt(request.params.clique_id, 10);
+  static async get_user_cliques(user_id: number, clique_id?: number): ServiceMethodAsyncResults {
     const cliques = await CommonRepo.paginateTable(
       Cliques,
       'creator_id',
-      you.id,
+      user_id,
       clique_id,
       [{
         model: Users,
@@ -209,13 +154,11 @@ export class CliquesService {
       },
       ['cliques.id', 'creator.id']
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: cliques
-    });
+    
+    return createGenericServiceMethodSuccess(undefined, cliques);
   }
 
-  static async get_user_cliques_all(): ServiceMethodAsyncResults {
-    const user_id: number = parseInt(request.params.user_id, 10);
+  static async get_user_cliques_all(user_id: number): ServiceMethodAsyncResults {
     const cliques = await CommonRepo.getAll(
       Cliques,
       'creator_id',
@@ -241,8 +184,7 @@ export class CliquesService {
       },
       ['cliques.id', 'creator.id']
     );
-    return response.status(HttpStatusCode.OK).json({
-      data: cliques
-    });
+    
+    return createGenericServiceMethodSuccess(undefined, cliques);
   }
 }
