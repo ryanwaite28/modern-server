@@ -39,3 +39,12 @@ export async function get_user_unread_conversations_messages_count(user_id: numb
 
   return count;
 }
+
+export function find_or_create_user_conversation_last_opened(user_id: number, conversation_id: number) {
+  return ConversationLastOpeneds.findOrCreate({
+    where: {
+      conversation_id,
+      user_id
+    }
+  });
+}

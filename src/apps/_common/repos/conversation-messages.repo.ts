@@ -9,3 +9,18 @@ import {
   GroupOption,
   Order
 } from 'sequelize';
+import { ConversationMessages } from '../models/conversations.model';
+
+export async function create_conversation_message(conversation_id: number, body: string) {
+  if (!body) {
+    console.log({ body });
+    throw new TypeError(`body argument was invalid...`);
+  }
+
+  const results = await ConversationMessages.create({
+    conversation_id,
+    body,
+  });
+
+  return results;
+}

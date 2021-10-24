@@ -1,16 +1,8 @@
 import { UploadedFile } from 'express-fileupload';
-import * as bcrypt from 'bcrypt-nodejs';
-import { Request, Response } from 'express';
-
-import * as UserRepo from '../../_common/repos/users.repo';
-import * as EmailVerfRepo from '../../_common/repos/email-verification.repo';
-import * as PhoneVerfRepo from '../../_common/repos/phone-verification.repo';
 import * as HotspotResourceRepo from '../../hotspot/repos/resources.repo';
 import * as CommonRepo from '../../_common/repos/_common.repo';
-import { fn, col, cast, Op } from 'sequelize';
-import { URL_REGEX, allowedImages, user_attrs_slim, createGenericServiceMethodSuccess, createGenericServiceMethodError, validateAndUploadImageFile } from '../../_common/common.chamber';
-import { store_image } from '../../../cloudinary-manager';
-import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
+import { fn, col, cast } from 'sequelize';
+import { URL_REGEX, user_attrs_slim, createGenericServiceMethodSuccess, createGenericServiceMethodError, validateAndUploadImageFile } from '../../_common/common.chamber';
 import { IUser, PlainObject } from '../../_common/interfaces/common.interface';
 import { Users } from '../../_common/models/user.model';
 import { HotspotResources, HotspotResourceInterests } from '../models/resource.model';

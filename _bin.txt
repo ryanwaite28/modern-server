@@ -20,6 +20,13 @@ for file in *.service.ts; do sed -i 's,Service,RequestHandler,g' "$file"; done
 
 
 
+export async function method() {
+  
+}
+
+
+
+
 import { Request, Response } from 'express';
 
 
@@ -276,6 +283,23 @@ export async function IsNotModellOwner(
 
 
 // new repo 
+
+import {
+  fn,
+  Op,
+  WhereOptions,
+  FindOptions,
+  Includeable,
+  Model,
+  FindAttributeOptions,
+  GroupOption,
+  Order
+} from 'sequelize';
+import { user_attrs_slim } from '../common.chamber';
+import { PlainObject } from '../interfaces/common.interface';
+import { Users } from '../models/user.model';
+
+
 
 import { user_attrs_slim } from '../../_common/common.chamber';
 import { IStoreImage } from '../../../cloudinary-manager';

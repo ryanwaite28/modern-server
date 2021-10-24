@@ -1,7 +1,5 @@
-import { COMMON_EVENT_TYPES } from "../_common/enums/common.enum";
 import { user_attrs_slim, getUserFullName } from "../_common/common.chamber";
 import { IUser } from "../_common/interfaces/common.interface";
-import { Conversations } from "../_common/models/conversations.model";
 import { Users } from "../_common/models/user.model";
 import { HOTSPOT_EVENT_TYPES } from "./enums/hotspot.enum";
 

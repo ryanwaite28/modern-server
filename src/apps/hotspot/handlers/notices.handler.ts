@@ -20,6 +20,55 @@ export class NoticesRequestHandler {
       data: notice_model
     });
   }
+
+  static async get_notice_stats(request: Request, response: Response): ExpressResponse {
+    const notice_id: number = parseInt(request.params.notice_id, 10);
+
+    const serviceMethodResults: ServiceMethodResults = await NoticesService.get_notice_stats(notice_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  static async get_notice_replies_all(request: Request, response: Response): ExpressResponse {
+    const notice_id: number = parseInt(request.params.notice_id, 10);
+
+    const serviceMethodResults: ServiceMethodResults = await NoticesService.get_notice_replies_all(notice_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  static async get_notice_replies(request: Request, response: Response): ExpressResponse {
+    const notice_id: number = parseInt(request.params.notice_id, 10);
+    const reply_notice_id: number = parseInt(request.params.reply_notice_id, 10);
+
+    const serviceMethodResults: ServiceMethodResults = await NoticesService.get_notice_replies(notice_id, reply_notice_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  static async get_notice_quotes_all(request: Request, response: Response): ExpressResponse {
+    const notice_id: number = parseInt(request.params.notice_id, 10);
+  
+    const serviceMethodResults: ServiceMethodResults = await NoticesService.get_notice_quotes_all(notice_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  static async get_notice_quotes(request: Request, response: Response): ExpressResponse {
+    const notice_id: number = parseInt(request.params.notice_id, 10);
+    const quote_notice_id: number = parseInt(request.params.quote_notice_id, 10);
+
+    const serviceMethodResults: ServiceMethodResults = await NoticesService.get_notice_quotes(notice_id, quote_notice_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  static async get_notice_shares_all(request: Request, response: Response): ExpressResponse {
+    const notice_id: number = parseInt(request.params.notice_id, 10);
+    
+    const serviceMethodResults: ServiceMethodResults = await NoticesService.get_notice_shares_all(notice_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  static async get_notice_shares(request: Request, response: Response): ExpressResponse {
+    const notice_id: number = parseInt(request.params.notice_id, 10);
+    const share_notice_id: number = parseInt(request.params.share_notice_id, 10);
+
+    const serviceMethodResults: ServiceMethodResults = await NoticesService.get_notice_shares(notice_id, share_notice_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
   
   static async create_notice(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
