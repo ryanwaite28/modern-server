@@ -37,6 +37,70 @@ export async function get_notice_by_id(id: number, slim: boolean = false) {
   return notice;
 }
 
+export async function get_notice_stats(id: number) {
+  const replies_count = await Notices.count({ where: { parent_id: id } });
+  const quotes_count = await Notices.count({ where: { quoting_id: id } });
+  const shares_count = await Notices.count({ where: { shares_count: id } });
+
+  const stats = {
+    replies_count,
+    quotes_count,
+    shares_count,
+  };
+
+  return stats;
+}
+
+export async function get_notices_sub_all(
+  id: number, 
+  key: 'parent_id' | 'quoting_id' | 'share_id'
+) {
+  const notice = await Notices.findOne({
+      where: { [key]: id },
+      include: [{
+        model: Users,
+        as: 'owner',
+        attributes: user_attrs_slim
+      }, {
+        model: NoticePhotos,
+        as: 'photos',
+        include: [{
+          model: Photos,
+          as: 'photo',
+        }]
+      }]
+    });
+  return notice;
+}
+export async function get_notices_sub(
+  id: number, 
+  key: 'parent_id' | 'quoting_id' | 'share_id',
+  min_id?: number
+) {
+  const whereClause = !min_id
+    ? { [key]: id }
+    : { [key]: id, id: { [Op.lt]: min_id } };
+
+  const notice = await Notices.findOne({
+      where: whereClause,
+      limit: 5,
+      order: [['id', 'DESC']],
+      include: [{
+        model: Users,
+        as: 'owner',
+        attributes: user_attrs_slim
+      }, {
+        model: NoticePhotos,
+        as: 'photos',
+        include: [{
+          model: Photos,
+          as: 'photo',
+        }]
+      }]
+    });
+  return notice;
+}
+
 export async function create_notice(createObj: {
   owner_id: number;
 

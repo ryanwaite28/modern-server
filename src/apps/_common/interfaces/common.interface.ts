@@ -7,6 +7,7 @@ import { IUserModel } from '../models/common.model-types';
 import { SocketsService } from '../services/sockets.service';
 import socket_io from 'socket.io';
 import { ServiceMethodAsyncResults } from '../types/common.types';
+import { Optional } from 'sequelize/types';
 
 export interface PlainObject<T = any> {
   [key: string]: T;
@@ -80,6 +81,7 @@ export interface IUser extends ICommonModel {
   can_converse:                boolean;
   notifications_last_opened:   string;
 }
+export interface IUserCreation extends Optional<IUser, 'middlename'> {};
 
 export interface IResetPasswordRequest extends ICommonModel {
   user_id:                 number;

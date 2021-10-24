@@ -6,7 +6,6 @@ import {
   IUser, PlainObject,
 } from '../../_common/interfaces/common.interface';
 import * as CommonRepo from '../../_common/repos/_common.repo';
-import * as NoticesRepo from '../repos/notices.repo';
 import {
   allowedImages,
   createGenericServiceMethodError,
@@ -19,15 +18,57 @@ import { NoticeVisibility } from '../enums/hotspot.enum';
 import { IStoreImage, store_image } from '../../../cloudinary-manager';
 import { UploadedFile } from 'express-fileupload';
 import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
+import {
+  get_notice_by_id,
+  get_notices_sub_all,
+  get_notices_sub,
+  get_notice_stats,
+  create_notice,
+  delete_notice
+} from '../repos/notices.repo';
 
 
 
 export class NoticesService {
 
   static async get_notice_by_id(notice_id: number): ServiceMethodAsyncResults {
-    const notice_model: IMyModel | null = await NoticesRepo.get_notice_by_id(notice_id);
-    
+    const notice_model: IMyModel | null = await get_notice_by_id(notice_id);
     return createGenericServiceMethodSuccess(undefined, notice_model);
+  }
+
+  static async get_notice_stats(notice_id: number): ServiceMethodAsyncResults {
+    const results = await get_notice_stats(notice_id);
+    return createGenericServiceMethodSuccess(undefined, results);
+  }
+
+  static async get_notice_replies_all(notice_id: number): ServiceMethodAsyncResults {
+    const results = await get_notices_sub_all(notice_id, `parent_id`);
+    return createGenericServiceMethodSuccess(undefined, results);
+  }
+
+  static async get_notice_replies(notice_id: number, reply_notice_id: number): ServiceMethodAsyncResults {
+    const results = await get_notices_sub(notice_id, `parent_id`, reply_notice_id);
+    return createGenericServiceMethodSuccess(undefined, results);
+  }
+
+  static async get_notice_quotes_all(notice_id: number): ServiceMethodAsyncResults {
+    const results = await get_notices_sub_all(notice_id, `quoting_id`);
+    return createGenericServiceMethodSuccess(undefined, results);
+  }
+
+  static async get_notice_quotes(notice_id: number, quote_notice_id: number): ServiceMethodAsyncResults {
+    const results = await get_notices_sub(notice_id, `quoting_id`, quote_notice_id);
+    return createGenericServiceMethodSuccess(undefined, results);
+  }
+
+  static async get_notice_shares_all(notice_id: number): ServiceMethodAsyncResults {
+    const results = await get_notices_sub_all(notice_id, `share_id`);
+    return createGenericServiceMethodSuccess(undefined, results);
+  }
+
+  static async get_notice_shares(notice_id: number, share_notice_id: number): ServiceMethodAsyncResults {
+    const results = await get_notices_sub(notice_id, `share_id`, share_notice_id);
+    return createGenericServiceMethodSuccess(undefined, results);
   }
 
   static async create_notice(opts: {
@@ -111,14 +152,13 @@ export class NoticesService {
       is_private: data.hasOwnProperty('is_private') && data.is_private || false,
       uploadedPhotos: uploadedPhotos,
     };
-    const new_notice_model = await NoticesRepo.create_notice(createNoticeObj);
 
+    const new_notice_model = await create_notice(createNoticeObj);
     return createGenericServiceMethodSuccess(undefined, new_notice_model);
   }
 
   static async delete_notice(notice_id: number): ServiceMethodAsyncResults {
-    const deletes = await NoticesRepo.delete_notice(notice_id);
-    
+    const deletes = await delete_notice(notice_id);
     return createGenericServiceMethodSuccess(`Notice deleted.`, deletes);
   }
 

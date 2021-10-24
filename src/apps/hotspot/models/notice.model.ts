@@ -87,8 +87,11 @@ NoticeVideos.belongsTo(Notices, { as: 'notice', foreignKey: 'notice_id', targetK
 Notices.hasMany(NoticeAudios, { as: 'notice_audios', foreignKey: 'notice_id', sourceKey: 'id' });
 NoticeAudios.belongsTo(Notices, { as: 'notice', foreignKey: 'notice_id', targetKey: 'id' });
 
-NoticePhotos.belongsTo(Photos, { as: 'notice_photo', foreignKey: 'photo_id', targetKey: 'id' });
+Photos.belongsTo(NoticePhotos, { as: 'hotspot_notice_photo', foreignKey: 'photo_id', targetKey: 'id' });
+NoticePhotos.belongsTo(Photos, { as: 'photo', foreignKey: 'photo_id', targetKey: 'id' });
 
-NoticeVideos.belongsTo(Videos, { as: 'notice_video', foreignKey: 'video_id', targetKey: 'id' });
+Videos.belongsTo(NoticePhotos, { as: 'hotspot_notice_photo', foreignKey: 'video_id', targetKey: 'id' });
+NoticeVideos.belongsTo(Videos, { as: 'video', foreignKey: 'video_id', targetKey: 'id' });
 
-NoticeAudios.belongsTo(Audios, { as: 'notice_audio', foreignKey: 'audio_id', targetKey: 'id' });
+Audios.belongsTo(NoticePhotos, { as: 'hotspot_notice_photo', foreignKey: 'audio_id', targetKey: 'id' });
+NoticeAudios.belongsTo(Audios, { as: 'audio', foreignKey: 'audio_id', targetKey: 'id' });

@@ -31,17 +31,19 @@ import { COMMON_EVENT_TYPES, COMMON_NOTIFICATION_TARGET_TYPES, MODERN_APP_NAMES 
 import { SocketsService } from './sockets.service';
 import { CommonSocketEventsHandler } from './socket-events-handlers-by-app/common.socket-event-handler';
 import { ServiceMethodResults } from '../types/common.types';
+import {
+  find_or_create_conversation_member,
+  get_conversation_members,
+  get_conversation_members_all,
+  get_conversation_member_by_user_id_and_conversation_id,
+  remove_conversation_member
+} from '../repos/conversation-members.repo';
+import { find_or_create_user_conversation_last_opened } from '../repos/conversations.repo';
+import { create_conversation_message } from '../repos/conversation-messages.repo';
 
 export class ConversationMembersService {
   static async get_conversation_members_all(conversation_id: number) {
-    const members_models = await ConversationMembers.findAll({
-      where: { conversation_id },
-      include: [{
-        model: Users,
-        as: 'user',
-        attributes: user_attrs_slim
-      }]
-    });
+    const members_models = await get_conversation_members_all(conversation_id);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -54,20 +56,7 @@ export class ConversationMembersService {
   }
 
   static async get_conversation_members(conversation_id: number, member_id?: number) {
-    const whereClause: PlainObject = member_id
-      ? { conversation_id, id: { [Op.lt]: member_id } }
-      : { conversation_id };
-
-    const members_models = await ConversationMembers.findAll({
-      where: whereClause,
-      include: [{
-        model: Users,
-        as: 'user',
-        attributes: user_attrs_slim
-      }],
-      limit: 10,
-      order: [['id', 'DESC']]
-    });
+    const members_models = await get_conversation_members(conversation_id, member_id);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -86,10 +75,7 @@ export class ConversationMembersService {
   }) {
     const { you_id, user_id, conversation_id } = opts;
 
-    const member_model = await ConversationMembers.findOne({
-      where: { conversation_id, user_id }
-    });
-
+    const member_model = await get_conversation_member_by_user_id_and_conversation_id(user_id, conversation_id);
     if (member_model) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
@@ -102,23 +88,8 @@ export class ConversationMembersService {
     }
 
     // get all the conversations that the user is a part of via when they last opened it
-    const new_conversation_member_model = await ConversationMembers.create({
-      conversation_id,
-      user_id
-    });
-    const new_conversation_last_opened_model = await ConversationLastOpeneds.create({
-      conversation_id,
-      user_id
-    });
-
-    const conversation_member_model = await ConversationMembers.findOne({
-      where: { id: new_conversation_member_model.get('id') },
-      include: [{
-        model: Users,
-        as: 'user',
-        attributes: user_attrs_slim
-      }]
-    });
+    const new_conversation_member_model = await find_or_create_conversation_member(user_id, conversation_id);
+    const new_conversation_last_opened_model = await find_or_create_user_conversation_last_opened(user_id, conversation_id);
 
     SocketsService.get_io().to(`conversation-${conversation_id}`).emit(
       COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED, 
@@ -126,7 +97,7 @@ export class ConversationMembersService {
         event_type: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED,
         data: {
           // conversation: response.locals.conversation_model!.toJSON(),
-          member: conversation_member_model!.toJSON()
+          member: new_conversation_member_model[0].toJSON()
         },
       }
     );
@@ -161,29 +132,28 @@ export class ConversationMembersService {
           notification,
           conversation: {
             // ...response.locals.conversation_model!.toJSON(),
-            last_opened: new_conversation_last_opened_model.get('last_opened')
+            last_opened: new_conversation_last_opened_model[0].get('last_opened')
           },
-          member: conversation_member_model!.toJSON()
+          member: new_conversation_member_model[0].toJSON()
         },
       });
     });
     
-    const full_name = getUserFullName((<PlainObject> conversation_member_model!.toJSON()).user);
-    ConversationMessages.create({
-      conversation_id,
-      body: `${full_name} was added to the conversation.`
-    }).then((message_model: IMyModel) => {
-      SocketsService.get_io().to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
-        event_type: COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE,
-        data: message_model!.toJSON(),
+    const full_name = getUserFullName((<PlainObject> new_conversation_member_model[0].toJSON()).user);
+    const body: string = `${full_name} was added to the conversation.`;
+    create_conversation_message(conversation_id, body)
+      .then((message_model: IMyModel) => {
+        SocketsService.get_io().to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
+          event_type: COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE,
+          data: message_model!.toJSON(),
+        });
       });
-    });
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
-        data: conversation_member_model,
+        data: new_conversation_member_model[0],
         message: `Conversation member added!`
       }
     };
@@ -197,14 +167,7 @@ export class ConversationMembersService {
   }) {
     const { you_id, user_id, conversation_id } = opts;
 
-    const member_model = await ConversationMembers.findOne({
-      where: { conversation_id, user_id },
-      include: [{
-        model: Users,
-        as: 'user',
-        attributes: user_attrs_slim
-      }]
-    });
+    const member_model = await get_conversation_member_by_user_id_and_conversation_id(user_id, conversation_id);
 
     if (!member_model) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -254,10 +217,9 @@ export class ConversationMembersService {
     });
 
     const full_name = getUserFullName(memberObj.user);
-    ConversationMessages.create({
-      conversation_id,
-      body: `${full_name} was removed from the conversation.`
-    }).then((message_model: IMyModel) => {
+    const body: string = `${full_name} was removed from the conversation.`;
+
+    create_conversation_message(conversation_id, body).then((message_model: IMyModel) => {
       SocketsService.get_io().to(`conversation-${conversation_id}`).emit(COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE, {
         event_type: COMMON_EVENT_TYPES.NEW_CONVERSATION_MESSAGE,
         data: message_model!.toJSON(),
@@ -276,20 +238,27 @@ export class ConversationMembersService {
   }
 
   static async leave_conversation(you_id: number, conversation_id: number) {
-    const deletes = await ConversationMembers.destroy({
-      where: { conversation_id, user_id: you_id }
-    });
+    const member_model = await get_conversation_member_by_user_id_and_conversation_id(you_id, conversation_id);
+    if (!member_model) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `you are not a member`
+        }
+      };
+      return serviceMethodResults;
+    }
 
+    const deletes = await member_model.destroy();
     const roomKey = `conversation-${conversation_id}`;
 
     const user_model = await UserRepo.get_user_by_id(you_id);
     const user = <IUser> user_model!.toJSON();
     const full_name = getUserFullName(user);
+    const body: string = `${full_name} left the conversation.`;
 
-    ConversationMessages.create({
-      conversation_id,
-      body: `${full_name} left the conversation.`
-    }).then((message_model: IMyModel) => {
+    create_conversation_message(conversation_id, body).then((message_model: IMyModel) => {
       SocketsService.get_io().to(roomKey).emit(COMMON_EVENT_TYPES.CONVERSATION_MEMBER_LEFT, {
         event_type: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_LEFT,
         data: {

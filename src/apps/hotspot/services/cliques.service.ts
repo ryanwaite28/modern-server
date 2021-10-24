@@ -15,10 +15,6 @@ import {
   IUser,
   IRequest
 } from '../../_common/interfaces/common.interface';
-import {
-  delete_cloudinary_image,
-  store_image
-} from '../../../cloudinary-manager';
 
 import * as CliquesRepo from '../repos/cliques.repo';
 import * as CommonRepo from '../../_common/repos/_common.repo';
