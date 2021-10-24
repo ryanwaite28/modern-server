@@ -63,6 +63,7 @@ export class UsersService {
         status: auth.status,
         error: false,
         info: {
+          message: auth.message,
           data: auth
         }
       };
@@ -371,6 +372,7 @@ export class UsersService {
         };
         return serviceMethodResults;
       }
+
       if (!password) {
         const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,

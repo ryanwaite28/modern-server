@@ -28,7 +28,7 @@ NewsPostsRouter.get('/get_random_newsposts', NewsPostsRequestHandler.get_random_
 
 NewsPostsRouter.get('/:newspost_id', NewsPostExists, NewsPostsRequestHandler.get_newspost_by_id);
 
-// NEWS_POST Routes
+// POST Routes
 
 NewsPostsRouter.post('/owner/:you_id', YouAuthorized, NewsPostsRequestHandler.create_newspost);
 

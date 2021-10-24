@@ -18,7 +18,6 @@ export const Markers = <MyModelStatic> sequelize.define('travellrs_markers', {
   location:            { type: Sequelize.STRING, allowNull: false },
   lat:                 { type: Sequelize.DOUBLE, allowNull: false },
   lng:                 { type: Sequelize.DOUBLE, allowNull: false },
-  title:               { type: Sequelize.STRING(125), allowNull: false, defaultValue: '' },
   caption:             { type: Sequelize.STRING(250), allowNull: false, defaultValue: '' },
   image_link:          { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   image_id:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },

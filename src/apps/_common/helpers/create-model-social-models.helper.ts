@@ -218,8 +218,8 @@ export function createCommonGenericModelSocialModels(params: {
   
     params.base_model.hasMany(ModelAudios, { as: `${params.base_model_name}_audios`, foreignKey: `${params.base_model_name}_id`, sourceKey: `id` });
     ModelAudios.belongsTo(params.base_model, { as: params.base_model_name, foreignKey: `${params.base_model_name}_id`, targetKey: `id` });
-    Photos.hasMany(ModelAudios, { as: `${params.base_model_name}_audios`, foreignKey: `audio_id`, sourceKey: `id` });
-    ModelAudios.belongsTo(Photos, { as: `audio_${params.base_model_name}`, foreignKey: `audio_id`, targetKey: `id` });
+    Audios.hasMany(ModelAudios, { as: `${params.base_model_name}_audios`, foreignKey: `audio_id`, sourceKey: `id` });
+    ModelAudios.belongsTo(Audios, { as: `audio_${params.base_model_name}`, foreignKey: `audio_id`, targetKey: `id` });
   
     params.base_model.hasMany(ModelComments, { as: `${params.base_model_name}_comments`, foreignKey: `${params.base_model_name}_id`, sourceKey: `id` });
     ModelComments.belongsTo(params.base_model, { as: params.base_model_name, foreignKey: `${params.base_model_name}_id`, targetKey: `id` });

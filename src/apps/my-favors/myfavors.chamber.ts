@@ -70,7 +70,7 @@ export const myfavors_user_settings_required_props: { field: string; name: strin
 export const populate_myfavors_notification_obj = async (notification_model: any) => {
   const notificationObj = notification_model.toJSON();
   const user_model = await Users.findOne({
-    where: { id: notificationObj.id },
+    where: { id: notificationObj.from_id },
     attributes: user_attrs_slim
   });
   const full_name = getUserFullName(<IUser> user_model!.toJSON());
@@ -82,6 +82,30 @@ export const populate_myfavors_notification_obj = async (notification_model: any
     case MYFAVORS_EVENT_TYPES.FAVOR_NEW_MESSAGE: {
       const favor_model = await get_favor_by_id(notificationObj.target_id);
       message = `${full_name} added a message to the favor: ${favor_model!.get('title')}`;
+      mount_prop_key = 'favor';
+      mount_value = favor_model!.toJSON();
+      break;
+    }
+
+    case MYFAVORS_EVENT_TYPES.FAVOR_STARTED: {
+      const favor_model = await get_favor_by_id(notificationObj.target_id);
+      message = `${full_name} started working on the favor: ${favor_model!.get('title')}`;
+      mount_prop_key = 'favor';
+      mount_value = favor_model!.toJSON();
+      break;
+    }
+
+    case MYFAVORS_EVENT_TYPES.FAVOR_HELPER_ASSIGNED: {
+      const favor_model = await get_favor_by_id(notificationObj.target_id);
+      message = `${full_name} was assigned to the favor: ${favor_model!.get('title')}`;
+      mount_prop_key = 'favor';
+      mount_value = favor_model!.toJSON();
+      break;
+    }
+
+    case MYFAVORS_EVENT_TYPES.FAVOR_HELPER_UNASSIGNED: {
+      const favor_model = await get_favor_by_id(notificationObj.target_id);
+      message = `${full_name} was unassigned from the favor: ${favor_model!.get('title')}`;
       mount_prop_key = 'favor';
       mount_value = favor_model!.toJSON();
       break;

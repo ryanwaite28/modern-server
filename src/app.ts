@@ -83,6 +83,6 @@ try {
     console.log(`Listening on port ${PORT}...\n\n`);
   });  
 } catch (error) {
-  console.log(error);
+  console.log(`db_init error...`, { error });
   throw error;
 }

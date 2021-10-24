@@ -171,9 +171,9 @@ export const ListingsFeedbacks = <MyModelStatic> sequelize.define('blueworld_lis
 
 
 
-Users.hasMany(Listings, {as: 'Lending', foreignKey: 'OwnerId', sourceKey: 'id'});
-Users.hasMany(Listings, {as: 'Borrowing', foreignKey: 'BuyerId', sourceKey: 'id'});
-Listings.belongsTo(Users, {as: 'Owner', foreignKey: 'OwnerId', targetKey: 'id'});
+Users.hasMany(Listings, { as: 'Lending', foreignKey: 'OwnerId', sourceKey: 'id' });
+Users.hasMany(Listings, { as: 'Borrowing', foreignKey: 'BuyerId', sourceKey: 'id' });
+Listings.belongsTo(Users, { as: 'Owner', foreignKey: 'OwnerId', targetKey: 'id' });
 
 
 Listings.hasMany(ListingsDisputes, {as: 'Disputes', foreignKey: 'ListingId', sourceKey: 'id'});

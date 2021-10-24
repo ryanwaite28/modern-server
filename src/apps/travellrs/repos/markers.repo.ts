@@ -22,21 +22,21 @@ export const markerMasterIncludes = [{
   attributes: user_attrs_slim
 }, {
   model: MarkerPhotos,
-  as: 'photos',
+  as: 'marker_photos',
   include: [{
     model: Photos,
     as: 'photo_marker',
   }]
 }, {
   model: MarkerVideos,
-  as: 'videos',
+  as: 'marker_videos',
   include: [{
     model: Videos,
     as: 'video_marker',
   }]
 }, {
   model: MarkerAudios,
-  as: 'audios',
+  as: 'marker_audios',
   include: [{
     model: Audios,
     as: 'audio_marker',
@@ -136,21 +136,21 @@ export function get_user_markers_all(user_id: number) {
       attributes: user_attrs_slim
     }, {
       model: MarkerPhotos,
-      as: 'photos',
+      as: 'marker_photos',
       include: [{
         model: Photos,
         as: 'photo_marker',
       }]
     }, {
       model: MarkerVideos,
-      as: 'videos',
+      as: 'marker_videos',
       include: [{
         model: Videos,
         as: 'video_marker',
       }]
     }, {
       model: MarkerAudios,
-      as: 'audios',
+      as: 'marker_audios',
       include: [{
         model: Audios,
         as: 'audio_marker',
@@ -171,21 +171,21 @@ export function get_user_markers(user_id: number, marker_id?: number) {
       attributes: user_attrs_slim
     }, {
       model: MarkerPhotos,
-      as: 'photos',
+      as: 'marker_photos',
       include: [{
         model: Photos,
         as: 'photo_marker',
       }]
     }, {
       model: MarkerVideos,
-      as: 'videos',
+      as: 'marker_videos',
       include: [{
         model: Videos,
         as: 'video_marker',
       }]
     }, {
       model: MarkerAudios,
-      as: 'audios',
+      as: 'marker_audios',
       include: [{
         model: Audios,
         as: 'audio_marker',

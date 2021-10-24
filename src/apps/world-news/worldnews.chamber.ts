@@ -17,7 +17,7 @@ export const populate_worldnews_notification_obj = async (notification_model: an
   let mount_value = null;
 
   switch (notificationObj.event) {
-    case WORLDNEWS_EVENT_TYPES.NEW_NEWS_POST_COMMENT: {
+    case WORLDNEWS_EVENT_TYPES.NEW_NEWSPOST_COMMENT: {
       // const conversation_model = await Conversations.findOne({
       //   where: { id: notificationObj.target_id }
       // });

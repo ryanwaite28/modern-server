@@ -16,12 +16,12 @@ export function CatchRequestHandlerError() {
   ) {
     const childFunction = descriptor.value;
     
-    console.log({ target, key, descriptor, childFunction });
+    // console.log({ target, key, descriptor, childFunction });
 
     descriptor.value = (...args: any[]) => {
       const request: Request = args[0];
       const response: Response = args[1];
-      console.log(args);
+      // console.log(args);
 
       try {
         // @ts-ignore
@@ -57,7 +57,7 @@ export function CatchServiceError(opts?: {
     const childFunction = descriptor.value;
     
     descriptor.value = (...args: any[]) => {
-      console.log({ target, key, descriptor, childFunction, args });
+      // console.log({ target, key, descriptor, childFunction, args });
       try {
         // @ts-ignore
         return childFunction.apply(this, args);
