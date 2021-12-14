@@ -22,7 +22,7 @@ import { ICreateUpdateFavor } from '../interfaces/myfavors.interface';
 import { MYFAVORS_EVENT_TYPES, MYFAVORS_NOTIFICATION_TARGET_TYPES } from '../enums/myfavors.enum';
 import { SocketsService } from '../../_common/services/sockets.service';
 import { ServiceMethodAsyncResults, ServiceMethodResults } from '../../_common/types/common.types';
-import { CatchServiceError } from '../../_common/decorators/common.decorator';
+import { CatchAsyncServiceError } from '../../_common/decorators/common.decorator';
 
 
 
@@ -65,7 +65,7 @@ const favorCommonFindCriteria = {
 
 export class FavorsService {
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async search_favors(opts: {
     you_id: number,
     city: string,
@@ -117,7 +117,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async send_favor_message(opts: {
     you: IUser,
     body: string,
@@ -230,7 +230,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async create_favor_update(opts: {
     you: IUser,
     favor_model?: IMyModel,
@@ -366,7 +366,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async get_favor_by_id(favor_id: number): ServiceMethodAsyncResults {
     const favor: IMyModel | null = await FavorsRepo.get_favor_by_id(favor_id);
 
@@ -380,7 +380,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
   
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async get_user_favors_all(user_id: number): ServiceMethodAsyncResults {
     const results = await getAll(
       Favors,
@@ -403,7 +403,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async get_user_favors(user_id: number, favor_id: number | undefined): ServiceMethodAsyncResults {
     const results = await paginateTable(
       Favors,
@@ -427,7 +427,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async get_user_favor_helpings_all_active(user_id: number): ServiceMethodAsyncResults {
     const results = await getAll(
       FavorHelpers,
@@ -455,7 +455,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async get_user_favor_helpings_active(user_id: number, favor_id: number | undefined): ServiceMethodAsyncResults {
     const results = await paginateTable(
       FavorHelpers,
@@ -484,7 +484,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async get_user_favor_helpings_all_past(user_id: number): ServiceMethodAsyncResults {
     const results = await getAll(
       FavorHelpers,
@@ -512,7 +512,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async get_user_favor_helpings_past(user_id: number, favor_id: number | undefined): ServiceMethodAsyncResults {
     const results = await paginateTable(
       FavorHelpers,
@@ -541,7 +541,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async create_favor(opts: {
     you: IUser,
     favor_image: UploadedFile | undefined,
@@ -630,7 +630,7 @@ export class FavorsService {
     }
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async update_favor(opts: {
     you: IUser,
     favor_model?: IMyModel,
@@ -701,7 +701,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async delete_favor(favor_id?: number, favor_model?: IMyModel): ServiceMethodAsyncResults {
     const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
@@ -743,7 +743,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async assign_favor(opts: {
     you: IUser,
     favor_id?: number,
@@ -860,7 +860,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async unassign_favor(opts: {
     you: IUser,
     favor_id?: number,
@@ -954,7 +954,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
   
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async mark_favor_as_started(opts: {
     you: IUser,
     favor_id?: number,
@@ -1067,7 +1067,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async mark_favor_as_fulfilled(opts: {
     you: IUser,
     favor_id?: number,
@@ -1181,7 +1181,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async mark_favor_as_canceled(opts: {
     you: IUser,
     favor_id?: number,
@@ -1311,7 +1311,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async mark_favor_as_uncanceled(opts: {
     you: IUser,
     favor_id?: number,
@@ -1349,7 +1349,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async mark_helper_as_helped(opts: {
     you: IUser,
     user_id: number,
@@ -1451,7 +1451,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async mark_helper_as_unhelped(opts: {
     you: IUser,
     user_id: number,
@@ -1553,7 +1553,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async get_settings(you_id: number): ServiceMethodAsyncResults {
     let settings = await MyfavorsUserProfileSettings.findOne({
       where: { user_id: you_id }
@@ -1574,7 +1574,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async update_settings(opts: {
     you_id: number,
     data: PlainObject,
@@ -1617,7 +1617,7 @@ export class FavorsService {
     return serviceMethodResults;
   }
 
-  @CatchServiceError()
+  @CatchAsyncServiceError()
   static async pay_helper(opts: {
     you: IUser,
     user: IUser,

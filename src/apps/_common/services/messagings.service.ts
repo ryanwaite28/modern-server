@@ -6,8 +6,10 @@ import { PlainObject } from '../interfaces/common.interface';
 import { Users } from '../models/user.model';
 import { paginateTable } from '../repos/_common.repo';
 import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
+import { CatchAsyncServiceError } from '../decorators/common.decorator';
 
 export class MessagingsService {
+  @CatchAsyncServiceError()
   static async get_user_messagings_all(user_id: number): ServiceMethodAsyncResults {
     const messagings_models = await Messagings.findAll({
       where: {
@@ -55,6 +57,7 @@ export class MessagingsService {
     return serviceMethodResults;
   }
 
+  @CatchAsyncServiceError()
   static async get_user_messagings(user_id: number, messagings_timestamp: string): ServiceMethodAsyncResults {
     const whereClause: PlainObject = {
       [Op.or]: [

@@ -45,6 +45,7 @@ if (process.env.DATABASE_URL) {
     sequelize = new Sequelize.Sequelize('database', 'username', 'password', {
       dialect: 'sqlite',
       storage: 'database.sqlite',
+      logging: false
     });
   }
 } else {
@@ -52,6 +53,7 @@ if (process.env.DATABASE_URL) {
   sequelize = new Sequelize.Sequelize('database', 'username', 'password', {
     dialect: 'sqlite',
     storage: 'database.sqlite',
+    logging: false
   });
 }
 
