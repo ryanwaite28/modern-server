@@ -21,8 +21,8 @@ export class DelivermeStripeWebhookHandlerService {
         const updates = await Delivery.update({ completed: true }, { where: { id: userPaymentIntentObj.target_id } });
         console.log(`delivery updates:`, { updates });
 
-        const data = await get_delivery_by_id(userPaymentIntentObj.target_id);
-        const deliveryObj: any = data!.toJSON();
+        const delivery = await get_delivery_by_id(userPaymentIntentObj.target_id);
+        const deliveryObj = delivery!;
 
         // notify carrier
         create_notification({
@@ -38,15 +38,15 @@ export class DelivermeStripeWebhookHandlerService {
             user_id: deliveryObj.carrier_id,
             event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
             data: {
-              data,
+              data: deliveryObj,
               message: `Delivery completed!`,
               user: deliveryObj.owner,
               notification,
             }
           });
 
-          const to_phone_number = deliveryObj.carrier.deliverme_settings.phone || deliveryObj.carrier.phone;
-          if (validatePhone(to_phone_number)) {
+          const to_phone_number = deliveryObj.carrier?.deliverme_settings?.phone || deliveryObj.carrier?.phone;
+          if (!!to_phone_number && validatePhone(to_phone_number)) {
             send_sms({
               to_phone_number,
               message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,

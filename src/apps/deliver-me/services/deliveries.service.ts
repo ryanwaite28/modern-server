@@ -1,11 +1,7 @@
-import { Request, Response } from 'express';
 import {
   HttpStatusCode
 } from '../../_common/enums/http-codes.enum';
 import { 
-  allowedImages,
-  getUserFullName,
-  populate_common_notification_obj,
   user_attrs_slim,
   validateAndUploadImageFile,
   validateData,
@@ -14,25 +10,34 @@ import {
 import {
   PlainObject,
   IUser,
-  IRequest
 } from '../../_common/interfaces/common.interface';
 import {
-  fn, Op,
+  fn,
 } from 'sequelize';
 import {
-  get as http_get
-} from 'http';
+  paginateTable,
+  getAll
+} from '../../_common/repos/_common.repo';
 import {
-  get as https_get
-} from 'https';
-import * as UserRepo from '../../_common/repos/users.repo';
-import * as FollowsRepo from '../../_common/repos/follows.repo';
-import * as CommonRepo from '../../_common/repos/_common.repo';
-import * as DeliveryRepo from '../repos/deliveries.repo';
+  deliveryMasterIncludes,
+  find_available_delivery_by_to_city_and_state,
+  find_available_delivery_by_from_city_and_state,
+  find_available_delivery,
+  search_deliveries,
+  browse_recent_deliveries,
+  browse_featured_deliveries,
+  browse_map_deliveries,
+  get_delivery_by_id,
+  deliveryOrderBy,
+  create_delivery,
+  delete_delivery,
+  create_delivery_tracking_update,
+  create_delivery_message,
+  update_delivery,
+} from '../repos/deliveries.repo';
 import { create_notification } from '../../_common/repos/notifications.repo';
-import { Follows, UserPaymentIntents, Users } from '../../_common/models/user.model';
+import { UserPaymentIntents, Users } from '../../_common/models/user.model';
 import {
-  COMMON_EVENT_TYPES,
   MODERN_APP_NAMES
 } from '../../_common/enums/common.enum';
 import { SocketsService } from '../../_common/services/sockets.service';
@@ -51,10 +56,10 @@ import {
 } from '../deliverme.chamber';
 import {
   ICreateDeliveryProps,
-  ICreateDeliveryTrackingUpdateProps
+  ICreateDeliveryTrackingUpdateProps,
+  IDelivery
 } from '../interfaces/deliverme.interface';
 import { UploadedFile } from 'express-fileupload';
-import { store_image } from '../../../cloudinary-manager';
 import {
   DELIVERME_EVENT_TYPES,
   DELIVERME_NOTIFICATION_TARGET_TYPES
@@ -69,18 +74,8 @@ import { ServiceMethodResults } from '../../_common/types/common.types';
 
 
 export class DeliveriesService {
-
   static async find_available_delivery_by_from_city_and_state(city: string, state: string) {
-    const result = await Delivery.findOne({
-      where: {
-        carrier_id: null,
-        completed: false,
-        from_city: city,
-        from_state: state,
-      },
-      order: [fn('RANDOM')],
-      include: DeliveryRepo.deliveryMasterIncludes,
-    });
+    const result = await find_available_delivery_by_from_city_and_state(city, state);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -93,16 +88,7 @@ export class DeliveriesService {
   }
 
   static async find_available_delivery_by_to_city_and_state(city: string, state: string) {
-    const result = await Delivery.findOne({
-      where: {
-        carrier_id: null,
-        completed: false,
-        to_city: city,
-        to_state: state,
-      },
-      order: [fn('RANDOM')],
-      include: DeliveryRepo.deliveryMasterIncludes
-    });
+    const result = await find_available_delivery_by_to_city_and_state(city, state);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -184,17 +170,9 @@ export class DeliveriesService {
         }
       }
 
-      const result = await Delivery.findOne({
-        where: {
-          owner_id: {
-            [Op.ne]: you.id
-          },
-          carrier_id: null,
-          completed: false,
-          ...useWhere
-        },
-        order: [fn('RANDOM')],
-        include: DeliveryRepo.deliveryMasterIncludes
+      const result = await find_available_delivery({
+        you_id: you.id,
+        where: useWhere
       });
 
       const serviceMethodResults: ServiceMethodResults = {
@@ -205,7 +183,8 @@ export class DeliveriesService {
         }
       };
       return serviceMethodResults;
-    } catch (e) {
+    } 
+    catch (e) {
       console.log(e);
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
@@ -226,94 +205,145 @@ export class DeliveriesService {
     to_city: string,
     to_state: string,
   }) {
-    const {
-      you,
-      from_city,
-      from_state,
-      to_city,
-      to_state,
-    } = opts;
+    const results = await search_deliveries(opts);
+    let serviceMethodResults: ServiceMethodResults;
 
-    const fromValid = from_city && from_state;
-    const toValid = to_city && to_state;
-    const fromAndToValid = fromValid && toValid;
+    if (results) {
+      serviceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          data: results,
+        }
+      };
+    }
+    else {
+      serviceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Could not parse search query.`,
+        }
+      };
+    }
+    
+    return serviceMethodResults;
+  }
 
-    if (!fromValid && !toValid) {
-      const resultsList = await Delivery.findAll({
-        where: { completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
-        attributes: delivery_search_attrs,
-        limit: 5,
-        order: [fn('RANDOM')]
-      });
-      const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.OK,
-        error: false,
-        info: {
-          data: resultsList,
-        }
-      };
-      return serviceMethodResults;
-    }
-
-    if (fromValid && !toValid) {
-      const resultsList = await Delivery.findAll({
-        where: { from_city, from_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
-        attributes: delivery_search_attrs,
-        limit: 5,
-        order: [fn('RANDOM')]
-      });
-      const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.OK,
-        error: false,
-        info: {
-          data: resultsList,
-        }
-      };
-      return serviceMethodResults;
-    }
-    if (!fromValid && toValid) {
-      const resultsList = await Delivery.findAll({
-        where: { to_city, to_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
-        attributes: delivery_search_attrs,
-        limit: 5,
-        order: [fn('RANDOM')]
-      });
-      const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.OK,
-        error: false,
-        info: {
-          data: resultsList,
-        }
-      };
-      return serviceMethodResults;
-    }
-    if (fromAndToValid) {
-      const resultsList = await Delivery.findAll({
-        where: { from_city, from_state, to_city, to_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
-        attributes: delivery_search_attrs,
-        limit: 5,
-        order: [fn('RANDOM')]
-      });
-      const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.OK,
-        error: false,
-        info: {
-          data: resultsList,
-        }
-      };
-      return serviceMethodResults;
-    }
+  static async browse_recent_deliveries(params: {
+    you: IUser,
+    delivery_id?: number,
+  }) {
+    const deliveries = await browse_recent_deliveries(params.you, params.delivery_id);
 
     const serviceMethodResults: ServiceMethodResults = {
-      status: HttpStatusCode.BAD_REQUEST,
-      error: true,
+      status: HttpStatusCode.OK,
+      error: false,
       info: {
-        message: `unhandled contition...`,
-        data: {
-          fromValid, 
-          toValid,
-          fromAndToValid
-        },
+        data: deliveries,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async browse_featured_deliveries(params: {
+    you: IUser,
+    delivery_id?: number,
+  }) {
+    const deliveries = await browse_featured_deliveries(params.you, params.delivery_id);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: deliveries,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async browse_map_deliveries(params: {
+    you: IUser,
+    swLat: number,
+    swLng: number,
+    neLat: number,
+    neLng: number,
+  }) {
+    if (!params) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Query data/params not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!params.you) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `User data not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+    if (!params.swLat) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `SouthWest Latitude not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+    if (!params.swLng) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `SouthWest Longitude not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+    if (!params.neLat) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `NorthEast Latitude not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+    if (!params.neLng) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `NorthEast Longitude not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const deliveries = await browse_map_deliveries(params);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: deliveries,
       }
     };
     return serviceMethodResults;
@@ -321,15 +351,15 @@ export class DeliveriesService {
 
   static async send_delivery_message(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     body: string,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery_model, body, ignoreNotification } = opts;
+    const { you, delivery, body, ignoreNotification } = opts;
     
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
 
     if (you.id !== owner_id && you.id !== carrier_id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -354,19 +384,10 @@ export class DeliveriesService {
     }
 
     // create the new message
-    const new_message_model = await DeliveryMessages.create({
+    const new_message = await create_delivery_message({
       body,
       delivery_id,
       user_id: you.id
-    });
-
-    const new_message = await DeliveryMessages.findOne({
-      where: { id: new_message_model.get('id') },
-      include: [{
-        model: Users,
-        as: 'user',
-        attributes: user_attrs_slim
-      }]
     });
 
     if (!ignoreNotification) {
@@ -384,9 +405,9 @@ export class DeliveriesService {
 
         const eventData = {
           event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
-          message: `New delivery message for: ${delivery_model.get('title')}`,
+          message: `New delivery message for: ${delivery.title}`,
           micro_app: MODERN_APP_NAMES.DELIVERME,
-          data: new_message!.toJSON() as any,
+          data: new_message,
           user_id: you.id,
           notification,
         }
@@ -413,7 +434,7 @@ export class DeliveriesService {
   }
 
   static async get_delivery_by_id(id: number) {
-    const delivery = await DeliveryRepo.get_delivery_by_id(id);
+    const delivery = await get_delivery_by_id(id);
     
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -426,15 +447,15 @@ export class DeliveriesService {
   }
   
   static async get_user_deliveries_all(user_id: number) {
-    const resultsList = await CommonRepo.getAll(
+    const resultsList = await getAll(
       Delivery,
       'owner_id',
       user_id,
-      DeliveryRepo.deliveryMasterIncludes,
+      deliveryMasterIncludes,
       undefined,
       undefined,
       undefined,
-      DeliveryRepo.deliveryOrderBy
+      deliveryOrderBy
     );
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -447,16 +468,16 @@ export class DeliveriesService {
   }
 
   static async get_user_deliveries(user_id: number, delivery_id?: number) {
-    const resultsList = await CommonRepo.paginateTable(
+    const resultsList = await paginateTable(
       Delivery,
       'owner_id',
       user_id,
       delivery_id,
-      DeliveryRepo.deliveryMasterIncludes,
+      deliveryMasterIncludes,
       undefined,
       undefined,
       undefined,
-      DeliveryRepo.deliveryOrderBy
+      deliveryOrderBy
     );
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -469,15 +490,15 @@ export class DeliveriesService {
   }
 
   static async get_user_deliverings_all(user_id: number) {
-    const resultsList = await CommonRepo.getAll(
+    const resultsList = await getAll(
       Delivery,
       'carrier_id',
       user_id,
-      DeliveryRepo.deliveryMasterIncludes,
+      deliveryMasterIncludes,
       undefined,
       undefined,
       { completed: true },
-      DeliveryRepo.deliveryOrderBy
+      deliveryOrderBy
     );
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -490,16 +511,16 @@ export class DeliveriesService {
   }
 
   static async get_user_deliverings(user_id: number, delivery_id?: number) {
-    const resultsList = await CommonRepo.paginateTable(
+    const resultsList = await paginateTable(
       Delivery,
       'carrier_id',
       user_id,
       delivery_id,
-      DeliveryRepo.deliveryMasterIncludes,
+      deliveryMasterIncludes,
       undefined,
       undefined,
       { completed: true },
-      DeliveryRepo.deliveryOrderBy
+      deliveryOrderBy
     );
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -517,8 +538,8 @@ export class DeliveriesService {
         carrier_id: you_id,
         completed: false
       },
-      include: DeliveryRepo.deliveryMasterIncludes,
-      order: DeliveryRepo.deliveryOrderBy
+      include: deliveryMasterIncludes,
+      order: deliveryOrderBy
     });
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -562,7 +583,7 @@ export class DeliveriesService {
 
       console.log(`createObj`, createObj);
 
-      const new_delivery_model = await DeliveryRepo.create_delivery(createObj as ICreateDeliveryProps);
+      const new_delivery_model = await create_delivery(createObj as ICreateDeliveryProps);
 
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
@@ -587,15 +608,12 @@ export class DeliveriesService {
   }
 
   static async update_delivery(opts: {
-    you: IUser,
-    delivery_model: IMyModel,
+    delivery_id: number,
     data: any
   }) {
-    const { you, delivery_model, data } = opts;
-    const updateObj: PlainObject = {
-      owner_id: you.id
-    };
+    const { delivery_id, data } = opts;
 
+    const updateObj: PlainObject = {};
     const dataValidation = validateData({
       data,
       validators: create_delivery_required_props,
@@ -604,8 +622,7 @@ export class DeliveriesService {
     if (dataValidation.error) {
       return dataValidation;
     }
-
-    const updates = await delivery_model.update(updateObj);
+    const updates = await update_delivery(delivery_id, updateObj);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -618,10 +635,10 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async delete_delivery(delivery_model: IMyModel) {
-    // const delivery_model = await DeliveryRepo.get_delivery_by_id(delivery_id);
+  static async delete_delivery(delivery: IDelivery) {
+    // const delivery_model = await get_delivery_by_id(delivery_id);
 
-    if (!delivery_model) {
+    if (!delivery) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.NOT_FOUND,
         error: true,
@@ -632,7 +649,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (!!delivery_model.get('carrier_id')) {
+    if (!!delivery.carrier_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -643,7 +660,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    const deletes = await DeliveryRepo.delete_delivery(delivery_model.get('id'));
+    const deletes = await delete_delivery(delivery.id);
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
@@ -657,15 +674,14 @@ export class DeliveriesService {
 
   static async assign_delivery(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     ignoreNotification?: boolean
   }) {
-    const { you, delivery_model, ignoreNotification } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
+    const { you, delivery, ignoreNotification } = opts;
     
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
 
     if (!!carrier_id && carrier_id !== you.id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -678,12 +694,11 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    delivery_model.carrier_id = you.id;
-    delivery_model.carrier_assigned_date = fn('NOW');
-    delivery_model.returned = false;
-    const updates = await delivery_model.save({ fields: ['carrier_id', 'carrier_assigned_date', 'returned'] });
-
-    const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
+    const updatesobj: PlainObject = {};
+    updatesobj.carrier_id = you.id;
+    updatesobj.carrier_assigned_date = fn('NOW');
+    updatesobj.returned = false;
+    const updates = await update_delivery(delivery_id, updatesobj);
 
     if (!ignoreNotification) {
       create_notification({
@@ -699,15 +714,15 @@ export class DeliveriesService {
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.CARRIER_ASSIGNED,
           data: {
-            data,
+            data: updates,
             message: `Delivery assigned to user!`,
             user: you,
             notification,
           }
         });
 
-        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-        if (validatePhone(to_phone_number)) {
+        const to_phone_number = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+        if (!!to_phone_number && validatePhone(to_phone_number)) {
           send_sms({
             to_phone_number,
             message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
@@ -721,7 +736,7 @@ export class DeliveriesService {
       error: false,
       info: {
         message: `Delivery assigned to user!`,
-        data,
+        data: updates,
       }
     };
     return serviceMethodResults;
@@ -729,15 +744,14 @@ export class DeliveriesService {
 
   static async unassign_delivery(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     ignoreNotification?: boolean
   }) {
-    const { you, delivery_model, ignoreNotification } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
-
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const { you, delivery, ignoreNotification } = opts;
+    
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
 
     if (carrier_id !== you.id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -749,11 +763,12 @@ export class DeliveriesService {
       };
       return serviceMethodResults;
     }
-
-    delivery_model.carrier_id = null;
-    delivery_model.carrier_assigned_date = null;
-    delivery_model.datetime_picked_up = null;
-    const updates = await delivery_model.save({ fields: ['carrier_id', 'carrier_assigned_date', 'datetime_picked_up'] });
+    
+    const updatesobj: PlainObject = {};
+    updatesobj.carrier_id = null;
+    updatesobj.carrier_assigned_date = null;
+    updatesobj.datetime_picked_up = null;
+    const updates = await update_delivery(delivery_id, updatesobj);
     
     const trackingDeletes = await DeliveryTrackingUpdates.destroy({ 
       where: { delivery_id }
@@ -761,8 +776,6 @@ export class DeliveriesService {
     const messagesDeletes = await DeliveryMessages.destroy({ 
       where: { delivery_id }
     });
-
-    const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
 
     if (!ignoreNotification) {
       create_notification({
@@ -778,15 +791,15 @@ export class DeliveriesService {
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.CARRIER_UNASSIGNED,
           data: {
-            data,
+            data: updates,
             message: `Delivery unassigned by carrier!`,
             user: you,
             notification,
           }
         });
 
-        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-        if (validatePhone(to_phone_number)) {
+        const to_phone_number = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+        if (!!to_phone_number && validatePhone(to_phone_number)) {
           send_sms({
             to_phone_number,
             message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
@@ -800,7 +813,7 @@ export class DeliveriesService {
       error: false,
       info: {
         message: `Delivery unassigned by carrier!`,
-        data,
+        data: updates,
       }
     };
     return serviceMethodResults;
@@ -808,17 +821,16 @@ export class DeliveriesService {
 
   static async create_tracking_update(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     data: any,
     tracking_update_image?: UploadedFile,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery_model, data, tracking_update_image, ignoreNotification } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
-
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const { you, delivery, data, tracking_update_image, ignoreNotification } = opts;
+    
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
 
     if (carrier_id !== you.id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -855,7 +867,7 @@ export class DeliveriesService {
       return imageValidation;
     }
 
-    const new_delivery_tracking_update_model = await DeliveryRepo.create_delivery_tracking_update(createObj as ICreateDeliveryTrackingUpdateProps);
+    const new_delivery_tracking_update = await create_delivery_tracking_update(createObj as ICreateDeliveryTrackingUpdateProps);
 
     if (!ignoreNotification) {
       create_notification({
@@ -864,25 +876,25 @@ export class DeliveriesService {
         event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_TRACKING_UPDATE,
         micro_app: MODERN_APP_NAMES.DELIVERME,
         target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY_TRACKING_UPDATE,
-        target_id: new_delivery_tracking_update_model.get('id') as number
+        target_id: new_delivery_tracking_update.id
       }).then(async (notification_model) => {
         const notification = await populate_deliverme_notification_obj(notification_model);
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_TRACKING_UPDATE,
           data: {
-            data: new_delivery_tracking_update_model,
+            data: new_delivery_tracking_update,
             message: `Delivery new tracking update!`,
             user: you,
             notification,
           }
         });
   
-        const owner_phone = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-        if (validatePhone(owner_phone)) {
+        const owner_phone = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+        if (!!owner_phone && validatePhone(owner_phone)) {
           GoogleService.getLocationFromCoordinates(createObj.carrier_lat, createObj.carrier_lng)
             .then((placeData) => {
-              const msg = `ModernApps ${MODERN_APP_NAMES.DELIVERME} - Delivery: new tracking update for delivery "${deliveryObj.title}"\n\n` +
+              const msg = `ModernApps ${MODERN_APP_NAMES.DELIVERME} - Delivery: new tracking update for delivery "${delivery.title}"\n\n` +
               `${createObj.message}\n\n` +
               `Carrier's Location: ${placeData.city}, ${placeData.state} ` +
                 `${placeData.county ? '(' + placeData.county + ')' : ''} ${placeData.zipcode}`;
@@ -895,7 +907,7 @@ export class DeliveriesService {
             })
             .catch((error) => {
               console.log(`Can't send sms with location; sending without...`);
-              const msg = `ModernApps ${MODERN_APP_NAMES.DELIVERME} - Delivery: new tracking update for delivery "${deliveryObj.title}"\n\n` +
+              const msg = `ModernApps ${MODERN_APP_NAMES.DELIVERME} - Delivery: new tracking update for delivery "${delivery.title}"\n\n` +
               `${createObj.message}`;
               console.log(`sending:`, msg);
               
@@ -913,7 +925,7 @@ export class DeliveriesService {
       error: false,
       info: {
         message: `Delivery new tracking update!`,
-        data: new_delivery_tracking_update_model,
+        data: new_delivery_tracking_update,
       }
     };
     return serviceMethodResults;
@@ -921,16 +933,15 @@ export class DeliveriesService {
 
   static async add_delivered_picture(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     delivered_image?: UploadedFile,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery_model, delivered_image, ignoreNotification } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
-
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const { you, delivery, delivered_image, ignoreNotification } = opts;
+    
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
 
     if (carrier_id !== you.id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -942,7 +953,7 @@ export class DeliveriesService {
       };
       return serviceMethodResults;
     }
-    if (!delivery_model.get('datetime_delivered')) {
+    if (!delivery.datetime_delivered) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -959,10 +970,11 @@ export class DeliveriesService {
     if (imageValidation.error) {
       return imageValidation;
     }
-
-    delivery_model.delivered_image_id = imageValidation.info.data.image_id;
-    delivery_model.delivered_image_link = imageValidation.info.data.image_link;
-    const updates = await delivery_model.save({ fields: ['delivered_image_id', 'delivered_image_link'] });
+    
+    const updatesobj: PlainObject = {};
+    updatesobj.delivered_image_id = imageValidation.info.data.image_id;
+    updatesobj.delivered_image_link = imageValidation.info.data.image_link;
+    const updates = await update_delivery(delivery_id, updatesobj);
 
     if (!ignoreNotification) {
       create_notification({
@@ -985,8 +997,8 @@ export class DeliveriesService {
           }
         });
   
-        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-        if (validatePhone(to_phone_number)) {
+        const to_phone_number = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+        if (!!to_phone_number && validatePhone(to_phone_number)) {
           send_sms({
             to_phone_number,
             message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
@@ -1008,15 +1020,14 @@ export class DeliveriesService {
 
   static async mark_delivery_as_picked_up(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery_model, ignoreNotification } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
-
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const { you, delivery, ignoreNotification } = opts;
+    
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
 
     if (carrier_id !== you.id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1028,11 +1039,10 @@ export class DeliveriesService {
       };
       return serviceMethodResults;
     }
-
-    delivery_model.datetime_picked_up = fn('NOW');
-    const updates = await delivery_model.save({ fields: ['datetime_picked_up'] });
     
-    const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
+    const updatesobj: PlainObject = {};
+    updatesobj.datetime_picked_up = fn('NOW');
+    const updates = await update_delivery(delivery_id, updatesobj);
 
     if (!ignoreNotification) {
       create_notification({
@@ -1048,15 +1058,15 @@ export class DeliveriesService {
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_PICKED_UP,
           data: {
-            data,
+            data: updates,
             message: `Delivery picked up by carrier!`,
             user: you,
             notification,
           }
         });
   
-        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-        if (validatePhone(to_phone_number)) {
+        const to_phone_number = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+        if (!!to_phone_number && validatePhone(to_phone_number)) {
           send_sms({
             to_phone_number,
             message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
@@ -1070,7 +1080,7 @@ export class DeliveriesService {
       error: false,
       info: {
         message: `Delivery picked up by carrier!`,
-        data,
+        data: updates,
       }
     };
     return serviceMethodResults;
@@ -1078,15 +1088,14 @@ export class DeliveriesService {
 
   static async mark_delivery_as_dropped_off(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery_model, ignoreNotification } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
-
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const { you, delivery, ignoreNotification } = opts;
+    
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
 
     if (carrier_id !== you.id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1099,10 +1108,9 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    delivery_model.datetime_delivered = fn('NOW');
-    const updates = await delivery_model.save({ fields: ['datetime_delivered'] });
-    
-    const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
+    const updatesobj: PlainObject = {};
+    updatesobj.datetime_delivered = fn('NOW');
+    const updates = await update_delivery(delivery_id, updatesobj);
 
     if (!ignoreNotification) {
       create_notification({
@@ -1118,15 +1126,15 @@ export class DeliveriesService {
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_DROPPED_OFF,
           data: {
-            data,
+            data: updates,
             message: `Delivery dropped off by carrier!`,
             user: you,
             notification,
           }
         });
   
-        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-        if (validatePhone(to_phone_number)) {
+        const to_phone_number = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+        if (!!to_phone_number && validatePhone(to_phone_number)) {
           send_sms({
             to_phone_number,
             message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
@@ -1140,7 +1148,7 @@ export class DeliveriesService {
       error: false,
       info: {
         message: `Delivery dropped off by carrier!`,
-        data,
+        data: updates,
       }
     };
     return serviceMethodResults;
@@ -1149,15 +1157,14 @@ export class DeliveriesService {
   
   static async mark_delivery_as_completed(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery_model, ignoreNotification } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
-
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const { you, delivery, ignoreNotification } = opts;
+    
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
 
     if (owner_id !== you.id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1170,7 +1177,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (deliveryObj.completed) {
+    if (delivery.completed) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1181,10 +1188,9 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    delivery_model.completed = true;
-    const updates = await delivery_model.save({ fields: ['completed'] });
-    
-    const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
+    const updatesobj: PlainObject = {};
+    updatesobj.completed = true;
+    const updates = await update_delivery(delivery_id, updatesobj);
 
     if (!ignoreNotification) {
       create_notification({
@@ -1200,15 +1206,15 @@ export class DeliveriesService {
           user_id: carrier_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
           data: {
-            data,
+            data: updates,
             message: `Delivery completed!`,
             user: you,
             notification,
           }
         });
   
-        const to_phone_number = deliveryObj.carrier.deliverme_settings.phone || deliveryObj.carrier.phone;
-        if (validatePhone(to_phone_number)) {
+        const to_phone_number = delivery.carrier?.deliverme_settings?.phone || delivery.carrier?.phone;
+        if (!!to_phone_number && validatePhone(to_phone_number)) {
           send_sms({
             to_phone_number,
             message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
@@ -1222,7 +1228,7 @@ export class DeliveriesService {
       error: false,
       info: {
         message: `Delivery completed!`,
-        data,
+        data: updates,
       }
     };
     return serviceMethodResults;
@@ -1230,15 +1236,14 @@ export class DeliveriesService {
 
   static async mark_delivery_as_returned(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery_model, ignoreNotification } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
-
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const { you, delivery, ignoreNotification } = opts;
+    
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
 
     if (carrier_id !== you.id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1251,7 +1256,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (deliveryObj.returned) {
+    if (delivery.returned) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1262,12 +1267,12 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    delivery_model.returned = true;
-    delivery_model.carrier_id = null;
-    delivery_model.carrier_assigned_date = null;
-    delivery_model.datetime_picked_up = null;
-
-    const updates = await delivery_model.save({ fields: ['returned', 'carrier_id', 'carrier_assigned_date', 'datetime_picked_up'] });
+    const updatesobj: PlainObject = {};
+    updatesobj.returned = true;
+    updatesobj.carrier_id = null;
+    updatesobj.carrier_assigned_date = null;
+    updatesobj.datetime_picked_up = null;
+    const updates = await update_delivery(delivery_id, updatesobj);
     
     const trackingDeletes = await DeliveryTrackingUpdates.destroy({ 
       where: { delivery_id }
@@ -1275,8 +1280,6 @@ export class DeliveriesService {
     const messagesDeletes = await DeliveryMessages.destroy({ 
       where: { delivery_id }
     });
-
-    const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
 
     if (!ignoreNotification) {
       create_notification({
@@ -1294,15 +1297,15 @@ export class DeliveriesService {
           data: {
             event: DELIVERME_EVENT_TYPES.DELIVERY_RETURNED,
             micro_app: MODERN_APP_NAMES.DELIVERME,
-            data,
+            data: updates,
             message: `Delivery returned`,
             user: you,
             notification,
           }
         });
   
-        const to_phone_number = deliveryObj.owner.deliverme_settings.phone || deliveryObj.owner.phone;
-        if (validatePhone(to_phone_number)) {
+        const to_phone_number = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+        if (!!to_phone_number && validatePhone(to_phone_number)) {
           send_sms({
             to_phone_number,
             message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
@@ -1316,7 +1319,7 @@ export class DeliveriesService {
       error: false,
       info: {
         message: `Delivery returned`,
-        data,
+        data: updates,
       }
     };
     return serviceMethodResults;
@@ -1378,15 +1381,14 @@ export class DeliveriesService {
 
   static async create_checkout_session(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     host: string,
   }) {
-    const { you, delivery_model, host } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
-
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const { you, delivery, host } = opts;
+    
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
 
     if (owner_id !== you.id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1399,7 +1401,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (deliveryObj.completed) {
+    if (delivery.completed) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1410,7 +1412,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (!deliveryObj.owner.stripe_account_verified) {
+    if (!delivery.owner?.stripe_account_verified) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1421,7 +1423,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (!deliveryObj.carrier.stripe_account_verified) {
+    if (!delivery.carrier?.stripe_account_verified) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1432,7 +1434,9 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    await delivery_model.update({ payment_session_id: '' });
+    const updatesobj: PlainObject = {};
+    updatesobj.payment_session_id = '';
+    const updates = await update_delivery(delivery_id, updatesobj);
 
     const useHost = host.endsWith('/') ? host.substr(0, host.length - 1) : host;
     const successUrl = `${useHost}/modern/apps/deliverme/deliveries/${delivery_id}/payment-success?session_id={CHECKOUT_SESSION_ID}`;
@@ -1445,9 +1449,9 @@ export class DeliveriesService {
     //       price_data: {
     //         currency: 'usd',
     //         product_data: {
-    //           name: `Delivery of ${deliveryObj.title} by ${getUserFullName(deliveryObj.carrier)}`,
+    //           name: `Delivery of ${delivery.title} by ${getUserFullName(delivery.carrier)}`,
     //         },
-    //         unit_amount: parseFloat(deliveryObj.payout + '00'),
+    //         unit_amount: parseFloat(delivery.payout + '00'),
     //       },
     //       quantity: 1,
     //     },
@@ -1465,14 +1469,14 @@ export class DeliveriesService {
     let paymentIntent;
     
     try {
-      const chargeFeeData = StripeService.add_on_stripe_processing_fee(deliveryObj.payout);
+      const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout);
       paymentIntent = await StripeService.stripe.paymentIntents.create({
         payment_method_types: ['card'],
         amount: chargeFeeData.final_total,
         currency: 'usd',
         application_fee_amount: chargeFeeData.app_fee, // free, for now
         transfer_data: {
-          destination: deliveryObj.carrier.stripe_account_id,
+          destination: delivery.carrier.stripe_account_id,
         },
       },
       // { stripeAccount: you.stripe_account_id }
@@ -1520,16 +1524,15 @@ export class DeliveriesService {
 
   static async payment_success(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     session_id: string,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery_model, session_id, ignoreNotification } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
-
-    const delivery_id = delivery_model.get('id');
-    const owner_id = delivery_model.get('owner_id');
-    const carrier_id = delivery_model.get('carrier_id');
+    const { you, delivery, session_id, ignoreNotification } = opts;
+    
+    const delivery_id = delivery.id;
+    const owner_id = delivery.owner_id;
+    const carrier_id = delivery.carrier_id;
     
     if (!session_id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1542,7 +1545,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (session_id !== deliveryObj.payment_session_id) {
+    if (session_id !== delivery.payment_session_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1555,10 +1558,9 @@ export class DeliveriesService {
 
     // pay carrier
 
-    delivery_model.completed = true;
-    const updates = await delivery_model.save({ fields: ['completed'] });
-    
-    const data = await DeliveryRepo.get_delivery_by_id(delivery_id);
+    const updatesobj: PlainObject = {};
+    updatesobj.completed = true;
+    const updates = await update_delivery(delivery_id, updatesobj);
 
     if (!ignoreNotification) {
       create_notification({
@@ -1574,15 +1576,15 @@ export class DeliveriesService {
           user_id: carrier_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
           data: {
-            data,
+            data: updates,
             message: `Delivery completed!`,
             user: you,
             notification,
           }
         });
   
-        const to_phone_number = deliveryObj.carrier.deliverme_settings.phone || deliveryObj.carrier.phone;
-        if (validatePhone(to_phone_number)) {
+        const to_phone_number = delivery.carrier?.deliverme_settings?.phone || delivery.carrier?.phone;
+        if (!!to_phone_number && validatePhone(to_phone_number)) {
           send_sms({
             to_phone_number,
             message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
@@ -1596,6 +1598,7 @@ export class DeliveriesService {
       error: false,
       info: {
         message: `Payment session completed`,
+        data: updates
       }
     };
     return serviceMethodResults;
@@ -1603,11 +1606,10 @@ export class DeliveriesService {
 
   static async payment_cancel(opts: {
     you: IUser,
-    delivery_model: IMyModel,
+    delivery: IDelivery,
     session_id: string,
   }) {
-    const { you, delivery_model, session_id } = opts;
-    const deliveryObj = delivery_model!.toJSON() as any;
+    const { you, delivery, session_id } = opts;
 
     if (!session_id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1620,7 +1622,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (session_id !== deliveryObj.payment_session_id) {
+    if (session_id !== delivery.payment_session_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1631,13 +1633,16 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    await delivery_model.update({ payment_session_id: '' });
+    const updatesobj: PlainObject = {};
+    updatesobj.payment_session_id = '';
+    const updates = await update_delivery(delivery.id, updatesobj);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
         message: `Payment session canceled`,
+        data: updates
       }
     };
     return serviceMethodResults;

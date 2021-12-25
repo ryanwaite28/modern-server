@@ -145,8 +145,8 @@ export const DeliveryRequests = <MyModelStatic> sequelize.define('deliverme_deli
   id:              { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   user_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   delivery_id:     { type: Sequelize.INTEGER, allowNull: false, references: { model: Delivery, key: 'id' } },
-  date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   message:         { type: Sequelize.STRING, allowNull: true },
+  date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
@@ -155,9 +155,9 @@ export const DeliveryDisputes = <MyModelStatic> sequelize.define('deliverme_deli
   creator_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   user_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   delivery_id:     { type: Sequelize.INTEGER, allowNull: false, references: { model: Delivery, key: 'id' } },
-  date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   title:           { type: Sequelize.STRING, allowNull: true },
   status:          { type: Sequelize.STRING, allowNull: false },
+  date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
@@ -171,7 +171,7 @@ export const DeliveryDisputeLogs = <MyModelStatic> sequelize.define('deliverme_d
   uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const DeliveryTrackingUpdates = sequelize.define('deliverme_delivery_tracking_updates', {
+export const DeliveryTrackingUpdates = <MyModelStatic> sequelize.define('deliverme_delivery_tracking_updates', {
   id:                { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   delivery_id:       { type: Sequelize.INTEGER, allowNull: false, references: { model: Delivery, key: 'id' } },
   user_id:           { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },

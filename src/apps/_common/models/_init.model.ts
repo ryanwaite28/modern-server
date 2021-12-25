@@ -11,24 +11,6 @@ import {
   CliqueMemberRequests,
 } from "../../hotspot/models/clique.model";
 import { Users, Notifications, Follows } from "./user.model";
-import {
-  RecipeCommentReactions,
-  RecipeCommentReplies,
-  RecipeCommentReplyReactions,
-  RecipeComments,
-  RecipeIngredients,
-  RecipeReactions,
-  Recipes
-} from '../../chef-city/models/recipe.model';
-import {
-  Conversations,
-  ConversationLastOpeneds,
-  ConversationMembers,
-  ConversationMessages,
-  ConversationMessageSeens
-} from './conversations.model';
-
-import { HotspotResources, HotspotResourceInterests } from '../../hotspot/models/resource.model';
 import { Messagings, Messages } from './messages.model';
 import { Photos } from './photo.model';
 import { Videos } from './video.model';

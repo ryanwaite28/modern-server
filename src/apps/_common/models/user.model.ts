@@ -97,8 +97,8 @@ export const UserPremiumSubscriptions = <MyModelStaticGeneric<IMyModel>> sequeli
   billing_id:           { type: Sequelize.STRING, allowNull: false },
   product_id:           { type: Sequelize.STRING, allowNull: false },
   plan_id:              { type: Sequelize.STRING, allowNull: false },
-  date_created:         { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   active:               { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  date_created:         { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                 { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
@@ -106,6 +106,7 @@ export const UserTypes = <MyModelStaticGeneric<IMyModel>> sequelize.define('comm
   id:                   { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   user_id:              { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   type:                 { type: Sequelize.STRING, allowNull: false },
+  date_created:         { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                 { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
@@ -115,15 +116,18 @@ export const UserFields = <MyModelStaticGeneric<IMyModel>> sequelize.define('com
   fieldname:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   fieldtype:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   fieldvalue:           { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
-  uuid:                 { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+  date_created:         { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                 { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
 }, common_options);
 
 export const UsersEmailVerifications = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_users_email_verifications', {
   id:                      { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   user_id:                 { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   email:                   { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
-  verification_code:       { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 },
+  verification_code:       { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV4 },
   verified:                { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  date_created:            { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                    { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
 }, common_options);
 
 export const UsersPhoneVerifications = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_users_phone_verifications', {
@@ -132,6 +136,8 @@ export const UsersPhoneVerifications = <MyModelStaticGeneric<IMyModel>> sequeliz
   request_id:              { type: Sequelize.STRING, unique: true, allowNull: true },
   phone:                   { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   verification_code:       { type: Sequelize.STRING, allowNull: false },
+  date_created:            { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                    { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
 }, common_options);
 
 export const UserPageViews = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_page_views', {
@@ -166,10 +172,10 @@ export const UserReactions = <MyModelStaticGeneric<IMyModel>> sequelize.define('
 export const ResetPasswordRequests = <MyModelStaticGeneric<IResetPasswordRequestModel>> sequelize.define('common_reset_password_requests', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
-  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   completed:           { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  unique_value:        { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV4 },
   uuid:                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 },
-  unique_value:        { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
 }, common_options);
 
 export const Notifications = <MyModelStaticGeneric<INotificationModel>> sequelize.define('common_notifications', {

@@ -1096,3 +1096,19 @@ export const createGenericServiceMethodSuccess = <T = any> (message?: string, da
   };
   return serviceMethodResults;
 };
+
+export const convertModel = <T> (model: IMyModel | null) => {
+  return model ? (<any> model.toJSON()) as T : null;
+}
+
+export const convertModels = <T> (models: IMyModel[]) => {
+  return models.map((model) => (<any> model.toJSON()) as T);
+}
+
+export const convertModelCurry = <T> () => (model: IMyModel | null) => {
+  return model ? (<any> model.toJSON()) as T : null;
+}
+
+export const convertModelsCurry = <T> () => (models: IMyModel[]) => {
+  return models.map((model) => (<any> model.toJSON()) as T);
+}

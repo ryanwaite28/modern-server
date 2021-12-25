@@ -5,6 +5,7 @@ import { IMyModel } from '../../_common/models/common.model-types';
 import { UploadedFile } from 'express-fileupload';
 import { DeliveriesService } from '../services/deliveries.service';
 import { ExpressResponse, ServiceMethodResults } from '../../_common/types/common.types';
+import { IDelivery } from '../interfaces/deliverme.interface';
 
 export class DeliveriesRequestHandler {
 
@@ -49,10 +50,47 @@ export class DeliveriesRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  static async browse_recent_deliveries(request: Request, response: Response): ExpressResponse {
+    const opts: { you: IUser, delivery_id?: number, } = {
+      you: response.locals.you as IUser
+    };
+    if (request.params.delivery_id) {
+      opts.delivery_id = parseInt(request.params.delivery_id);
+    }
+
+    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.browse_recent_deliveries(opts);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  static async browse_featured_deliveries(request: Request, response: Response): ExpressResponse {
+    const opts: { you: IUser, delivery_id?: number, } = {
+      you: response.locals.you as IUser
+    };
+    if (request.params.delivery_id) {
+      opts.delivery_id = parseInt(request.params.delivery_id);
+    }
+
+    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.browse_featured_deliveries(opts);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  static async browse_map_deliveries(request: Request, response: Response): ExpressResponse {
+    const opts = {
+      you: response.locals.you as IUser,
+      swLat: parseFloat(request.params.swlat?.toString() || '0'),
+      swLng: parseFloat(request.params.swlng?.toString() || '0'),
+      neLat: parseFloat(request.params.nelat?.toString() || '0'),
+      neLng: parseFloat(request.params.nelng?.toString() || '0'),
+    };
+
+    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.browse_map_deliveries(opts);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
   static async send_delivery_message(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
       body: request.body.body as string,
     };
     
@@ -119,7 +157,7 @@ export class DeliveriesRequestHandler {
     const opts = {
       you: response.locals.you as IUser,
       data: JSON.parse(request.body.payload) as any,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery_id: response.locals.delivery_model.id as number,
     };
 
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.update_delivery(opts);
@@ -127,16 +165,16 @@ export class DeliveriesRequestHandler {
   }
 
   static async delete_delivery(request: Request, response: Response): ExpressResponse {
-    const delivery_model = response.locals.delivery_model as IMyModel;
+    const delivery = response.locals.delivery_model as IDelivery;
 
-    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.delete_delivery(delivery_model);
+    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.delete_delivery(delivery);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   static async assign_delivery(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
     };
 
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.assign_delivery(opts);
@@ -146,7 +184,7 @@ export class DeliveriesRequestHandler {
   static async unassign_delivery(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
     };
 
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.unassign_delivery(opts);
@@ -156,7 +194,7 @@ export class DeliveriesRequestHandler {
   static async create_tracking_update(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
       data: JSON.parse(request.body.payload) as any,
       tracking_update_image: request.files && (<UploadedFile> request.files.tracking_update_image),
     };
@@ -168,7 +206,7 @@ export class DeliveriesRequestHandler {
   static async add_delivered_picture(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
       delivered_image: request.files && (<UploadedFile> request.files.delivered_image),
     };
 
@@ -179,7 +217,7 @@ export class DeliveriesRequestHandler {
   static async mark_delivery_as_picked_up(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
     };
 
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.mark_delivery_as_picked_up(opts);
@@ -189,7 +227,7 @@ export class DeliveriesRequestHandler {
   static async mark_delivery_as_dropped_off(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
     };
 
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.mark_delivery_as_dropped_off(opts);
@@ -200,7 +238,7 @@ export class DeliveriesRequestHandler {
   static async mark_delivery_as_completed(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
     };
 
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.mark_delivery_as_completed(opts);
@@ -210,7 +248,7 @@ export class DeliveriesRequestHandler {
   static async mark_delivery_as_returned(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
     };
 
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.mark_delivery_as_returned(opts);
@@ -235,7 +273,7 @@ export class DeliveriesRequestHandler {
   static async create_checkout_session(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
       host: request.get('origin')! as string,
     };
 
@@ -246,7 +284,7 @@ export class DeliveriesRequestHandler {
   static async payment_success(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
       session_id: request.query.session_id as string,
     };
 
@@ -257,7 +295,7 @@ export class DeliveriesRequestHandler {
   static async payment_cancel(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
-      delivery_model: response.locals.delivery_model as IMyModel,
+      delivery: response.locals.delivery_model as IDelivery,
       session_id: request.query.session_id as string,
     };
 
