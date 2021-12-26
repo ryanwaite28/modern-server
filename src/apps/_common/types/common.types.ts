@@ -15,6 +15,12 @@ export type ExpressRouteEndHandler = (
 ) => ExpressResponse;
 
 
+export interface ServiceMethodResultsInfo<T = any> {
+  message?: string;
+  data?: T;
+  error?: any;
+};
+
 /**
  * @interface ServiceMethodResults
  * 
@@ -27,13 +33,7 @@ export type ExpressRouteEndHandler = (
 export type ServiceMethodResults<T = any> = {
   status: HttpStatusCode,
   error: boolean,
-  info: {
-    message?: string;
-    data?: T;
-    error?: any;
-
-    // [key:string]: any;
-  };
+  info: ServiceMethodResultsInfo<T>,
 };
 
 export type ServiceMethodAsyncResults<T = any> = Promise<ServiceMethodResults<T>>;

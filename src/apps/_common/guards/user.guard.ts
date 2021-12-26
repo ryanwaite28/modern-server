@@ -62,6 +62,15 @@ export function YouAuthorizedSlim(
   response.locals.you = auth.you;
   return next();
 }
+export function YouAuthorizedSlimWeak(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const auth = AuthorizeJWT(request, false);
+  response.locals.you = auth.you;
+  return next();
+}
 
 export function UserIdsAreDifferent(
   request: Request,

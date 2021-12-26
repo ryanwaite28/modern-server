@@ -101,13 +101,13 @@ export class DeliveriesService {
   }
 
   static async find_available_delivery(opts: {
-    you: IUser,
+    you_id: number,
     criteria: string,
     city: string,
     state: string,
   }) {
     try {
-      const { you, criteria, city, state } = opts;
+      const { you_id, criteria, city, state } = opts;
       const searchCriterias = [
         { label: 'From City', value: 'from-city' },
         { label: 'To City', value: 'to-city' },
@@ -171,7 +171,7 @@ export class DeliveriesService {
       }
 
       const result = await find_available_delivery({
-        you_id: you.id,
+        you_id,
         where: useWhere
       });
 
@@ -199,7 +199,7 @@ export class DeliveriesService {
   }
 
   static async search_deliveries(opts: {
-    you: IUser,
+    you_id: number,
     from_city: string,
     from_state: string,
     to_city: string,
@@ -231,10 +231,10 @@ export class DeliveriesService {
   }
 
   static async browse_recent_deliveries(params: {
-    you: IUser,
+    you_id: number,
     delivery_id?: number,
   }) {
-    const deliveries = await browse_recent_deliveries(params.you, params.delivery_id);
+    const deliveries = await browse_recent_deliveries(params.you_id, params.delivery_id);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -247,10 +247,10 @@ export class DeliveriesService {
   }
 
   static async browse_featured_deliveries(params: {
-    you: IUser,
+    you_id: number,
     delivery_id?: number,
   }) {
-    const deliveries = await browse_featured_deliveries(params.you, params.delivery_id);
+    const deliveries = await browse_featured_deliveries(params.you_id, params.delivery_id);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -263,7 +263,7 @@ export class DeliveriesService {
   }
 
   static async browse_map_deliveries(params: {
-    you: IUser,
+    you_id: number,
     swLat: number,
     swLng: number,
     neLat: number,
@@ -281,17 +281,6 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (!params.you) {
-      const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.BAD_REQUEST,
-        error: true,
-        info: {
-          message: `User data not given.`,
-          data: {},
-        }
-      };
-      return serviceMethodResults;
-    }
     if (!params.swLat) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
@@ -350,18 +339,18 @@ export class DeliveriesService {
   }
 
   static async send_delivery_message(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     body: string,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery, body, ignoreNotification } = opts;
+    const { you_id, delivery, body, ignoreNotification } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
     const carrier_id = delivery.carrier_id;
 
-    if (you.id !== owner_id && you.id !== carrier_id) {
+    if (you_id !== owner_id && you_id !== carrier_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -387,14 +376,14 @@ export class DeliveriesService {
     const new_message = await create_delivery_message({
       body,
       delivery_id,
-      user_id: you.id
+      user_id: you_id
     });
 
     if (!ignoreNotification) {
-      const to_id = you.id === owner_id ? carrier_id : owner_id;
+      const to_id = you_id === owner_id ? carrier_id : owner_id;
 
       create_notification({
-        from_id: you.id,
+        from_id: you_id,
         to_id: to_id,
         micro_app: MODERN_APP_NAMES.DELIVERME,
         event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
@@ -404,11 +393,12 @@ export class DeliveriesService {
         const notification = await populate_deliverme_notification_obj(notification_model);
 
         const eventData = {
+          delivery_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
           message: `New delivery message for: ${delivery.title}`,
           micro_app: MODERN_APP_NAMES.DELIVERME,
           data: new_message,
-          user_id: you.id,
+          user_id: you_id,
           notification,
         }
         const TO_ROOM = `${DELIVERME_EVENT_TYPES.TO_DELIVERY}:${delivery_id}`;
@@ -552,14 +542,14 @@ export class DeliveriesService {
   }
 
   static async create_delivery(opts: {
-    you: IUser,
+    you_id: number,
     data: any,
     delivery_image?: UploadedFile
   }) {
     try {
-      const { you, data, delivery_image } = opts;
+      const { you_id, data, delivery_image } = opts;
       const createObj: PlainObject = {
-        owner_id: you.id
+        owner_id: you_id
       };
 
       const dataValidation = validateData({
@@ -673,17 +663,17 @@ export class DeliveriesService {
   }
 
   static async assign_delivery(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean
   }) {
-    const { you, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
     const carrier_id = delivery.carrier_id;
 
-    if (!!carrier_id && carrier_id !== you.id) {
+    if (!!carrier_id && carrier_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -695,14 +685,14 @@ export class DeliveriesService {
     }
 
     const updatesobj: PlainObject = {};
-    updatesobj.carrier_id = you.id;
+    updatesobj.carrier_id = you_id;
     updatesobj.carrier_assigned_date = fn('NOW');
     updatesobj.returned = false;
     const updates = await update_delivery(delivery_id, updatesobj);
 
     if (!ignoreNotification) {
       create_notification({
-        from_id: you.id,
+        from_id: you_id,
         to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_ASSIGNED,
         micro_app: MODERN_APP_NAMES.DELIVERME,
@@ -716,7 +706,7 @@ export class DeliveriesService {
           data: {
             data: updates,
             message: `Delivery assigned to user!`,
-            user: you,
+            user_id: you_id,
             notification,
           }
         });
@@ -743,17 +733,17 @@ export class DeliveriesService {
   }
 
   static async unassign_delivery(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean
   }) {
-    const { you, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
     const carrier_id = delivery.carrier_id;
 
-    if (carrier_id !== you.id) {
+    if (carrier_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -779,7 +769,7 @@ export class DeliveriesService {
 
     if (!ignoreNotification) {
       create_notification({
-        from_id: you.id,
+        from_id: you_id,
         to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_UNASSIGNED,
         micro_app: MODERN_APP_NAMES.DELIVERME,
@@ -793,7 +783,7 @@ export class DeliveriesService {
           data: {
             data: updates,
             message: `Delivery unassigned by carrier!`,
-            user: you,
+            user_id: you_id,
             notification,
           }
         });
@@ -820,19 +810,19 @@ export class DeliveriesService {
   }
 
   static async create_tracking_update(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     data: any,
     tracking_update_image?: UploadedFile,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery, data, tracking_update_image, ignoreNotification } = opts;
+    const { you_id, delivery, data, tracking_update_image, ignoreNotification } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
     const carrier_id = delivery.carrier_id;
 
-    if (carrier_id !== you.id) {
+    if (carrier_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -844,7 +834,7 @@ export class DeliveriesService {
     }
 
     const createObj: any = {
-      user_id: you.id,
+      user_id: you_id,
       delivery_id,
     };
 
@@ -871,7 +861,7 @@ export class DeliveriesService {
 
     if (!ignoreNotification) {
       create_notification({
-        from_id: you.id,
+        from_id: you_id,
         to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_TRACKING_UPDATE,
         micro_app: MODERN_APP_NAMES.DELIVERME,
@@ -885,7 +875,7 @@ export class DeliveriesService {
           data: {
             data: new_delivery_tracking_update,
             message: `Delivery new tracking update!`,
-            user: you,
+            user_id: you_id,
             notification,
           }
         });
@@ -932,18 +922,18 @@ export class DeliveriesService {
   }
 
   static async add_delivered_picture(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     delivered_image?: UploadedFile,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery, delivered_image, ignoreNotification } = opts;
+    const { you_id, delivery, delivered_image, ignoreNotification } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
     const carrier_id = delivery.carrier_id;
 
-    if (carrier_id !== you.id) {
+    if (carrier_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -978,7 +968,7 @@ export class DeliveriesService {
 
     if (!ignoreNotification) {
       create_notification({
-        from_id: you.id,
+        from_id: you_id,
         to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_ADD_COMPLETED_PICTURE,
         micro_app: MODERN_APP_NAMES.DELIVERME,
@@ -992,7 +982,7 @@ export class DeliveriesService {
           data: {
             data: updates,
             message: `Delivery added delivered picture!`,
-            user: you,
+            user_id: you_id,
             notification,
           }
         });
@@ -1019,17 +1009,17 @@ export class DeliveriesService {
   }
 
   static async mark_delivery_as_picked_up(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
     const carrier_id = delivery.carrier_id;
 
-    if (carrier_id !== you.id) {
+    if (carrier_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1046,7 +1036,7 @@ export class DeliveriesService {
 
     if (!ignoreNotification) {
       create_notification({
-        from_id: you.id,
+        from_id: you_id,
         to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_PICKED_UP,
         micro_app: MODERN_APP_NAMES.DELIVERME,
@@ -1060,7 +1050,7 @@ export class DeliveriesService {
           data: {
             data: updates,
             message: `Delivery picked up by carrier!`,
-            user: you,
+            user_id: you_id,
             notification,
           }
         });
@@ -1087,17 +1077,17 @@ export class DeliveriesService {
   }
 
   static async mark_delivery_as_dropped_off(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
     const carrier_id = delivery.carrier_id;
 
-    if (carrier_id !== you.id) {
+    if (carrier_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1114,7 +1104,7 @@ export class DeliveriesService {
 
     if (!ignoreNotification) {
       create_notification({
-        from_id: you.id,
+        from_id: you_id,
         to_id: owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_DROPPED_OFF,
         micro_app: MODERN_APP_NAMES.DELIVERME,
@@ -1128,7 +1118,7 @@ export class DeliveriesService {
           data: {
             data: updates,
             message: `Delivery dropped off by carrier!`,
-            user: you,
+            user_id: you_id,
             notification,
           }
         });
@@ -1156,17 +1146,17 @@ export class DeliveriesService {
 
   
   static async mark_delivery_as_completed(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
     const carrier_id = delivery.carrier_id;
 
-    if (owner_id !== you.id) {
+    if (owner_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1194,7 +1184,7 @@ export class DeliveriesService {
 
     if (!ignoreNotification) {
       create_notification({
-        from_id: you.id,
+        from_id: you_id,
         to_id: carrier_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
         micro_app: MODERN_APP_NAMES.DELIVERME,
@@ -1208,7 +1198,7 @@ export class DeliveriesService {
           data: {
             data: updates,
             message: `Delivery completed!`,
-            user: you,
+            user_id: you_id,
             notification,
           }
         });
@@ -1235,17 +1225,17 @@ export class DeliveriesService {
   }
 
   static async mark_delivery_as_returned(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
     const carrier_id = delivery.carrier_id;
 
-    if (carrier_id !== you.id) {
+    if (carrier_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1299,7 +1289,7 @@ export class DeliveriesService {
             micro_app: MODERN_APP_NAMES.DELIVERME,
             data: updates,
             message: `Delivery returned`,
-            user: you,
+            user_id: you_id,
             notification,
           }
         });
@@ -1380,17 +1370,17 @@ export class DeliveriesService {
   }
 
   static async create_checkout_session(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     host: string,
   }) {
-    const { you, delivery, host } = opts;
+    const { you_id, delivery, host } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
     const carrier_id = delivery.carrier_id;
 
-    if (owner_id !== you.id) {
+    if (owner_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1412,7 +1402,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (!delivery.owner?.stripe_account_verified) {
+    if (!delivery.owner?.stripe_account_verified || !delivery.owner?.stripe_account_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1423,7 +1413,7 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
-    if (!delivery.carrier?.stripe_account_verified) {
+    if (!delivery.carrier?.stripe_account_verified || !delivery.carrier?.stripe_account_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1433,10 +1423,6 @@ export class DeliveriesService {
       };
       return serviceMethodResults;
     }
-
-    const updatesobj: PlainObject = {};
-    updatesobj.payment_session_id = '';
-    const updates = await update_delivery(delivery_id, updatesobj);
 
     const useHost = host.endsWith('/') ? host.substr(0, host.length - 1) : host;
     const successUrl = `${useHost}/modern/apps/deliverme/deliveries/${delivery_id}/payment-success?session_id={CHECKOUT_SESSION_ID}`;
@@ -1478,9 +1464,20 @@ export class DeliveriesService {
         transfer_data: {
           destination: delivery.carrier.stripe_account_id,
         },
+        metadata: {
+          user_id: you_id,
+          payment_intent_event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
+          micro_app: MODERN_APP_NAMES.DELIVERME,
+          target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+          target_id: delivery.id
+        }
       },
       // { stripeAccount: you.stripe_account_id }
       );
+
+      const updatesobj: PlainObject = {};
+      updatesobj.payment_session_id = paymentIntent.id;
+      const updates = await update_delivery(delivery_id, updatesobj);
     } catch (error) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.INTERNAL_SERVER_ERROR,
@@ -1523,12 +1520,12 @@ export class DeliveriesService {
   }
 
   static async payment_success(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     session_id: string,
     ignoreNotification?: boolean,
   }) {
-    const { you, delivery, session_id, ignoreNotification } = opts;
+    const { you_id, delivery, session_id, ignoreNotification } = opts;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -1556,6 +1553,17 @@ export class DeliveriesService {
       return serviceMethodResults;
     }
 
+    if (delivery.completed) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery already completed`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
     // pay carrier
 
     const updatesobj: PlainObject = {};
@@ -1564,7 +1572,7 @@ export class DeliveriesService {
 
     if (!ignoreNotification) {
       create_notification({
-        from_id: you.id,
+        from_id: you_id,
         to_id: carrier_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
         micro_app: MODERN_APP_NAMES.DELIVERME,
@@ -1578,7 +1586,7 @@ export class DeliveriesService {
           data: {
             data: updates,
             message: `Delivery completed!`,
-            user: you,
+            user: you_id,
             notification,
           }
         });
@@ -1605,11 +1613,11 @@ export class DeliveriesService {
   }
 
   static async payment_cancel(opts: {
-    you: IUser,
+    you_id: number,
     delivery: IDelivery,
     session_id: string,
   }) {
-    const { you, delivery, session_id } = opts;
+    const { you_id, delivery, session_id } = opts;
 
     if (!session_id) {
       const serviceMethodResults: ServiceMethodResults = {

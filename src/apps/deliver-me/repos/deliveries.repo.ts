@@ -200,14 +200,14 @@ export function find_available_delivery(params: {
 }
 
 export async function search_deliveries(params: {
-  you: IUser,
+  you_id: number,
   from_city: string,
   from_state: string,
   to_city: string,
   to_state: string,
 }): Promise<IDelivery[]> {
   const {
-    you,
+    you_id,
     from_city,
     from_state,
     to_city,
@@ -222,7 +222,7 @@ export async function search_deliveries(params: {
 
   if (!fromValid && !toValid) {
     results = await Delivery.findAll({
-      where: { completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
+      where: { completed: false, carrier_id: null, owner_id: { [Op.ne]: you_id } },
       attributes: delivery_search_attrs,
       limit: 5,
       order: [fn('RANDOM')]
@@ -230,7 +230,7 @@ export async function search_deliveries(params: {
   }
   else if (fromValid && !toValid) {
     results = await Delivery.findAll({
-      where: { from_city, from_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
+      where: { from_city, from_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you_id } },
       attributes: delivery_search_attrs,
       limit: 5,
       order: [fn('RANDOM')]
@@ -238,7 +238,7 @@ export async function search_deliveries(params: {
   }
   else if (!fromValid && toValid) {
     results = await Delivery.findAll({
-      where: { to_city, to_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
+      where: { to_city, to_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you_id } },
       attributes: delivery_search_attrs,
       limit: 5,
       order: [fn('RANDOM')]
@@ -246,7 +246,7 @@ export async function search_deliveries(params: {
   }
   else if (fromAndToValid) {
     results = await Delivery.findAll({
-      where: { from_city, from_state, to_city, to_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you.id } },
+      where: { from_city, from_state, to_city, to_state, completed: false, carrier_id: null, owner_id: { [Op.ne]: you_id } },
       attributes: delivery_search_attrs,
       limit: 5,
       order: [fn('RANDOM')]
@@ -286,14 +286,19 @@ export function create_delivery_tracking_update(
 }
 
 export function browse_recent_deliveries(
-  you: IUser,
+  you_id?: number,
   delivery_id?: number
 ): Promise<IDelivery[]> {
+  const useWhere: any = {};
+  if (you_id) {
+    useWhere.owner_id = { [Op.ne]: you_id };
+  }
+  if (delivery_id) {
+    useWhere.delivery_id = { [Op.lt]: delivery_id };
+  }
+
   const findQuery = {
-    where: {
-      id: { [Op.lt]: delivery_id },
-      owner_id: { [Op.ne]: you.id },
-    },
+    where: useWhere,
     include: deliveryMasterIncludes,
     order: deliveryTrackingOrderBy,
   };
@@ -302,14 +307,19 @@ export function browse_recent_deliveries(
 }
 
 export function browse_featured_deliveries(
-  you: IUser,
+  you_id?: number,
   delivery_id?: number
 ): Promise<IDelivery[]> {
+  const useWhere: any = {};
+  if (you_id) {
+    useWhere.owner_id = { [Op.ne]: you_id };
+  }
+  if (delivery_id) {
+    useWhere.delivery_id = { [Op.lt]: delivery_id };
+  }
+
   const findQuery = {
-    where: {
-      id: { [Op.lt]: delivery_id },
-      owner_id: { [Op.ne]: you.id },
-    },
+    where: useWhere,
     include: deliveryMasterIncludes,
     order: deliveryTrackingOrderBy,
   };
@@ -318,7 +328,7 @@ export function browse_featured_deliveries(
 }
 
 export function browse_map_deliveries(params: {
-  you: IUser,
+  you_id: number,
   swLat: number,
   swLng: number,
   neLat: number,
@@ -339,11 +349,16 @@ export function browse_map_deliveries(params: {
     // : [params.neLng, params.swLng];
     : { [Op.gt]: params.neLng, [Op.lt]: params.swLng };
 
-  const useWhere = {
-    owner_id: { [Op.ne]: params.you.id },
-    from_lat: useLatBetween,
-    from_lng: useLngBetween,
-  };
+  const useWhere: any = {};
+  useWhere.from_lat = useLatBetween;
+  useWhere.from_lng = useLngBetween;
+
+  if (params.you_id) {
+    useWhere.owner_id = { [Op.ne]: params.you_id };
+    useWhere[Op.or] = [{ carrier_id: null }, { carrier_id: {[Op.ne]: params.you_id} }];
+  }
+
+  console.log({ params, useWhere }); 
 
   const findQuery = {
     where: useWhere,
@@ -359,12 +374,18 @@ export function create_delivery_message(params: {
   delivery_id: number,
   user_id: number
 }): Promise<IDeliveryMessage> {
-  return DeliveryMessages.create(params, {
-    include: [{
-      model: Users,
-      as: 'user',
-      attributes: user_attrs_slim
-    }]
-  })
-  .then((model: IMyModel) => convertModel<IDeliveryMessage>(model)!);
+  return DeliveryMessages.create(params)
+    .then((new_model: IMyModel) => {
+      return DeliveryMessages.findOne({
+        where: { id: new_model.get('id') },
+        include: [{
+          model: Users,
+          as: 'user',
+          attributes: user_attrs_slim
+        }]
+      })
+      .then((model: IMyModel | null) => {
+        return convertModel<IDeliveryMessage>(model)!
+      });
+    });
 }

@@ -27,7 +27,7 @@ export class DeliveriesRequestHandler {
   
   static async find_available_delivery(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you as number,
       criteria: request.body.criteria as string,
       city: request.body.city as string,
       state: request.body.state as string,
@@ -39,7 +39,7 @@ export class DeliveriesRequestHandler {
   
   static async search_deliveries(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you as number,
       from_city: response.locals.from_city as string,
       from_state: request.body.from_state as string,
       to_city: request.body.to_city as string,
@@ -51,8 +51,8 @@ export class DeliveriesRequestHandler {
   }
 
   static async browse_recent_deliveries(request: Request, response: Response): ExpressResponse {
-    const opts: { you: IUser, delivery_id?: number, } = {
-      you: response.locals.you as IUser
+    const opts: { you_id: number, delivery_id?: number, } = {
+      you_id: (response.locals.you?.id as number) || 0
     };
     if (request.params.delivery_id) {
       opts.delivery_id = parseInt(request.params.delivery_id);
@@ -63,8 +63,8 @@ export class DeliveriesRequestHandler {
   }
 
   static async browse_featured_deliveries(request: Request, response: Response): ExpressResponse {
-    const opts: { you: IUser, delivery_id?: number, } = {
-      you: response.locals.you as IUser
+    const opts: { you_id: number, delivery_id?: number, } = {
+      you_id: response.locals.you?.id as number
     };
     if (request.params.delivery_id) {
       opts.delivery_id = parseInt(request.params.delivery_id);
@@ -76,7 +76,7 @@ export class DeliveriesRequestHandler {
 
   static async browse_map_deliveries(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       swLat: parseFloat(request.params.swlat?.toString() || '0'),
       swLng: parseFloat(request.params.swlng?.toString() || '0'),
       neLat: parseFloat(request.params.nelat?.toString() || '0'),
@@ -89,7 +89,7 @@ export class DeliveriesRequestHandler {
 
   static async send_delivery_message(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
       body: request.body.body as string,
     };
@@ -99,10 +99,16 @@ export class DeliveriesRequestHandler {
   }
 
   static async get_delivery_by_id(request: Request, response: Response): ExpressResponse {
-    const delivery: any = response.locals.delivery_model.toJSON();
-    return response.status(HttpStatusCode.OK).json({
-      data: delivery
-    });
+    const delivery: IDelivery = response.locals.delivery_model;
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: delivery
+      }
+    };
+
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
   
   static async get_user_deliveries_all(request: Request, response: Response): ExpressResponse {
@@ -144,7 +150,7 @@ export class DeliveriesRequestHandler {
 
   static async create_delivery(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       data: JSON.parse(request.body.payload) as any,
       delivery_image: request.files && (<UploadedFile> request.files.delivery_image)
     };
@@ -155,7 +161,7 @@ export class DeliveriesRequestHandler {
 
   static async update_delivery(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       data: JSON.parse(request.body.payload) as any,
       delivery_id: response.locals.delivery_model.id as number,
     };
@@ -173,8 +179,9 @@ export class DeliveriesRequestHandler {
 
   static async assign_delivery(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
+      ignoreNotification: false,
     };
 
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.assign_delivery(opts);
@@ -183,7 +190,7 @@ export class DeliveriesRequestHandler {
 
   static async unassign_delivery(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
     };
 
@@ -193,7 +200,7 @@ export class DeliveriesRequestHandler {
 
   static async create_tracking_update(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
       data: JSON.parse(request.body.payload) as any,
       tracking_update_image: request.files && (<UploadedFile> request.files.tracking_update_image),
@@ -205,7 +212,7 @@ export class DeliveriesRequestHandler {
 
   static async add_delivered_picture(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
       delivered_image: request.files && (<UploadedFile> request.files.delivered_image),
     };
@@ -216,7 +223,7 @@ export class DeliveriesRequestHandler {
 
   static async mark_delivery_as_picked_up(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
     };
 
@@ -226,7 +233,7 @@ export class DeliveriesRequestHandler {
 
   static async mark_delivery_as_dropped_off(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
     };
 
@@ -237,7 +244,7 @@ export class DeliveriesRequestHandler {
   
   static async mark_delivery_as_completed(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
     };
 
@@ -247,7 +254,7 @@ export class DeliveriesRequestHandler {
 
   static async mark_delivery_as_returned(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
     };
 
@@ -272,7 +279,7 @@ export class DeliveriesRequestHandler {
   
   static async create_checkout_session(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
       host: request.get('origin')! as string,
     };
@@ -283,9 +290,10 @@ export class DeliveriesRequestHandler {
 
   static async payment_success(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
       session_id: request.query.session_id as string,
+      ignoreNotification: true,
     };
 
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.payment_success(opts);
@@ -294,7 +302,7 @@ export class DeliveriesRequestHandler {
 
   static async payment_cancel(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you: response.locals.you as IUser,
+      you_id: response.locals.you?.id as number,
       delivery: response.locals.delivery_model as IDelivery,
       session_id: request.query.session_id as string,
     };
