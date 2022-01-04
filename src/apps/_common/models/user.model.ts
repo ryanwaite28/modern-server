@@ -91,6 +91,45 @@ export const UserPaymentIntents = <MyModelStaticGeneric<IMyModel>> sequelize.def
   uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
+export const UserCharges = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_charges', {
+  id:                                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:                             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  charge_id:                           { type: Sequelize.STRING, allowNull: false },
+  charge_event:                        { type: Sequelize.STRING, allowNull: false },
+  micro_app:                           { type: Sequelize.STRING, allowNull: true },
+  target_type:                         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  target_id:                           { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
+  status:                              { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  date_created:                        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+export const UserTransfers = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_transfers', {
+  id:                                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:                             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  transfer_id:                         { type: Sequelize.STRING, allowNull: false },
+  transfer_event:                      { type: Sequelize.STRING, allowNull: false },
+  micro_app:                           { type: Sequelize.STRING, allowNull: true },
+  target_type:                         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  target_id:                           { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
+  status:                              { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  date_created:                        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+export const UserRefunds = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_refunds', {
+  id:                                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:                             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  refund_id:                           { type: Sequelize.STRING, allowNull: false },
+  refund_event:                        { type: Sequelize.STRING, allowNull: false },
+  micro_app:                           { type: Sequelize.STRING, allowNull: true },
+  target_type:                         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  target_id:                           { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
+  status:                              { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  date_created:                        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
 export const UserPremiumSubscriptions = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_premium_suscriptions', {
   id:                   { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   user_id:              { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },

@@ -36,14 +36,14 @@ AppsRouter.use('/blueworld', BlueworldRouter);
 AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }), async (request: Request, response: Response) => {
   console.log(`-------stripe webhook request:-------`, request.body, request.headers);
   
-  const sig = request.headers['stripe-signature'];
+  const stripe_signature = request.get('stripe-signature') ?? '';
 
   let event;
 
   // Verify webhook signature and extract the event.
   // See https://stripe.com/docs/webhooks/signatures for more information.
   try {
-    event = StripeService.stripe.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_SIG!);
+    event = StripeService.stripe.webhooks.constructEvent(request.body, stripe_signature, process.env.STRIPE_WEBHOOK_SIG!);
   } catch (err) {
     const errMsg = `Webhook Error: ${(<any> err).message}`;
     console.log(errMsg);

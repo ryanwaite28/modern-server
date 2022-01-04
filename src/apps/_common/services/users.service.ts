@@ -56,15 +56,17 @@ export class UsersService {
       const auth = AuthorizeJWT(request, false);
       if (auth.you) {
         const you_model = await UserRepo.get_user_by_id(auth.you.id);
-        auth.you = you_model!.toJSON() as IUser;
+        auth.you = you_model!;
       }
+
+      // const stripe_acct = !!auth.you && await StripeService.account_is_complete(auth.you.stripe_account_id);
 
       const serviceMethodResults: ServiceMethodResults = {
         status: auth.status,
         error: false,
         info: {
           message: auth.message,
-          data: auth
+          data: auth,
         }
       };
       return serviceMethodResults;
@@ -84,7 +86,7 @@ export class UsersService {
   }
 
   static async get_user_by_id(user_id: number): ServiceMethodAsyncResults {
-    const user: IMyModel | null = await UserRepo.get_user_by_id(user_id);
+    const user: IUser | null = await UserRepo.get_user_by_id(user_id);
     
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -97,7 +99,7 @@ export class UsersService {
   }
 
   static async get_user_by_phone(phone: string): ServiceMethodAsyncResults {
-    const user: IMyModel | null = await UserRepo.get_user_by_phone(phone);
+    const user: IUser | null = await UserRepo.get_user_by_phone(phone);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -201,13 +203,61 @@ export class UsersService {
       return serviceMethodResults;
     }
   }
+
+  static async get_user_api_key(user: IUser): ServiceMethodAsyncResults {
+    const api_key = await UserRepo.get_user_api_key(user.id);
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: api_key
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async create_user_api_key(user: IUser): ServiceMethodAsyncResults {
+    const api_key = await UserRepo.get_user_api_key(user.id);
+    if (api_key) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `API Key already exists for user`,
+          data: api_key,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const new_api_key = await UserRepo.create_user_api_key({
+      user_id:             user.id,
+      firstname:           user.firstname,
+      middlename:          user.middlename,
+      lastname:            user.lastname,
+      email:               user.email,
+      phone:               user.phone,
+      website:             '',
+      subscription_plan:   '',
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `New API key created`,
+        data: new_api_key
+      }
+    };
+    return serviceMethodResults;
+  }
   
   static async get_random_users(limit: any): ServiceMethodAsyncResults {
     const limitIsValid = (/[0-9]+/).test(limit);
     const useLimit: number = limitIsValid
       ? parseInt(limit, 10)
       : 10;
-    const users: IMyModel[] = await UserRepo.get_random_users(useLimit);
+    const users: IUser[] = await UserRepo.get_random_users(useLimit);
     
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -300,7 +350,7 @@ export class UsersService {
       password: bcrypt.hashSync(password)
     };
     const new_user_model = await UserRepo.create_user(createInfo);
-    const new_user = <IUser> new_user_model!.toJSON();
+    const new_user = new_user_model!;
     delete new_user.password;
   
     try {
@@ -475,7 +525,7 @@ export class UsersService {
       if (phone.toLowerCase() === 'x') {
         const updates = await UserRepo.update_user({ phone: null }, { id: you.id });
         const newYouModel = await UserRepo.get_user_by_id(you.id);
-        const newYou = newYouModel!.toJSON() as any;
+        const newYou = newYouModel!;
         delete newYou.password;
 
         const jwt = TokensService.newUserJwtToken(newYou);
@@ -640,7 +690,7 @@ export class UsersService {
 
       const updates = await UserRepo.update_user({ phone_verified: true }, { id: you.id });
       const newYouModel = await UserRepo.get_user_by_id(you.id);
-      const newYou = newYouModel!.toJSON() as any;
+      const newYou = newYouModel!;
       delete newYou.password;
 
       const jwt = TokensService.newUserJwtToken(newYou);
@@ -699,7 +749,7 @@ export class UsersService {
       return serviceMethodResults;
     }
 
-    const user = <IUser> user_model.get({ plain: true });
+    const user = user_model!;
     if (user.email_verified) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
@@ -859,7 +909,7 @@ export class UsersService {
 
     const updates = await UserRepo.update_user(updatesObj, { id: you.id });
     const newYouModel = await UserRepo.get_user_by_id(you.id);
-    const newYou = newYouModel!.toJSON() as any;
+    const newYou = newYouModel!;
     delete newYou.password;
 
     // check if phone/email changed
@@ -967,7 +1017,7 @@ export class UsersService {
 
       const updates = await UserRepo.update_user({ phone }, { id: you.id });
       const newYouModel = await UserRepo.get_user_by_id(you.id);
-      const newYou = newYouModel!.toJSON() as any;
+      const newYou = newYouModel!;
       delete newYou.password;
 
       const jwt = TokensService.newUserJwtToken(newYou);
@@ -1277,7 +1327,7 @@ export class UsersService {
   }
 
   static async create_stripe_account(you_id: number, host: string): ServiceMethodAsyncResults {
-    const you_model: IMyModel | null = await UserRepo.get_user_by_id(you_id);
+    const you_model: IUser | null = await UserRepo.get_user_by_id(you_id);
     if (!you_model) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.NOT_FOUND,
@@ -1289,7 +1339,7 @@ export class UsersService {
       return serviceMethodResults;
     }
 
-    const you = you_model!.toJSON() as IUser;
+    const you = you_model!;
 
     const useHost = host.endsWith('/') ? host.substr(0, host.length - 1) : host;
     const refresh_url = `${useHost}/modern/users/${you.id}/settings`;
@@ -1306,7 +1356,7 @@ export class UsersService {
           transfers: { requested: true },
         }
       });
-      updates = await you_model!.update({ stripe_account_id: account.id });
+      updates = await UserRepo.update_user({ stripe_account_id: account.id }, { id: you.id });
     } else {
       account = await StripeService.stripe.accounts.retrieve(you.stripe_account_id);
     }
@@ -1336,7 +1386,7 @@ export class UsersService {
   }
 
   static async verify_stripe_account(you_id: number): ServiceMethodAsyncResults {
-    const you_model: IMyModel | null = await UserRepo.get_user_by_id(you_id);
+    const you_model: IUser | null = await UserRepo.get_user_by_id(you_id);
     if (!you_model) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.NOT_FOUND,
@@ -1348,7 +1398,7 @@ export class UsersService {
       return serviceMethodResults;
     }
 
-    let you = you_model!.toJSON() as IUser;
+    let you: IUser = you_model!;
 
     if (!you.stripe_account_id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1376,8 +1426,9 @@ export class UsersService {
     console.log({ results });
 
     if (!results.error) {
-      await you_model!.update({ stripe_account_verified: true });
-      you = you_model!.toJSON() as IUser;
+      await UserRepo.update_user({ stripe_account_verified: true }, { id: you.id });
+      const you_updated = await UserRepo.get_user_by_id(you.id);
+      you = you_updated!;
       // create JWT
       const jwt = TokensService.newUserJwtToken(you);
       (<any> results).token = jwt;

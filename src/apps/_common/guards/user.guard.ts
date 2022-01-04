@@ -34,7 +34,7 @@ export async function UserExists(
     });
   }
   response.locals.user_model = user_model;
-  response.locals.user = user_model.toJSON();
+  response.locals.user = user_model;
   return next();
 }
 

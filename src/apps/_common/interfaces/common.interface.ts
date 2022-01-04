@@ -135,13 +135,14 @@ export interface IUserPageView extends ICommonModel {
   seen_id:             number,
 }
 
-export interface IUserRating extends ICommonModel {
+export interface IModelRating extends ICommonModel {
   user_id:             number,
   writer_id:           number,
   rating:              number,
   title:               string,
   summary:             string,
 }
+export interface IUserRating extends IModelRating {}
 
 export interface IUserReaction extends ICommonModel {
   owner_id:            number,
@@ -356,6 +357,37 @@ export interface IToken extends ICommonModel {
   date_created:            string,
   date_last_used:          string,
 }
+
+export interface IApiKey extends ICommonModel {
+  user_id:             number | null,
+  key:                 string,
+  firstname:           string,
+  middlename:          string,
+  lastname:            string,
+  email:               string,
+  phone:               string,
+  website:             string,
+  subscription_plan:   string,
+
+  user?: IUser;
+}
+
+export interface IApiKeyAllowedOrigin extends ICommonModel {
+  key_id:              number,
+  origin:              string,
+}
+
+export interface IApiKeyRequest extends ICommonModel {
+  key_id:              number,
+  request_url:         string,
+  request_headers:     string,
+  request_body:        string,
+  resource:            string,
+  response:            number,
+  results:             string,
+}
+
+
 
 /**
  * @description 

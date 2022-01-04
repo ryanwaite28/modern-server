@@ -26,8 +26,8 @@ export async function IsDeliveryOwner(
   response: Response,
   next: NextFunction
 ) {
-  const delivery_model = <IDelivery | null> response.locals.delivery_model;
-  const isOwner: boolean = response.locals.you.id === delivery_model?.owner_id;
+  const delivery_model = <IDelivery> response.locals.delivery_model;
+  const isOwner: boolean = response.locals.you.id === delivery_model.owner_id;
   if (!isOwner) {
     return response.status(HttpStatusCode.FORBIDDEN).json({
       message: `Not delivery owner`
@@ -41,8 +41,8 @@ export async function IsNotDeliveryOwner(
   response: Response,
   next: NextFunction
 ) {
-  const delivery_model = <IDelivery | null> response.locals.delivery_model;
-  const isOwner: boolean = response.locals.you.id === delivery_model?.owner_id;
+  const delivery_model = <IDelivery> response.locals.delivery_model;
+  const isOwner: boolean = response.locals.you.id === delivery_model.owner_id;
   if (isOwner) {
     return response.status(HttpStatusCode.FORBIDDEN).json({
       message: `Is delivery owner`

@@ -289,7 +289,10 @@ export function browse_recent_deliveries(
   you_id?: number,
   delivery_id?: number
 ): Promise<IDelivery[]> {
-  const useWhere: any = {};
+  const useWhere: any = {
+    completed: false,
+    carrier_id: null,
+  };
   if (you_id) {
     useWhere.owner_id = { [Op.ne]: you_id };
   }
@@ -301,6 +304,7 @@ export function browse_recent_deliveries(
     where: useWhere,
     include: deliveryMasterIncludes,
     order: deliveryTrackingOrderBy,
+    limit: 10,
   };
 
   return Delivery.findAll(findQuery).then(convertDeliveryModels);
@@ -310,7 +314,10 @@ export function browse_featured_deliveries(
   you_id?: number,
   delivery_id?: number
 ): Promise<IDelivery[]> {
-  const useWhere: any = {};
+  const useWhere: any = {
+    completed: false,
+    carrier_id: null,
+  };
   if (you_id) {
     useWhere.owner_id = { [Op.ne]: you_id };
   }
@@ -322,6 +329,7 @@ export function browse_featured_deliveries(
     where: useWhere,
     include: deliveryMasterIncludes,
     order: deliveryTrackingOrderBy,
+    limit: 10,
   };
 
   return Delivery.findAll(findQuery).then(convertDeliveryModels);
@@ -349,13 +357,17 @@ export function browse_map_deliveries(params: {
     // : [params.neLng, params.swLng];
     : { [Op.gt]: params.neLng, [Op.lt]: params.swLng };
 
-  const useWhere: any = {};
+  const useWhere: any = {
+    completed: false,
+  };
   useWhere.from_lat = useLatBetween;
   useWhere.from_lng = useLngBetween;
 
   if (params.you_id) {
     useWhere.owner_id = { [Op.ne]: params.you_id };
     useWhere[Op.or] = [{ carrier_id: null }, { carrier_id: {[Op.ne]: params.you_id} }];
+  } else {
+    useWhere.carrier_id = null;
   }
 
   console.log({ params, useWhere }); 
@@ -388,4 +400,22 @@ export function create_delivery_message(params: {
         return convertModel<IDeliveryMessage>(model)!
       });
     });
+}
+
+export function get_user_deliveries_count(user_id: number): Promise<number> {
+  return Delivery.count({
+    where: { owner_id: user_id }
+  });
+}
+
+export function get_user_delivering_completed_count(user_id: number): Promise<number> {
+  return Delivery.count({
+    where: { carrier_id: user_id, completed: true }
+  });
+}
+
+export function get_user_delivering_inprogress_count(user_id: number): Promise<number> {
+  return Delivery.count({
+    where: { carrier_id: user_id, completed: false }
+  });
 }

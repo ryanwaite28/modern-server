@@ -34,6 +34,9 @@ import {
   create_delivery_tracking_update,
   create_delivery_message,
   update_delivery,
+  get_user_deliveries_count,
+  get_user_delivering_completed_count,
+  get_user_delivering_inprogress_count
 } from '../repos/deliveries.repo';
 import { create_notification } from '../../_common/repos/notifications.repo';
 import { UserPaymentIntents, Users } from '../../_common/models/user.model';
@@ -65,11 +68,13 @@ import {
   DELIVERME_NOTIFICATION_TARGET_TYPES
 } from '../enums/deliverme.enum';
 import { CommonSocketEventsHandler } from '../../_common/services/socket-events-handlers-by-app/common.socket-event-handler';
-import { DeliverMeUserProfileSettings } from '../models/deliverme.model';
+import { DeliverMeUserProfileSettings, DeliverMeUserRatings } from '../models/deliverme.model';
 import { send_sms } from '../../../sms-client';
 import { GoogleService } from '../../_common/services/google.service';
 import { StripeService } from '../../_common/services/stripe.service';
 import { ServiceMethodResults } from '../../_common/types/common.types';
+import { get_user_ratings_stats_via_model } from '../../_common/repos/ratings.repo';
+import Stripe from 'stripe';
 
 
 
@@ -1151,12 +1156,8 @@ export class DeliveriesService {
     ignoreNotification?: boolean,
   }) {
     const { you_id, delivery, ignoreNotification } = opts;
-    
-    const delivery_id = delivery.id;
-    const owner_id = delivery.owner_id;
-    const carrier_id = delivery.carrier_id;
 
-    if (owner_id !== you_id) {
+    if (delivery.owner_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1180,20 +1181,20 @@ export class DeliveriesService {
 
     const updatesobj: PlainObject = {};
     updatesobj.completed = true;
-    const updates = await update_delivery(delivery_id, updatesobj);
+    const updates = await update_delivery(delivery.id, updatesobj);
 
     if (!ignoreNotification) {
       create_notification({
         from_id: you_id,
-        to_id: carrier_id,
+        to_id: delivery.carrier_id,
         event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
         micro_app: MODERN_APP_NAMES.DELIVERME,
         target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
-        target_id: delivery_id
+        target_id: delivery.id
       }).then(async (notification_model) => {
         const notification = await populate_deliverme_notification_obj(notification_model);
         CommonSocketEventsHandler.emitEventToUserSockets({
-          user_id: carrier_id,
+          user_id: delivery.carrier_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
           data: {
             data: updates,
@@ -1369,7 +1370,7 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async create_checkout_session(opts: {
+  static async create_payment_intent(opts: {
     you_id: number,
     delivery: IDelivery,
     host: string,
@@ -1452,7 +1453,7 @@ export class DeliveriesService {
     // console.log({ createPaymentOpts }, JSON.stringify(createPaymentOpts));
     // console.log({ session });
 
-    let paymentIntent;
+    let paymentIntent: Stripe.PaymentIntent;
     
     try {
       const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout);
@@ -1654,5 +1655,33 @@ export class DeliveriesService {
       }
     };
     return serviceMethodResults;
+  }
+
+  static async get_user_stats(user_id: number) {
+    const ratings_stats = await get_user_ratings_stats_via_model(DeliverMeUserRatings, user_id);
+    const deliveries_count = await get_user_deliveries_count(user_id);
+    const delivering_completed_count = await get_user_delivering_completed_count(user_id);
+    const delivering_inprogress_count = await get_user_delivering_inprogress_count(user_id);
+
+    const data = {
+      ...ratings_stats,
+      deliveries_count,
+      delivering_completed_count,
+      delivering_inprogress_count,
+    };
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `User ratings status`,
+        data,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async pay_carrier(delivery: IDelivery) {
+    
   }
 }

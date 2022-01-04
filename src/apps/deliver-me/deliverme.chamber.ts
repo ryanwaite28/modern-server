@@ -154,7 +154,7 @@ export const deliveryme_user_settings_required_props: { field: string; name: str
 export const populate_deliverme_notification_obj = async (notification_model: IMyModel) => {
   const notificationObj = notification_model.toJSON() as INotification;
   const user_model = await get_user_by_id(notificationObj.from_id)
-  const full_name = getUserFullName(<IUser> user_model!.toJSON());
+  const full_name = getUserFullName(<IUser> user_model!);
   let message = '';
   let mount_prop_key = '';
   let mount_value = null;
@@ -236,7 +236,7 @@ export const populate_deliverme_notification_obj = async (notification_model: IM
     }
   }
 
-  notificationObj.from = user_model!.toJSON();
+  notificationObj.from = user_model!;
   notificationObj.message = message;
   notificationObj[mount_prop_key] = mount_value;
 
