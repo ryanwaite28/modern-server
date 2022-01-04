@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { YouAuthorized, YouAuthorizedSlim } from '../../_common/guards/user.guard';
+import { YouAuthorized, YouAuthorizedSlim, YouAuthorizedSlimWeak } from '../../_common/guards/user.guard';
 import { DeliveryExists, IsDeliveryOwner } from '../guards/delivery.guard';
 import { DeliveriesRequestHandler } from '../handlers/deliveries.handler';
 
@@ -18,10 +18,15 @@ DeliveriesRouter.get('/find-available-to/city/:city/state/:state', YouAuthorized
 
 DeliveriesRouter.post('/', YouAuthorizedSlim, DeliveriesRequestHandler.create_delivery);
 DeliveriesRouter.post('/find-available', YouAuthorizedSlim, DeliveriesRequestHandler.find_available_delivery);
-DeliveriesRouter.post('/search', YouAuthorizedSlim, DeliveriesRequestHandler.search_deliveries);
-DeliveriesRouter.post('/:delivery_id/message', YouAuthorizedSlim, DeliveryExists, DeliveriesRequestHandler.send_delivery_message);
+DeliveriesRouter.post('/search', YouAuthorizedSlimWeak, DeliveriesRequestHandler.search_deliveries);
+DeliveriesRouter.post('/browse-recent', YouAuthorizedSlimWeak, DeliveriesRequestHandler.browse_recent_deliveries);
+DeliveriesRouter.post('/browse-recent/:delivery_id', YouAuthorizedSlimWeak, DeliveriesRequestHandler.browse_recent_deliveries);
+// DeliveriesRouter.post('/browse-featured', YouAuthorizedSlimWeak, DeliveriesRequestHandler.browse_featured_deliveries);
+// DeliveriesRouter.post('/browse-featured/:delivery_id', YouAuthorizedSlimWeak, DeliveriesRequestHandler.browse_featured_deliveries);
+DeliveriesRouter.post('/browse-map/swlat/:swlat/swlng/:swlng/nelat/:nelat/nelng/:nelng', YouAuthorizedSlimWeak, DeliveriesRequestHandler.browse_map_deliveries);
 
-DeliveriesRouter.post('/:delivery_id/create-checkout-session', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesRequestHandler.create_checkout_session);
+DeliveriesRouter.post('/:delivery_id/message', YouAuthorizedSlim, DeliveryExists, DeliveriesRequestHandler.send_delivery_message);
+DeliveriesRouter.post('/:delivery_id/create-payment-intent', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesRequestHandler.create_payment_intent);
 DeliveriesRouter.post('/:delivery_id/payment-success', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesRequestHandler.payment_success);
 DeliveriesRouter.post('/:delivery_id/payment-cancel', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesRequestHandler.payment_cancel);
 

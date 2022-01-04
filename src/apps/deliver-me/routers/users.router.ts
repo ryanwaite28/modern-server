@@ -8,6 +8,8 @@ export const UsersRouter: Router = Router();
 
 /** Public GET */
 
+UsersRouter.get('/:user_id/stats', UserExists, DeliveriesRequestHandler.get_user_stats);
+
 UsersRouter.get('/:user_id/get-deliveries/all', UserExists, DeliveriesRequestHandler.get_user_deliveries_all);
 UsersRouter.get('/:user_id/get-deliveries', UserExists, DeliveriesRequestHandler.get_user_deliveries);
 UsersRouter.get('/:user_id/get-deliveries/:delivery_id', UserExists, DeliveriesRequestHandler.get_user_deliveries);

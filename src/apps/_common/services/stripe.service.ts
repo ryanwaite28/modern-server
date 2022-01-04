@@ -1,6 +1,11 @@
 import { HttpStatusCode } from '../enums/http-codes.enum';
+import Stripe from 'stripe';
 
-const stripe = require("stripe")(process.env.STRIPE_SK);
+
+
+const stripe: Stripe = new Stripe(process.env.STRIPE_SK!, {
+  apiVersion: '2020-08-27',
+});
 export const DELIVERME_APP_FEE = 0.08;
 
 
@@ -12,7 +17,7 @@ export const DELIVERME_APP_FEE = 0.08;
 
 
 export class StripeService {
-  static readonly stripe = stripe;
+  static readonly stripe: Stripe = stripe;
 
   static add_on_stripe_processing_fee(amount: number, isAmountAdjusted: boolean = false) {
     const stripePercentageFeeRate = 0.029;
@@ -32,8 +37,8 @@ export class StripeService {
   }
 
   static async account_is_complete(account_id: any) {
-    const stripe_account = await StripeService.stripe.accounts.retrieve(account_id);
-    // console.log({ stripe_account });
+    const stripe_account: Stripe.Account = await StripeService.stripe.accounts.retrieve(account_id);
+    console.log({ stripe_account });
 
     console.log({
       charges_enabled: stripe_account.charges_enabled,
@@ -60,8 +65,8 @@ export class StripeService {
     }
 
     const hasNeededCapabilities = (
-      (stripe_account.capabilities.card_payments && stripe_account.capabilities.card_payments === 'active') ||
-      (stripe_account.capabilities.transfers && stripe_account.capabilities.transfers === 'active')
+      (stripe_account.capabilities?.card_payments && stripe_account.capabilities.card_payments === 'active') ||
+      (stripe_account.capabilities?.transfers && stripe_account.capabilities.transfers === 'active')
     );
     if (!hasNeededCapabilities) {
       return {

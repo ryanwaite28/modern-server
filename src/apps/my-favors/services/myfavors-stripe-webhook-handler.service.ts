@@ -14,8 +14,7 @@ import { UserPaymentIntents } from "../../_common/models/user.model";
 
 export class MyfavorsStripeWebhookHandlerService {
   static async payment_intent_succeeded(userPaymentIntentObj: any, stripePaymentIntent: any) {
-    const helper_user_model = await get_user_by_id(stripePaymentIntent.metadata.helper_user_id);
-    const helper_user = helper_user_model!.toJSON() as IUser;
+    const helper_user = await get_user_by_id(stripePaymentIntent.metadata.helper_user_id);
 
     console.log(`myfavors - favor paid to helper`, {
       userPaymentIntentObj,
@@ -29,7 +28,7 @@ export class MyfavorsStripeWebhookHandlerService {
         const favorObj: any = favor_model!.toJSON();
 
         const helper_model = await FavorHelpers.findOne({
-          where: { favor_id: favorObj.id, user_id: helper_user.id }
+          where: { favor_id: favorObj.id, user_id: helper_user!.id }
         });
 
         const helper_updates = await helper_model!.update({
@@ -56,7 +55,7 @@ export class MyfavorsStripeWebhookHandlerService {
           data: {
             data: favorObj,
             helper_user,
-            message: `Favor helper ${getUserFullName(helper_user)} paid`,
+            message: `Favor helper ${getUserFullName(helper_user!)} paid`,
             // notification,
           }
         });
@@ -64,7 +63,7 @@ export class MyfavorsStripeWebhookHandlerService {
         // notify helper
         create_notification({
           from_id: favorObj.owner_id,
-          to_id: helper_user.id,
+          to_id: helper_user!.id,
           event: MYFAVORS_EVENT_TYPES.FAVOR_HELPER_PAID,
           micro_app: MODERN_APP_NAMES.MYFAVORS,
           target_type: MYFAVORS_NOTIFICATION_TARGET_TYPES.FAVOR,
@@ -72,21 +71,21 @@ export class MyfavorsStripeWebhookHandlerService {
         }).then(async (notification_model) => {
           // const notification = await populate_myfavors_notification_obj(notification_model);
           CommonSocketEventsHandler.emitEventToUserSockets({
-            user_id: helper_user.id,
+            user_id: helper_user!.id,
             event: MYFAVORS_EVENT_TYPES.FAVOR_HELPER_PAID,
             data: {
               data: favorObj,
               helper_user,
-              message: `Favor helper ${getUserFullName(helper_user)} paid`,
+              message: `Favor helper ${getUserFullName(helper_user!)} paid`,
               // notification,
             }
           });
 
-          const to_phone_number = helper_user.phone;
+          const to_phone_number = helper_user!.phone;
           if (validatePhone(to_phone_number)) {
             send_sms({
               to_phone_number,
-              message: `ModernApps ${MODERN_APP_NAMES.MYFAVORS}: Favor helper ${getUserFullName(helper_user)} paid`
+              message: `ModernApps ${MODERN_APP_NAMES.MYFAVORS}: Favor helper ${getUserFullName(helper_user!)} paid`
             });
           }
         });

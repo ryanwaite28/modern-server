@@ -254,7 +254,7 @@ export class ConversationMembersService {
     const roomKey = `conversation-${conversation_id}`;
 
     const user_model = await UserRepo.get_user_by_id(you_id);
-    const user = <IUser> user_model!.toJSON();
+    const user = <IUser> user_model!;
     const full_name = getUserFullName(user);
     const body: string = `${full_name} left the conversation.`;
 

@@ -12,9 +12,12 @@ import {
   getUserFullName,
   user_attrs_slim,
 } from "../_common/common.chamber";
-import { IModelValidator, IUser } from "../_common/interfaces/common.interface";
+import { IModelValidator, INotification, IUser } from "../_common/interfaces/common.interface";
+import { IMyModel } from "../_common/models/common.model-types";
 import { Users } from "../_common/models/user.model";
+import { get_user_by_id } from "../_common/repos/users.repo";
 import { DELIVERME_EVENT_TYPES } from "./enums/deliverme.enum";
+import { IDelivery } from "./interfaces/deliverme.interface";
 import { get_delivery_by_id, get_delivery_tracking_update_by_id } from "./repos/deliveries.repo";
 
 
@@ -148,95 +151,92 @@ export const deliveryme_user_settings_required_props: { field: string; name: str
 ];
 
 
-export const populate_deliverme_notification_obj = async (notification_model: any) => {
-  const notificationObj = notification_model.toJSON();
-  const user_model = await Users.findOne({
-    where: { id: notificationObj.from_id },
-    attributes: user_attrs_slim
-  });
-  const full_name = getUserFullName(<IUser> user_model!.toJSON());
+export const populate_deliverme_notification_obj = async (notification_model: IMyModel) => {
+  const notificationObj = notification_model.toJSON() as INotification;
+  const user_model = await get_user_by_id(notificationObj.from_id)
+  const full_name = getUserFullName(<IUser> user_model!);
   let message = '';
   let mount_prop_key = '';
   let mount_value = null;
 
   switch (notificationObj.event) {
     case DELIVERME_EVENT_TYPES.CARRIER_ASSIGNED: {
-      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} is now handling your delivery: ${delivery_model!.get('title')}`;
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} is now handling your delivery: ${delivery!.title}`;
       mount_prop_key = 'delivery';
-      mount_value = delivery_model!.toJSON();
+      mount_value = delivery!;
       break;
     }
     case DELIVERME_EVENT_TYPES.CARRIER_UNASSIGNED: {
-      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} canceled your delivery: ${delivery_model!.get('title')}`;
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} canceled your delivery: ${delivery!.title}`;
       mount_prop_key = 'delivery';
-      mount_value = delivery_model!.toJSON();
+      mount_value = delivery!;
       break;
     }
     case DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_PICKED_UP: {
-      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} picked up your delivery: ${delivery_model!.get('title')}`;
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} picked up your delivery: ${delivery!.title}`;
       mount_prop_key = 'delivery';
-      mount_value = delivery_model!.toJSON();
+      mount_value = delivery!;
       break;
     }
     case DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_DROPPED_OFF: {
-      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} dropped off your delivery: ${delivery_model!.get('title')}`;
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} dropped off your delivery: ${delivery!.title}`;
       mount_prop_key = 'delivery';
-      mount_value = delivery_model!.toJSON();
+      mount_value = delivery!;
       break;
     }
     case DELIVERME_EVENT_TYPES.DELIVERY_ADD_COMPLETED_PICTURE: {
-      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} added a picture to complete delivery: ${delivery_model!.get('title')}`;
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} added a picture to complete delivery: ${delivery!.title}`;
       mount_prop_key = 'delivery';
-      mount_value = delivery_model!.toJSON();
+      mount_value = delivery!;
       break;
     }
     case DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED: {
-      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} completed the delivery: ${delivery_model!.get('title')}`;
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} completed the delivery: ${delivery!.title}`;
       mount_prop_key = 'delivery';
-      mount_value = delivery_model!.toJSON();
+      mount_value = delivery!;
       break;
     }
     case DELIVERME_EVENT_TYPES.DELIVERY_RETURNED: {
-      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} returned the delivery: ${delivery_model!.get('title')}`;
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} returned the delivery: ${delivery!.title}`;
       mount_prop_key = 'delivery';
-      mount_value = delivery_model!.toJSON();
+      mount_value = delivery!;
       break;
     }
     case DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE: {
-      const delivery_model = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} added a message to the delivery: ${delivery_model!.get('title')}`;
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} added a message to the delivery: ${delivery!.title}`;
       mount_prop_key = 'delivery';
-      mount_value = delivery_model!.toJSON();
+      mount_value = delivery!;
       break;
     }
 
     case DELIVERME_EVENT_TYPES.DELIVERY_NEW_TRACKING_UPDATE: {
-      const tracking_update_model = await get_delivery_tracking_update_by_id(notificationObj.target_id);
-      if (!tracking_update_model) {
+      const tracking_update = await get_delivery_tracking_update_by_id(notificationObj.target_id);
+      if (!tracking_update) {
         message = `${full_name} added a new tracking update to your delivery: [EXPIRED]`;
         mount_prop_key = 'delivery';
         mount_value = {};
       }
       else {
-        const delivery_model = await get_delivery_by_id(tracking_update_model!.get('delivery_id') as number);
-        message = `${full_name} added a new tracking update to your delivery: ${delivery_model!.get('title')}`;
+        const delivery: IDelivery | null = await get_delivery_by_id(tracking_update.delivery_id);
+        message = `${full_name} added a new tracking update to your delivery: ${delivery!.title}`;
         mount_prop_key = 'delivery';
-        mount_value = delivery_model!.toJSON();
+        mount_value = delivery;
 
-        notificationObj.tracking_update = tracking_update_model!.toJSON();
+        notificationObj.tracking_update = tracking_update
       }
       break;
     }
   }
 
-  notificationObj.from = user_model!.toJSON();
+  notificationObj.from = user_model!;
   notificationObj.message = message;
   notificationObj[mount_prop_key] = mount_value;
 

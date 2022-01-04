@@ -34,7 +34,7 @@ export async function UserExists(
     });
   }
   response.locals.user_model = user_model;
-  response.locals.user = user_model.toJSON();
+  response.locals.user = user_model;
   return next();
 }
 
@@ -59,6 +59,15 @@ export function YouAuthorizedSlim(
   if (auth.error) {
     return response.status(auth.status).json(auth);
   }
+  response.locals.you = auth.you;
+  return next();
+}
+export function YouAuthorizedSlimWeak(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const auth = AuthorizeJWT(request, false);
   response.locals.you = auth.you;
   return next();
 }
