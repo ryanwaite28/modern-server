@@ -46,6 +46,7 @@ import { get_user_unread_personal_messages_count } from '../repos/messagings.rep
 import { StripeService } from './stripe.service';
 import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
 import { IMyModel } from '../models/common.model-types';
+import { COMMON_API_KEY_SUBSCRIPTION_PLAN } from '../enums/common.enum';
 
 export class UsersService {
 
@@ -205,7 +206,21 @@ export class UsersService {
   }
 
   static async get_user_api_key(user: IUser): ServiceMethodAsyncResults {
-    const api_key = await UserRepo.get_user_api_key(user.id);
+    let api_key = await UserRepo.get_user_api_key(user.id);
+
+    if (!api_key) {
+      api_key = await UserRepo.create_user_api_key({
+        user_id: user.id,
+        firstname: user.firstname,
+        middlename: user.middlename,
+        lastname: user.lastname,
+        email: user.email,
+        subscription_plan: COMMON_API_KEY_SUBSCRIPTION_PLAN.FREE,
+        phone: '',
+        website: '',
+      });
+    }
+
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
@@ -352,6 +367,17 @@ export class UsersService {
     const new_user_model = await UserRepo.create_user(createInfo);
     const new_user = new_user_model!;
     delete new_user.password;
+
+    const user_api_key = await UserRepo.create_user_api_key({
+      user_id: new_user.id,
+      firstname: new_user.firstname,
+      middlename: new_user.middlename,
+      lastname: new_user.lastname,
+      email: new_user.email,
+      subscription_plan: COMMON_API_KEY_SUBSCRIPTION_PLAN.FREE,
+      phone: '',
+      website: '',
+    });
   
     try {
       /** Email Sign up and verify */

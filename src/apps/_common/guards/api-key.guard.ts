@@ -9,7 +9,7 @@ export async function ApiKeyAuthorized(
   response: Response,
   next: NextFunction
 ) {
-  const api_key = request.get('api-key');
+  const api_key = request.header('api-key');
   if (!api_key) {
     return response.status(HttpStatusCode.BAD_REQUEST).json({
       message: `No "api-key" header found on request`

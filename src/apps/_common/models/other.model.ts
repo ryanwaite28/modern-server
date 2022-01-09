@@ -59,6 +59,8 @@ export const NewsDataCache = <MyModelStaticGeneric<IMyModel>> sequelize.define('
 
 
 
+
+
 export const ApiKeys = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_api_keys', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   key:                 { type: Sequelize.UUID, unique: true, defaultValue: Sequelize.UUIDV4 },

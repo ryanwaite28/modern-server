@@ -372,6 +372,12 @@ export interface IApiKey extends ICommonModel {
   user?: IUser;
 }
 
+export interface ApiKeyInvoice extends ICommonModel {
+  key_id:              number,
+  invoice_id:          number,
+  status:              string,
+}
+
 export interface IApiKeyAllowedOrigin extends ICommonModel {
   key_id:              number,
   origin:              string,
