@@ -540,7 +540,10 @@ export const user_attrs_med = [
   ...user_attrs_slim,
 ];
 
-export const isProd: boolean = process.env.NODE_ENV === 'production';
+const isAppEnvSet: boolean = ('APP_ENV' in process.env);
+const isDevEnv: boolean = isAppEnvSet && process.env.APP_ENV === "DEV";
+
+export const isProd: boolean = (process.env.NODE_ENV === 'production') && !isDevEnv;
 
 export const populate_common_notification_obj = async (notification_model: any) => {
   const notificationObj = notification_model.toJSON();
