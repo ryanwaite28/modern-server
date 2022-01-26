@@ -36,6 +36,7 @@ export function CatchRequestHandlerError() {
           });
         } catch (error2) {
           console.log(`could not return generic response...`, error2);
+          throw error2;
         }
       }
     };
@@ -44,11 +45,7 @@ export function CatchRequestHandlerError() {
   }
 }
 
-export function CatchServiceError(opts?: {
-  isAsync: boolean,
-}) {
-  const isAsync = opts ? opts.isAsync : true;
-
+export function CatchServiceError() {
   return function (
     target: Object,
     key: string | symbol,
@@ -69,9 +66,49 @@ export function CatchServiceError(opts?: {
           info: {
             message: `Error in service method; something went wrong...`,
             error,
+            data: {
+              target,
+              key
+            }
           }
         };
-        return isAsync ? Promise.resolve(serviceMethodResults) : serviceMethodResults; 
+        return serviceMethodResults; 
+      }
+    };
+
+    return descriptor;
+  }
+}
+
+export function CatchAsyncServiceError() {
+  return function (
+    target: Object,
+    key: string | symbol,
+    descriptor: PropertyDescriptor
+  ) {
+    const childFunction = descriptor.value;
+    
+    descriptor.value = async (...args: any[]) => {
+      // console.log({ target, key, descriptor, childFunction, args });
+      try {
+        // @ts-ignore
+        const value = await childFunction.apply(this, args);
+        return value;
+      } catch (error) {
+        console.log(error);
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Error in service method; something went wrong...`,
+            error,
+            data: {
+              target,
+              key
+            }
+          }
+        };
+        return serviceMethodResults; 
       }
     };
 

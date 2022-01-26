@@ -10,10 +10,11 @@ import { HttpStatusCode } from '../enums/http-codes.enum';
 import { Notifications } from '../models/user.model';
 import { ExpressResponse, ServiceMethodResults } from '../types/common.types';
 import { NotificationsService } from '../services/notifications.service';
+import { CatchRequestHandlerError } from '../decorators/common.decorator';
 
 
 export class NotificationsRequestHandler {
-
+  @CatchRequestHandlerError()
   static async get_user_notifications(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you; 
     const notification_id: number = parseInt(request.params.notification_id, 10);
@@ -22,6 +23,7 @@ export class NotificationsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_notifications_all(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you; 
 
@@ -29,6 +31,7 @@ export class NotificationsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async update_user_last_opened(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you; 
     

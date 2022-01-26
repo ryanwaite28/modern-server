@@ -1,15 +1,10 @@
 import { Request, Response } from 'express';
-import { Op } from 'sequelize';
-import { Messagings, Messages } from '../models/messages.model';
-import { user_attrs_slim } from '../common.chamber';
-import { HttpStatusCode } from '../enums/http-codes.enum';
-import { PlainObject } from '../interfaces/common.interface';
-import { Users } from '../models/user.model';
-import { paginateTable } from '../repos/_common.repo';
 import { ExpressResponse, ServiceMethodResults } from '../types/common.types';
 import { MessagingsService } from '../services/messagings.service';
+import { CatchRequestHandlerError } from '../decorators/common.decorator';
 
 export class MessagingsRequestHandler {
+  @CatchRequestHandlerError()
   static async get_user_messagings_all(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
 
@@ -17,6 +12,7 @@ export class MessagingsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_messagings(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const messagings_timestamp: string = request.params.messagings_timestamp;

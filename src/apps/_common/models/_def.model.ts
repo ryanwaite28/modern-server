@@ -38,13 +38,19 @@ if (process.env.DATABASE_URL) {
     console.log(e);
     console.log(`error connecting to dev postgresql database; using local sqlite...`);
     
-    throw e;
+    db_env = 'Development (sqlite)';
+    sequelize = new Sequelize.Sequelize('database', 'username', 'password', {
+      dialect: 'sqlite',
+      storage: 'database.sqlite',
+      logging: false
+    });
   }
 } else {
   db_env = 'Development (sqlite)';
   sequelize = new Sequelize.Sequelize('database', 'username', 'password', {
     dialect: 'sqlite',
     storage: 'database.sqlite',
+    logging: false
   });
 }
 
