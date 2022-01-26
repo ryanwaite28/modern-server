@@ -6,7 +6,7 @@ let db_env: string;
 if (process.env.DATABASE_URL) {
   try {
     console.log(`process.env.DATABASE_URL:`, process.env.DATABASE_URL);
-    db_env = 'Production';
+    db_env = 'Production PostgreSQL';
     sequelize = new Sequelize.Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
       dialectOptions: {
@@ -20,20 +20,17 @@ if (process.env.DATABASE_URL) {
     console.log(e);
     console.log(`error connecting to prod postgresql database; using local sqlite...`);
     
-    db_env = 'Development (sqlite)';
-    sequelize = new Sequelize.Sequelize('database', 'username', 'password', {
-      dialect: 'sqlite',
-      storage: 'database.sqlite',
-    });
+    throw e;
   }
 } else if (process.env.DATABASE_URL_DEV) {
   try {
     console.log(`process.env.DATABASE_URL_DEV:`, process.env.DATABASE_URL_DEV);
-    db_env = 'Development';
+    db_env = 'Development PostgreSQL';
     sequelize = new Sequelize.Sequelize(<string> process.env.DATABASE_URL_DEV, {
       dialect: 'postgres',
       dialectOptions: {
-        ssl: false
+        ssl: false,
+        rejectUnauthorized: false
       },
       logging: false
     });
@@ -41,11 +38,7 @@ if (process.env.DATABASE_URL) {
     console.log(e);
     console.log(`error connecting to dev postgresql database; using local sqlite...`);
     
-    db_env = 'Development (sqlite)';
-    sequelize = new Sequelize.Sequelize('database', 'username', 'password', {
-      dialect: 'sqlite',
-      storage: 'database.sqlite',
-    });
+    throw e;
   }
 } else {
   db_env = 'Development (sqlite)';

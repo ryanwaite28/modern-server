@@ -80,8 +80,8 @@ export class ConversationMessagesService {
     console.log({ updates, conversation_id, user_id: you_id });
 
     const serviceMethodResults: ServiceMethodResults = {
-      status: HttpStatusCode.BAD_REQUEST,
-      error: true,
+      status: HttpStatusCode.OK,
+      error: false,
       info: {
         message: `conversation last opened updated`,
         data: updates,
@@ -166,12 +166,12 @@ export class ConversationMessagesService {
     const { you_id, conversation_id, message_id } = opts;
 
     let seen_message_model: IMyModel | null = await ConversationMessageSeens.findOne({
-      where: { conversation_id, id: message_id, user_id: you_id, seen: true }
+      where: { conversation_id, message_id, user_id: you_id, seen: true }
     });
     if (seen_message_model) {
       const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.BAD_REQUEST,
-        error: true,
+        status: HttpStatusCode.OK,
+        error: false,
         info: {
           message: `message already seen`
         }
