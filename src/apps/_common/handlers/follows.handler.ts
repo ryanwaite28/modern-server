@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
+import { CatchRequestHandlerError } from '../decorators/common.decorator';
 import { FollowsService } from '../services/follows.service';
 import { ExpressResponse, ServiceMethodResults } from '../types/common.types';
 
 
 export class FollowsRequestHandler {
+  @CatchRequestHandlerError()
   static async check_user_follows(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const user_id: number = parseInt(request.params.user_id, 10);
@@ -12,6 +14,7 @@ export class FollowsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async follow_user(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const user_id: number = parseInt(request.params.user_id, 10);
@@ -20,6 +23,7 @@ export class FollowsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async unfollow_user(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const user_id: number = parseInt(request.params.user_id, 10);
@@ -28,6 +32,7 @@ export class FollowsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_followers_count(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     
@@ -35,6 +40,7 @@ export class FollowsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_followings_count(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     
@@ -42,6 +48,7 @@ export class FollowsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_followers_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     
@@ -49,6 +56,7 @@ export class FollowsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_followings_all(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     
@@ -56,6 +64,7 @@ export class FollowsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_followers(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const follow_id: number = parseInt(request.params.follow_id, 10);
@@ -64,6 +73,7 @@ export class FollowsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_followings(request: Request, response: Response): ExpressResponse {
     const user_id: number = parseInt(request.params.user_id, 10);
     const follow_id: number = parseInt(request.params.follow_id, 10);

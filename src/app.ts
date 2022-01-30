@@ -72,8 +72,8 @@ const expressStaticPublicPath = express.static(publicPath);
 app.use(expressStaticPublicPath);
 
 /** init database */
-console.log(`PORT = ${PORT}...\n\n`);
-console.log(`Connecting to database...\n\n`);
+console.log(`PORT = ${PORT}\n`);
+console.log(`Connecting to database...\n`);
 try {
   db_init().then(() => {
     console.log(`app db ready; starting app.`);

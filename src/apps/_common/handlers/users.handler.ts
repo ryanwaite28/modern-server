@@ -1,27 +1,32 @@
 import { Request, Response } from 'express';
 import { UploadedFile } from 'express-fileupload';
+import { CatchRequestHandlerError } from '../decorators/common.decorator';
 import { IRequest, IUser, PlainObject } from '../interfaces/common.interface';
 import { UsersService } from '../services/users.service';
 import { ExpressResponse, ServiceMethodResults } from '../types/common.types';
 
 export class UsersRequestHandler {
+  @CatchRequestHandlerError()
   static async check_session(request: Request, response: Response): ExpressResponse {
     const serviceMethodResults: ServiceMethodResults = await UsersService.check_session(request);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_by_id(request: Request, response: Response): ExpressResponse {
     const user_id = parseInt(request.params.id, 10);
     const serviceMethodResults: ServiceMethodResults = await UsersService.get_user_by_id(user_id);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_by_phone(request: Request, response: Response): ExpressResponse {
     const phone = request.params.phone;
     const serviceMethodResults: ServiceMethodResults = await UsersService.get_user_by_phone(phone);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async send_feedback(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const rating: number = request.body.rating;
@@ -32,6 +37,7 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_unseen_counts(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const serviceMethodResults: ServiceMethodResults = await UsersService.get_unseen_counts(you);
@@ -50,12 +56,14 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
   
+  @CatchRequestHandlerError()
   static async get_random_users(request: Request, response: Response): ExpressResponse {
     const limit = request.params.limit;
     const serviceMethodResults: ServiceMethodResults = await UsersService.get_random_users(limit);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async sign_up(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
@@ -73,6 +81,7 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async sign_in(request: Request, response: Response): ExpressResponse {
     const email_or_username: string = (request.body.email_or_username || request.body.email || request.body.username);
     const password: string = request.body.password;
@@ -80,6 +89,7 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async send_sms_verification(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const phone = request.params.phone_number;
@@ -87,6 +97,7 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async verify_sms_code(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
@@ -98,12 +109,14 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async verify_email(request: Request, response: Response): ExpressResponse {
     const verification_code = request.params.verification_code;
     const serviceMethodResults: ServiceMethodResults = await UsersService.verify_email(verification_code);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async update_info(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
@@ -128,6 +141,7 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async update_phone(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
@@ -140,6 +154,7 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async update_password(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
@@ -150,6 +165,7 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async update_icon(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
@@ -160,6 +176,7 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async update_wallpaper(request: Request, response: Response): ExpressResponse {
     const opts = {
       you: response.locals.you as IUser,
@@ -170,6 +187,7 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async create_stripe_account(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const host: string = request.get('origin')!;
@@ -177,6 +195,7 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
   
+  @CatchRequestHandlerError()
   static async verify_stripe_account(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const serviceMethodResults: ServiceMethodResults = await UsersService.verify_stripe_account(you.id);

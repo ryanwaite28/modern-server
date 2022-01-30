@@ -2,10 +2,12 @@ import { Request, Response } from 'express';
 import { UploadedFile } from 'express-fileupload';
 import { ExpressResponse, ServiceMethodResults } from '../types/common.types';
 import { ConversationsService } from '../services/conversations.service';
+import { CatchRequestHandlerError } from '../decorators/common.decorator';
 
 
 
 export class ConversationsRequestHandler {
+  @CatchRequestHandlerError()
   static async get_user_conversations_all(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     
@@ -13,6 +15,7 @@ export class ConversationsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_conversations(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const conversation_timestamp: string = request.params.conversation_timestamp;
@@ -22,6 +25,7 @@ export class ConversationsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async create_conservation(request: Request, response: Response): ExpressResponse {
     const you_id: number = parseInt(request.params.you_id, 10);
     const title: string = (request.body.title || '').trim();
@@ -33,6 +37,7 @@ export class ConversationsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async update_conservation(request: Request, response: Response): ExpressResponse {
     const icon_file: UploadedFile | undefined = request.files && (<UploadedFile> request.files.icon);
     const title: string = (request.body.title || '').trim();
@@ -43,6 +48,7 @@ export class ConversationsRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async delete_conservation(request: Request, response: Response): ExpressResponse {
     const conversation_id: number = parseInt(request.params.conversation_id, 10);
 
