@@ -96,15 +96,13 @@ export const LeaseListings = <MyModelStatic> sequelize.define('blueworld_lease_l
 export const RentListingBorrowers = <MyModelStatic> sequelize.define('blueworld_rent_listing_borrowers', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: RentListings, key: 'id' } },
-  rent_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: RentListingDetails, key: 'id' } },
   borrower_id:         { type: Sequelize.INTEGER, allowNull: true, references: { model: Users, key: 'id' } },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
-export const ListingRentBorrowerRequests = <MyModelStatic> sequelize.define('blueworld_rent_listing_borrower_requests', {
+export const RentListingBorrowerRequests = <MyModelStatic> sequelize.define('blueworld_rent_listing_borrower_requests', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: RentListings, key: 'id' } },
-  rent_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: RentListingDetails, key: 'id' } },
   borrower_id:         { type: Sequelize.INTEGER, allowNull: true, references: { model: Users, key: 'id' } },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
@@ -123,7 +121,7 @@ export const ListingAuctionBids = <MyModelStatic> sequelize.define('blueworld_li
 
 export const ListingSellTypeDetails = <MyModelStatic> sequelize.define('blueworld_listing_sell_type_details', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-  listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
+  listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: SellListings, key: 'id' } },
   price:               { type: Sequelize.INTEGER, allowNull: false },
   completed:           { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
@@ -131,7 +129,7 @@ export const ListingSellTypeDetails = <MyModelStatic> sequelize.define('blueworl
 }, common_options);
 export const ListingSellBuyers = <MyModelStatic> sequelize.define('blueworld_listing_sell_buyers', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-  listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
+  listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: SellListings, key: 'id' } },
   sell_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: ListingSellTypeDetails, key: 'id' } },
   buyer_id:            { type: Sequelize.INTEGER, allowNull: true, references: { model: Users, key: 'id' } },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
@@ -140,74 +138,75 @@ export const ListingSellBuyers = <MyModelStatic> sequelize.define('blueworld_lis
 
 
 
-export const ListingPhotos = <MyModelStatic> sequelize.define('blueworld_post_comment_photos', {
-  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-  listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
-  photo_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Photos, key: 'id' } },
-  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
-  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
-}, common_options);
+// export const ListingPhotos = <MyModelStatic> sequelize.define('blueworld_post_comment_photos', {
+//   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+//   listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
+//   s3ObjectBucket:      { type: Sequelize.STRING, allowNull: false },
+//   s3ObjectKey:         { type: Sequelize.STRING, allowNull: false },
+//   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+//   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+// }, common_options);
 
-export const ListingVideos = <MyModelStatic> sequelize.define('blueworld_post_comment_videos', {
-  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-  listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
-  video_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Videos, key: 'id' } },
-  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
-  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
-}, common_options);
+// export const ListingVideos = <MyModelStatic> sequelize.define('blueworld_post_comment_videos', {
+//   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+//   listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
+//   video_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Videos, key: 'id' } },
+//   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+//   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+// }, common_options);
 
-export const ListingAudios = <MyModelStatic> sequelize.define('blueworld_listing_audios', {
-  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-  listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
-  audio_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Audios, key: 'id' } },
-  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
-  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
-}, common_options);
-
-
-
-
-export const ListingsDisputes = <MyModelStatic> sequelize.define('blueworld_listing_disputes', {
-  id:              { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-  listing_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
-  issue_type:      { type: Sequelize.STRING, allowNull: false },
-  issue_desc:      { type: Sequelize.STRING(1000), allowNull: false, defaultValue: '' },
-  resolved:        { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
-  favored:         { type: Sequelize.STRING, allowNull: true },
-  active:          { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
-  date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
-  uuid:            { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
-}, common_options);
-export const ListingDisputeLogs = <MyModelStatic> sequelize.define('blueworld_listing_dispute_logs', {
-  id:              { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-  creator_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
-  user_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
-  listing_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
-  dispute_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: ListingsDisputes, key: 'id' } },
-  body:            { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
-  date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
-  uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
-}, common_options);
-
-export const ListingsFeedbacks = <MyModelStatic> sequelize.define('blueworld_listing_feedbacks', {
-  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-  writer_id:           { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
-  listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
-  feedback_type:       { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
-  feedback_desc:       { type: Sequelize.STRING(500), allowNull: false, defaultValue: '' },
-  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
-}, common_options);
+// export const ListingAudios = <MyModelStatic> sequelize.define('blueworld_listing_audios', {
+//   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+//   listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
+//   audio_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Audios, key: 'id' } },
+//   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+//   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+// }, common_options);
 
 
 
 
-Users.hasMany(Listings, { as: 'Lending', foreignKey: 'OwnerId', sourceKey: 'id' });
-Users.hasMany(Listings, { as: 'Borrowing', foreignKey: 'BuyerId', sourceKey: 'id' });
-Listings.belongsTo(Users, { as: 'Owner', foreignKey: 'OwnerId', targetKey: 'id' });
+// export const ListingsDisputes = <MyModelStatic> sequelize.define('blueworld_listing_disputes', {
+//   id:              { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+//   listing_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
+//   issue_type:      { type: Sequelize.STRING, allowNull: false },
+//   issue_desc:      { type: Sequelize.STRING(1000), allowNull: false, defaultValue: '' },
+//   resolved:        { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+//   favored:         { type: Sequelize.STRING, allowNull: true },
+//   active:          { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+//   date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+//   uuid:            { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+// }, common_options);
+// export const ListingDisputeLogs = <MyModelStatic> sequelize.define('blueworld_listing_dispute_logs', {
+//   id:              { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+//   creator_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+//   user_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+//   listing_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
+//   dispute_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: ListingsDisputes, key: 'id' } },
+//   body:            { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
+//   date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+//   uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+// }, common_options);
+
+// export const ListingsFeedbacks = <MyModelStatic> sequelize.define('blueworld_listing_feedbacks', {
+//   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+//   writer_id:           { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+//   listing_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Listings, key: 'id' } },
+//   feedback_type:       { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+//   feedback_desc:       { type: Sequelize.STRING(500), allowNull: false, defaultValue: '' },
+//   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+// }, common_options);
 
 
-Listings.hasMany(ListingsDisputes, {as: 'Disputes', foreignKey: 'ListingId', sourceKey: 'id'});
-Listings.hasMany(ListingsFeedbacks, {as: 'Feedback', foreignKey: 'ListingId', sourceKey: 'id'});
 
-ListingsDisputes.belongsTo(Listings, {as: 'Listing', foreignKey: 'ListingId', targetKey: 'id'});
-ListingsFeedbacks.belongsTo(Listings, {as: 'Listing', foreignKey: 'ListingId', targetKey: 'id'});
+
+// Users.hasMany(Listings, { as: 'Lending', foreignKey: 'OwnerId', sourceKey: 'id' });
+// Users.hasMany(Listings, { as: 'Borrowing', foreignKey: 'BuyerId', sourceKey: 'id' });
+// Listings.belongsTo(Users, { as: 'Owner', foreignKey: 'OwnerId', targetKey: 'id' });
+
+
+// Listings.hasMany(ListingsDisputes, {as: 'Disputes', foreignKey: 'ListingId', sourceKey: 'id'});
+// Listings.hasMany(ListingsFeedbacks, {as: 'Feedback', foreignKey: 'ListingId', sourceKey: 'id'});
+
+// ListingsDisputes.belongsTo(Listings, {as: 'Listing', foreignKey: 'ListingId', targetKey: 'id'});
+// ListingsFeedbacks.belongsTo(Listings, {as: 'Listing', foreignKey: 'ListingId', targetKey: 'id'});
