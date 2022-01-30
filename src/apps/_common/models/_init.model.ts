@@ -75,7 +75,7 @@ export const db_init = async () => {
 
   // console.log(`--- altering done ---`);
 
-  return sequelize.sync({ force: false })
+  return sequelize.sync({ force: false, alter: true })
     .then(() => {
       console.log('\n\nDatabase Initialized! ENV: ' + DB_ENV);
     })
