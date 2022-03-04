@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
-import { ExpressResponse, ServiceMethodResults } from "src/apps/_common/types/common.types";
+import { ExpressResponse, ServiceMethodResults } from "../../_common/types/common.types";
 import { UploadedFile } from 'express-fileupload';
 import { DeliveriesService } from '../services/deliveries.service';
 import { IDelivery } from '../interfaces/deliverme.interface';
 import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
+import { get_user_by_id } from '../../_common/repos/users.repo';
+import { IUser } from '../../_common/interfaces/common.interface';
 
 
 export class DelivermeApiRequestHandler {
@@ -134,8 +136,9 @@ export class DelivermeApiRequestHandler {
   }
 
   static async create_delivery(request: Request, response: Response): ExpressResponse {
+    const you = await get_user_by_id(response.locals.api_key_model.user_id);
     const opts = {
-      you_id: response.locals.api_key_model.user_id as number,
+      you: you! as IUser,
       data: JSON.parse(request.body.payload) as any,
       delivery_image: request.files && (<UploadedFile> request.files.delivery_image)
     };

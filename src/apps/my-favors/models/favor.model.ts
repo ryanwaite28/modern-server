@@ -28,6 +28,7 @@ export const Favors = <MyModelStatic> sequelize.define('myfavors_favors', {
 
   title:                     { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   description:               { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
+  charge_id:                 { type: Sequelize.STRING(500), allowNull: false, defaultValue: '' },
 
   category:                  { type: Sequelize.STRING(500), allowNull: false, defaultValue: '' },
   featured:                  { type: Sequelize.STRING, allowNull: true, defaultValue: '' }, // bronze/silver/gold
@@ -126,7 +127,7 @@ export const FavorMessages = <MyModelStatic> sequelize.define('myfavors_favor_me
   uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const FavorUpdates = sequelize.define('myfavors_favor_updates', {
+export const FavorUpdates = <MyModelStatic> sequelize.define('myfavors_favor_updates', {
   id:                { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   favor_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Favors, key: 'id' } },
   user_id:           { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },

@@ -39,8 +39,10 @@ import {
   get_user_delivering_inprogress_count
 } from '../repos/deliveries.repo';
 import { create_notification } from '../../_common/repos/notifications.repo';
-import { UserPaymentIntents, Users } from '../../_common/models/user.model';
+import { StripeActions, UserPaymentIntents, Users } from '../../_common/models/user.model';
 import {
+  COMMON_STRIPE_ACTION_EVENTS,
+  COMMON_TRANSACTION_STATUS,
   MODERN_APP_NAMES
 } from '../../_common/enums/common.enum';
 import { SocketsService } from '../../_common/services/sockets.service';
@@ -55,7 +57,8 @@ import {
   create_delivery_tracking_update_required_props,
   deliveryme_user_settings_required_props,
   delivery_search_attrs,
-  populate_deliverme_notification_obj
+  populate_deliverme_notification_obj,
+  update_delivery_required_props
 } from '../deliverme.chamber';
 import {
   ICreateDeliveryProps,
@@ -75,6 +78,7 @@ import { StripeService } from '../../_common/services/stripe.service';
 import { ServiceMethodResults } from '../../_common/types/common.types';
 import { get_user_ratings_stats_via_model } from '../../_common/repos/ratings.repo';
 import Stripe from 'stripe';
+import { get_user_by_id } from '../../_common/repos/users.repo';
 
 
 
@@ -546,17 +550,23 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async create_delivery(opts: {
-    you_id: number,
+  /**
+   * @deprecated
+   * @param opts 
+   * @returns 
+   */
+  static async create_delivery_and_charge(opts: {
+    you: IUser,
     data: any,
-    delivery_image?: UploadedFile
+    delivery_image?: UploadedFile,
   }) {
     try {
-      const { you_id, data, delivery_image } = opts;
+      const { you, data, delivery_image } = opts;
       const createObj: PlainObject = {
-        owner_id: you_id
+        owner_id: you.id
       };
 
+      // validate inputs
       const dataValidation = validateData({
         data,
         validators: create_delivery_required_props,
@@ -576,10 +586,157 @@ export class DeliveriesService {
         return imageValidation;
       }
 
+      // make sure payment method belongs to user
+      const userPaymentMethodsResults = await StripeService.payment_method_belongs_to_customer(
+        you.stripe_customer_account_id,
+        data.payment_method_id
+      );
+      if (userPaymentMethodsResults.error) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: userPaymentMethodsResults.status,
+          error: userPaymentMethodsResults.error,
+          info: {
+            message: userPaymentMethodsResults.message
+          }
+        };
+        return serviceMethodResults;
+      }
+
+      // all inputs validated
+      console.log(`createObj`, createObj);
+
+      // try charging customer for delivery listing
+      let payment_intent: Stripe.PaymentIntent;
+      const chargeFeeData = StripeService.add_on_stripe_processing_fee(createObj.payout);
+
+      try {
+        // https://stripe.com/docs/payments/save-during-payment
+        payment_intent = await StripeService.stripe.paymentIntents.create({
+          description: `${MODERN_APP_NAMES.DELIVERME} - new delivery listing: ${createObj.title}`,
+          amount: chargeFeeData.final_total,
+          currency: 'usd',
+          customer: you.stripe_customer_account_id,
+          payment_method: data.payment_method_id,
+          off_session: true,
+          confirm: true,
+        });
+      } catch (e) {
+        console.log(e);
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Could not charge payment method`,
+            error: e,
+          }
+        };
+        return serviceMethodResults;
+      }
+
+      // charge was successful; create the delivery listing
+      createObj.payment_intent_id = payment_intent.id;
+      const new_delivery_model = await create_delivery(createObj as ICreateDeliveryProps);
+
+      // record the charge
+      const payment_intent_action = await StripeActions.create({
+        action_event:                        COMMON_STRIPE_ACTION_EVENTS.PAYMENT_INTENT,
+        action_id:                           payment_intent.id,
+        action_metadata:                     null,
+        micro_app:                           MODERN_APP_NAMES.DELIVERME,
+        target_type:                         DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id:                           new_delivery_model.id,
+        target_metadata:                     null,
+        status:                              COMMON_TRANSACTION_STATUS.COMPLETED,
+      });
+
+      // update charge metadata with delivery id
+      payment_intent = await StripeService.stripe.paymentIntents.update(
+        payment_intent.id,
+        { metadata: { delivery_id: new_delivery_model.id } }
+      );
+
+      console.log(`Delivery created successfully. Delivery ID:`, new_delivery_model.id, {
+        chargeFeeData,
+        payment_intent,
+        payment_intent_action: payment_intent_action.toJSON(),
+      });
+
+      // return delivery object
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `New Delivery Created!`,
+          data: new_delivery_model
+        }
+      };
+      return serviceMethodResults;
+    } catch (e) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        error: true,
+        info: {
+          message: `Could not create new delivery`,
+          error: e,
+        }
+      };
+      return serviceMethodResults;
+    }
+  }
+
+  static async create_delivery(opts: {
+    you: IUser,
+    data: any,
+    delivery_image?: UploadedFile,
+  }) {
+    try {
+      const { you, data, delivery_image } = opts;
+      const createObj: PlainObject = {
+        owner_id: you.id
+      };
+
+      // validate inputs
+      const dataValidation = validateData({
+        data,
+        validators: create_delivery_required_props,
+        mutateObj: createObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
+      }
+
+      const imageValidation = await validateAndUploadImageFile(delivery_image, {
+        treatNotFoundAsError: false,
+        mutateObj: createObj,
+        id_prop: 'item_image_id',
+        link_prop: 'item_image_link',
+      });
+      if (imageValidation.error) {
+        return imageValidation;
+      }
+
+      // make sure payment method belongs to user
+      const userPaymentMethodsResults = await StripeService.payment_method_belongs_to_customer(
+        you.stripe_customer_account_id,
+        data.payment_method_id
+      );
+      if (userPaymentMethodsResults.error) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: userPaymentMethodsResults.status,
+          error: userPaymentMethodsResults.error,
+          info: {
+            message: userPaymentMethodsResults.message
+          }
+        };
+        return serviceMethodResults;
+      }
+
+      // all inputs validated
       console.log(`createObj`, createObj);
 
       const new_delivery_model = await create_delivery(createObj as ICreateDeliveryProps);
 
+      // return delivery object
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
@@ -611,12 +768,13 @@ export class DeliveriesService {
     const updateObj: PlainObject = {};
     const dataValidation = validateData({
       data,
-      validators: create_delivery_required_props,
+      validators: update_delivery_required_props,
       mutateObj: updateObj
     });
     if (dataValidation.error) {
       return dataValidation;
     }
+
     const updates = await update_delivery(delivery_id, updateObj);
 
     const serviceMethodResults: ServiceMethodResults = {
@@ -625,6 +783,91 @@ export class DeliveriesService {
       info: {
         message: `Delivery Updated!`,
         data: updates
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  /**
+   * @deprecated
+   * @param delivery 
+   * @returns 
+   */
+  static async delete_delivery_and_refund(delivery: IDelivery) {
+    // const delivery_model = await get_delivery_by_id(delivery_id);
+
+    if (!delivery) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.NOT_FOUND,
+        error: true,
+        info: {
+          message: `Delivery not found`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!!delivery.carrier_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery is in progress`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    // try to refund the charge
+    if (delivery.payment_intent_id) {
+      let refund: Stripe.Refund;
+      const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout);
+      const refund_amount = chargeFeeData.final_total  - chargeFeeData.app_fee;
+
+      try {
+        refund = await StripeService.stripe.refunds.create({
+          payment_intent: delivery.payment_intent_id,
+          amount: refund_amount,
+        });
+        
+        // record the refund
+        const refund_action = await StripeActions.create({
+          action_event:                        COMMON_STRIPE_ACTION_EVENTS.REFUND,
+          action_id:                           refund.id,
+          action_metadata:                     null,
+          micro_app:                           MODERN_APP_NAMES.DELIVERME,
+          target_type:                         DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+          target_id:                           delivery.id,
+          target_metadata:                     null,
+          status:                              COMMON_TRANSACTION_STATUS.COMPLETED,
+        });
+
+        console.log(`refund issued and recorded successfully`, {
+          refund_amount,
+          refund_id: refund.id,
+          refund_action_id: refund_action.get('id')
+        });
+      } catch (e) {
+        console.log(e);
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+          error: true,
+          info: {
+            message: `Could not issue refund`,
+            error: e,
+          }
+        };
+        return serviceMethodResults;
+      }
+    }
+
+    const deletes = await delete_delivery(delivery.id);
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery Deleted!`,
+        data: deletes
       }
     };
     return serviceMethodResults;
@@ -684,6 +927,18 @@ export class DeliveriesService {
         error: true,
         info: {
           message: `Delivery already has carrier assigned.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const you = await get_user_by_id(you_id);
+    if (!(you!.stripe_account_verified) || !(you!.stripe_account_id)) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Your stripe account is not setup`,
         }
       };
       return serviceMethodResults;
@@ -1681,7 +1936,138 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async pay_carrier(delivery: IDelivery) {
+  static async pay_carrier(opts: {
+    you: IUser,
+    delivery: IDelivery
+  }) {
+    const { you, delivery } = opts;
+
+    if (delivery.owner_id !== you.id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the owner of this delivery.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (delivery.completed) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery is already completed`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!delivery.owner?.stripe_account_verified || !delivery.owner?.stripe_account_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Owner's stripe account is not setup`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!delivery.carrier?.stripe_account_verified || !delivery.carrier?.stripe_account_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier's stripe account is not setup`,
+        }
+      };
+      return serviceMethodResults;
+    }
     
+    // try charging customer for delivery listing
+    let payment_intent: Stripe.PaymentIntent;
+    const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout);
+
+    try {
+      // https://stripe.com/docs/payments/save-during-payment
+      const paymentIntentCreateData: Stripe.PaymentIntentCreateParams = {
+        description: `${MODERN_APP_NAMES.DELIVERME} - payment for delivery listing: ${delivery.title}`,
+        amount: chargeFeeData.final_total,
+        currency: 'usd',
+
+        customer: you.stripe_customer_account_id,
+        payment_method: delivery.payment_method_id,
+        application_fee_amount: chargeFeeData.app_fee,
+        transfer_data: {
+          destination: delivery.carrier?.stripe_account_id,
+        },
+        
+        off_session: true,
+        confirm: true,
+        metadata: {
+          delivery_id: delivery.id,
+          payment_intent_event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
+          micro_app: MODERN_APP_NAMES.DELIVERME,
+          target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+          target_id: delivery.id
+        }
+      };
+
+      console.log({ paymentIntentCreateData });
+
+      payment_intent = await StripeService.stripe.paymentIntents.create(paymentIntentCreateData);
+    } catch (e) {
+      console.log(e);
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Could not charge payment method`,
+          error: e,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    // record the transaction
+    const payment_intent_action = await StripeActions.create({
+      action_event:                        COMMON_STRIPE_ACTION_EVENTS.PAYMENT_INTENT,
+      action_id:                           payment_intent.id,
+      action_metadata:                     null,
+      micro_app:                           MODERN_APP_NAMES.DELIVERME,
+      target_type:                         DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+      target_id:                           delivery.id,
+      target_metadata:                     null,
+      status:                              COMMON_TRANSACTION_STATUS.COMPLETED,
+    });
+
+    console.log(`Delivery paid successfully. Delivery ID:`, delivery.id, {
+      chargeFeeData,
+      payment_intent,
+      payment_intent_action: payment_intent_action.toJSON(),
+    });
+
+
+    const deliveryCompletedResults = await DeliveriesService.mark_delivery_as_completed({
+      you_id: you.id,
+      delivery
+    });
+
+    deliveryCompletedResults.info.message && console.log(deliveryCompletedResults.info.message);
+
+    if (deliveryCompletedResults.error) {
+      return deliveryCompletedResults;
+    }
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Payment successful!`,
+      }
+    };
+    return serviceMethodResults;
   }
 }

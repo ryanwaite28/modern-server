@@ -519,6 +519,7 @@ export const user_attrs_slim = [
   'public',
   'can_message',
   'can_converse',
+  'stripe_customer_account_id',
   'stripe_account_id',
   'stripe_account_verified',
   'can_converse',
@@ -727,6 +728,11 @@ export const stringValidator = (arg: any) => typeof(arg) === 'string';
 export const numberValidator = (arg: any) => typeof(arg) === 'number';
 export const booleanValidator = (arg: any) => typeof(arg) === 'boolean';
 export const notNullValidator = (arg: any) => arg !== null;
+
+export const stripeValidators = Object.freeze({
+  customerId: (arg: any) => !!arg && typeof(arg) === 'string' && (/^cus_[a-zA-Z0-9]{19,35}/).test(arg),
+  paymentMethodId: (arg: any) => !!arg && typeof(arg) === 'string' && (/^pm_[a-zA-Z0-9]{19,35}/).test(arg),
+});
 
 export function uniqueValue() {
   return String(Date.now()) +
@@ -1009,7 +1015,11 @@ export const validateAndUploadImageFile = async (
     opts.mutateObj[opts.link_prop] = image_results.result.secure_url;
   }
 
-  const serviceMethodResults: ServiceMethodResults = {
+  const serviceMethodResults: ServiceMethodResults<{
+    image_results: any,
+    image_id: string,
+    image_link: string,
+  }> = {
     status: HttpStatusCode.OK,
     error: false,
     info: {

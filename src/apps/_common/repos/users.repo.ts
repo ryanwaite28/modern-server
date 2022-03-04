@@ -125,6 +125,22 @@ export async function get_user_by_id(id: number) {
   return user_model;
 }
 
+export async function get_user_by_stripe_customer_account_id(stripe_customer_account_id: string) {
+  const user_model = await Users.findOne({
+    where: { stripe_customer_account_id },
+    include: [],
+    attributes: {
+      exclude: ['password']
+    }
+  })
+  .then(convertUserModel)
+  .catch((err) => {
+    console.log(`could not get user by stripe_customer_account_id`, { stripe_customer_account_id }, err);
+    throw err;
+  })
+  return user_model;
+}
+
 export async function get_user_by_username(
   username: string
 ) {
@@ -171,6 +187,7 @@ export async function update_user(
     phone_verified: boolean;
     stripe_account_verified: boolean;
     stripe_account_id: string;
+    stripe_customer_account_id: string;
   }>,
   whereClause: WhereOptions
 ) {

@@ -5,6 +5,9 @@ export interface ICreateDeliveryProps {
 
   title: string;
   description: string;
+  charge_id: string,
+  payment_intent_id: string,
+  payment_method_id: string,
 
   item_image_link: string;
   item_image_id: string;
@@ -72,6 +75,9 @@ export interface IDelivery extends ICommonModel {
 
   title:                       string,
   description:                 string,
+  charge_id:                   string,
+  payment_intent_id:           string,
+  payment_method_id:           string,
   tags:                        string,
   item_image_link:             string,
   item_image_id:               string,
@@ -158,7 +164,7 @@ export interface IDelivery extends ICommonModel {
   delivery_messages?: IDeliveryMessage[],
 }
 
-export interface IDeliverMeUser extends IUser  {
+export interface IDeliverMeUser extends IUser {
   deliverme_settings?: IDeliverMeUserSettings,
 }
 

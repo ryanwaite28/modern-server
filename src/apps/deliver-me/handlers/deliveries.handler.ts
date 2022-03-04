@@ -135,7 +135,7 @@ export class DeliveriesRequestHandler {
 
   static async create_delivery(request: Request, response: Response): ExpressResponse {
     const opts = {
-      you_id: response.locals.you?.id as number,
+      you: response.locals.you as IUser,
       data: JSON.parse(request.body.payload) as any,
       delivery_image: request.files && (<UploadedFile> request.files.delivery_image)
     };
@@ -255,6 +255,15 @@ export class DeliveriesRequestHandler {
       host: request.get('origin')! as string,
     };
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.create_payment_intent(opts);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  static async pay_carrier(request: Request, response: Response): ExpressResponse {
+    const opts = {
+      you: response.locals.you! as IUser,
+      delivery: response.locals.delivery_model as IDelivery,
+    };
+    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.pay_carrier(opts);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

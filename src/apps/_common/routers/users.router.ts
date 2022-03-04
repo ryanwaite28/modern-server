@@ -24,6 +24,7 @@ UsersRouter.get('/verify-sms-code/request_id/:request_id/code/:code', YouAuthori
 
 UsersRouter.get('/:you_id/unseen-counts', YouAuthorized, UsersRequestHandler.get_unseen_counts);
 UsersRouter.get('/:you_id/api-key', YouAuthorized, UsersRequestHandler.get_user_api_key);
+UsersRouter.get('/:you_id/customer-cards-payment-methods', YouAuthorized, UsersRequestHandler.get_user_customer_cards_payment_methods);
 
 UsersRouter.get('/:you_id/notifications/all', YouAuthorized, NotificationsRequestHandler.get_user_notifications_all);
 UsersRouter.get('/:you_id/notifications', YouAuthorized, NotificationsRequestHandler.get_user_notifications);
@@ -71,6 +72,7 @@ UsersRouter.post('/:you_id/follows/:user_id', YouAuthorized, UserIdsAreDifferent
 UsersRouter.post('/:you_id/send-message/:user_id', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.send_user_message);
 UsersRouter.post('/:you_id/conversations/:conversation_id/messages/:message_id/mark-as-seen', YouAuthorized, ConversationExists, ConversationMessagesRequestHandler.mark_message_as_seen);
 UsersRouter.post('/:you_id/conversations/:conversation_id/members/:user_id', YouAuthorized, UserIdsAreDifferent, ConversationExists, IsConversationOwner, ConversationMembersRequestHandler.add_conversation_member);
+UsersRouter.post('/:you_id/customer-cards-payment-methods/:payment_method_id', YouAuthorized, UsersRequestHandler.add_card_payment_method_to_user_customer);
 
 // PUT
 UsersRouter.put('/', UsersRequestHandler.sign_in);
@@ -81,6 +83,7 @@ UsersRouter.put('/:you_id/icon', YouAuthorized, UsersRequestHandler.update_icon)
 UsersRouter.put('/:you_id/wallpaper', YouAuthorized, UsersRequestHandler.update_wallpaper);
 UsersRouter.put('/:you_id/create-stripe-account', YouAuthorized, UsersRequestHandler.create_stripe_account);
 UsersRouter.put('/:you_id/verify-stripe-account', YouAuthorized, UsersRequestHandler.verify_stripe_account);
+UsersRouter.put('/:you_id/verify-customer-has-cards', YouAuthorized, UsersRequestHandler.verify_customer_has_card_payment_method);
 UsersRouter.put('/:you_id/conversations/:conversation_id/update-last-opened', YouAuthorized, ConversationMessagesRequestHandler.update_conversation_last_opened);
 UsersRouter.put('/:you_id/conversations/:conversation_id', YouAuthorized, ConversationsRequestHandler.update_conservation);
 
@@ -89,3 +92,4 @@ UsersRouter.delete('/:you_id/follows/:user_id', YouAuthorized, UserIdsAreDiffere
 UsersRouter.delete('/:you_id/conversations/:conversation_id', YouAuthorized, IsConversationOwner, ConversationsRequestHandler.delete_conservation);
 UsersRouter.delete('/:you_id/conversations/:conversation_id/members', YouAuthorized, ConversationExists, IsNotConversationOwner, ConversationMembersRequestHandler.leave_conversation);
 UsersRouter.delete('/:you_id/conversations/:conversation_id/members/:user_id', YouAuthorized, UserIdsAreDifferent, ConversationExists, IsConversationOwner, ConversationMembersRequestHandler.remove_conversation_member);
+UsersRouter.delete('/:you_id/customer-cards-payment-methods/:payment_method_id', YouAuthorized, UsersRequestHandler.remove_card_payment_method_to_user_customer);

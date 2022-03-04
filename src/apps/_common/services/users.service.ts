@@ -33,7 +33,8 @@ import {
   capitalize,
   validateData,
   create_user_required_props,
-  validateAndUploadImageFile
+  validateAndUploadImageFile,
+  getUserFullName
 } from '../common.chamber';
 import { delete_cloudinary_image, store_image } from '../../../cloudinary-manager';
 import { send_email } from '../../../email-client';
@@ -47,6 +48,9 @@ import { StripeService } from './stripe.service';
 import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
 import { IMyModel } from '../models/common.model-types';
 import { COMMON_API_KEY_SUBSCRIPTION_PLAN } from '../enums/common.enum';
+import Stripe from 'stripe';
+
+
 
 export class UsersService {
 
@@ -55,19 +59,49 @@ export class UsersService {
   static async check_session(request: Request): ServiceMethodAsyncResults {
     try {
       const auth = AuthorizeJWT(request, false);
+      let jwt = null;
+
       if (auth.you) {
         const you_model = await UserRepo.get_user_by_id(auth.you.id);
         auth.you = you_model!;
-      }
 
-      // const stripe_acct = !!auth.you && await StripeService.account_is_complete(auth.you.stripe_account_id);
+        if (!auth.you.stripe_customer_account_id) {
+          console.log(`Creating stripe customer account for user ${auth.you.id}...`);
+          
+          const userDisplayName = getUserFullName(auth.you);
+
+          // create stripe customer account       stripe_customer_account_id
+          const customer = await StripeService.stripe.customers.create({
+            name: userDisplayName,
+            description: `Modern Apps Customer: ${userDisplayName}`,
+            email: auth.you.email,
+            metadata: {
+              user_id: auth.you.id,
+            }
+          });
+
+          const updateUserResults = await UserRepo.update_user({ stripe_customer_account_id: customer.id }, { id: auth.you.id });
+          let new_user_model = await UserRepo.get_user_by_id(auth.you.id);
+          let new_user = new_user_model!;
+          auth.you = new_user;
+
+          // create JWT
+          jwt = TokensService.newUserJwtToken(auth.you);
+        }
+
+        // const stripe_acct_status = await StripeService.account_is_complete(auth.you.stripe_account_id);
+        // console.log({ stripe_acct_status });
+      }
 
       const serviceMethodResults: ServiceMethodResults = {
         status: auth.status,
         error: false,
         info: {
           message: auth.message,
-          data: auth,
+          data: {
+            ...auth,
+            token: jwt,
+          },
         }
       };
       return serviceMethodResults;
@@ -231,6 +265,163 @@ export class UsersService {
     return serviceMethodResults;
   }
 
+  static async get_user_customer_cards_payment_methods(stripe_customer_id: string): ServiceMethodAsyncResults {
+    const paymentMethods = await StripeService.get_customer_cards_payment_methods(stripe_customer_id);
+
+    const serviceMethodResults: ServiceMethodResults<Stripe.PaymentMethod[]> = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: paymentMethods.data || []
+      }
+    };
+    return serviceMethodResults;
+  }
+  
+  static async add_card_payment_method_to_user_customer(stripe_customer_account_id: string, payment_method_id: string): ServiceMethodAsyncResults {
+    let payment_method: Stripe.Response<Stripe.PaymentMethod>;
+    const user = await UserRepo.get_user_by_stripe_customer_account_id(stripe_customer_account_id);
+    if (!user) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `User not found by customer id: ${stripe_customer_account_id}`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    try {
+      payment_method = await StripeService.stripe.paymentMethods.retrieve(payment_method_id);
+      if (!payment_method) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Could not retrieve payment method by id: ${payment_method_id}`,
+          }
+        };
+        return serviceMethodResults;
+      }
+    } catch (e) {
+      console.log(e);
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Could not retrieve payment method by id: ${payment_method_id}`,
+          data: {
+            e
+          }
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (payment_method.customer) {
+      if (payment_method.customer === stripe_customer_account_id) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Payment method already attached to your customer account`,
+          }
+        };
+        return serviceMethodResults;
+      }
+      else {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Payment method already attached another customer account`,
+          }
+        };
+        return serviceMethodResults;
+      }
+    }
+
+    let paymentMethod = await StripeService.stripe.paymentMethods.attach(
+      payment_method.id,
+      { customer: stripe_customer_account_id }
+    );
+    paymentMethod = await StripeService.stripe.paymentMethods.update(
+      payment_method.id,
+      { metadata: { user_id: user.id } }
+    );
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Payment method added successfully!`,
+        data: paymentMethod
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async remove_card_payment_method_to_user_customer(stripe_customer_account_id: string, payment_method_id: string): ServiceMethodAsyncResults {
+    let payment_method: Stripe.Response<Stripe.PaymentMethod>;
+
+    try {
+      payment_method = await StripeService.stripe.paymentMethods.retrieve(payment_method_id);
+      if (!payment_method) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Could not retrieve payment method by id: ${payment_method_id}`,
+          }
+        };
+        return serviceMethodResults;
+      }
+    } catch (e) {
+      console.log(e);
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Could not retrieve payment method by id: ${payment_method_id}`,
+          data: {
+            e
+          }
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const user_payment_methods = await UsersService.get_user_customer_cards_payment_methods(stripe_customer_account_id);
+    const payment_methods = user_payment_methods.info.data! as Stripe.PaymentMethod[];
+
+    for (const pm of payment_methods) {
+      if (pm.id === payment_method.id) {
+        const paymentMethod = await StripeService.stripe.paymentMethods.detach(
+          payment_method.id,
+        );
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.OK,
+          error: false,
+          info: {
+            message: `Payment method removed successfully!`,
+            data: paymentMethod
+          }
+        };
+        return serviceMethodResults;
+      }
+    }
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.BAD_REQUEST,
+      error: true,
+      info: {
+        message: `Payment method not attached to customer`,
+      }
+    };
+    return serviceMethodResults;
+  }
+
   static async create_user_api_key(user: IUser): ServiceMethodAsyncResults {
     const api_key = await UserRepo.get_user_api_key(user.id);
     if (api_key) {
@@ -364,8 +555,8 @@ export class UsersService {
       email: email.toLowerCase(),
       password: bcrypt.hashSync(password)
     };
-    const new_user_model = await UserRepo.create_user(createInfo);
-    const new_user = new_user_model!;
+    let new_user_model: IUser | null = await UserRepo.create_user(createInfo);
+    let new_user = new_user_model!;
     delete new_user.password;
 
     const user_api_key = await UserRepo.create_user_api_key({
@@ -378,6 +569,22 @@ export class UsersService {
       phone: '',
       website: '',
     });
+
+    const userDisplayName = getUserFullName(new_user);
+
+    // create stripe customer account       stripe_customer_account_id
+    const customer = await StripeService.stripe.customers.create({
+      name: userDisplayName,
+      description: `Modern Apps Customer: ${userDisplayName}`,
+      email: new_user.email,
+      metadata: {
+        user_id: new_user.id,
+      }
+    });
+
+    const updateUserResults = await UserRepo.update_user({ stripe_customer_account_id: customer.id }, { id: new_user.id });
+    new_user_model = await UserRepo.get_user_by_id(new_user.id);
+    new_user = new_user_model!;
   
     try {
       /** Email Sign up and verify */
@@ -1411,20 +1618,8 @@ export class UsersService {
     return serviceMethodResults;
   }
 
-  static async verify_stripe_account(you_id: number): ServiceMethodAsyncResults {
-    const you_model: IUser | null = await UserRepo.get_user_by_id(you_id);
-    if (!you_model) {
-      const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.NOT_FOUND,
-        error: true,
-        info: {
-          message: `User not found`,
-        }
-      };
-      return serviceMethodResults;
-    }
-
-    let you: IUser = you_model!;
+  static async verify_stripe_account(user: IUser): ServiceMethodAsyncResults {
+    let you: IUser = { ...user };
 
     if (!you.stripe_account_id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1460,6 +1655,20 @@ export class UsersService {
       (<any> results).token = jwt;
       (<any> results).you = you;
     }
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: results.status,
+      error: results.error,
+      info: {
+        data: results
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async verify_customer_has_card_payment_method(user: IUser): ServiceMethodAsyncResults {
+    const results = await StripeService.customer_account_has_card_payment_method(user.stripe_customer_account_id);
+    console.log({ results });
 
     const serviceMethodResults: ServiceMethodResults = {
       status: results.status,

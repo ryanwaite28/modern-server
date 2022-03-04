@@ -44,12 +44,37 @@ export class UsersRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
   static async get_user_api_key(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const serviceMethodResults: ServiceMethodResults = await UsersService.get_user_api_key(you);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
+  static async get_user_customer_cards_payment_methods(request: Request, response: Response): ExpressResponse {
+    const you: IUser = response.locals.you;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.get_user_customer_cards_payment_methods(you.stripe_customer_account_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async add_card_payment_method_to_user_customer(request: Request, response: Response): ExpressResponse {
+    const you: IUser = response.locals.you;
+    const payment_method_id: string = request.params.payment_method_id as string;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.add_card_payment_method_to_user_customer(you.stripe_customer_account_id, payment_method_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  
+  @CatchRequestHandlerError()
+  static async remove_card_payment_method_to_user_customer(request: Request, response: Response): ExpressResponse {
+    const you: IUser = response.locals.you;
+    const payment_method_id: string = request.params.payment_method_id as string;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.remove_card_payment_method_to_user_customer(you.stripe_customer_account_id, payment_method_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
   static async create_user_api_key(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const serviceMethodResults: ServiceMethodResults = await UsersService.create_user_api_key(you);
@@ -198,7 +223,14 @@ export class UsersRequestHandler {
   @CatchRequestHandlerError()
   static async verify_stripe_account(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
-    const serviceMethodResults: ServiceMethodResults = await UsersService.verify_stripe_account(you.id);
+    const serviceMethodResults: ServiceMethodResults = await UsersService.verify_stripe_account(you);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async verify_customer_has_card_payment_method(request: Request, response: Response): ExpressResponse {
+    const you: IUser = response.locals.you;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.verify_customer_has_card_payment_method(you);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 }

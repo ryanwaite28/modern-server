@@ -23,4 +23,10 @@ export class UtilsRequestHandler {
     const serviceMethodResults: ServiceMethodResults = UtilsService.get_google_maps_key();
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
+
+  @CatchRequestHandlerError()
+  static async get_stripe_public_key(request: Request, response: Response): ExpressResponse {
+    const serviceMethodResults: ServiceMethodResults = UtilsService.get_stripe_public_key();
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
 }

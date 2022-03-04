@@ -14,6 +14,7 @@ export class SocketsService {
   private static io_namespace: socket_io.Namespace;
 
   private static socketsByUserIdMap = new Map<number, Set<string>>();
+  private static userIdsBySocket = new Map<string, number>();
   private static userSocketsRoomKeyByUserId = new Map<number, string>(); // all sockets belonging to a user via room key
   // private static socketsBySocketIdMap = new Map<string, socket_io.Socket>();
   // private static userSocketIDsByUserId = new Map<number, Map<string, boolean>>(); // all sockets belonging to a user via socket ids map
@@ -73,8 +74,8 @@ export class SocketsService {
       
       /** Pass io, socket and state to each handler for app specific events */
 
-      CommonSocketEventsHandler.handleNewSocket(io, socket, SocketsService.socketsByUserIdMap, SocketsService.userSocketsRoomKeyByUserId);
-      HotspotSocketEventsHandler.handleNewSocket(io, socket, SocketsService.socketsByUserIdMap, SocketsService.userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.handleNewSocket(io, socket, SocketsService.userIdsBySocket, SocketsService.userSocketsRoomKeyByUserId);
+      HotspotSocketEventsHandler.handleNewSocket(io, socket, SocketsService.userIdsBySocket, SocketsService.userSocketsRoomKeyByUserId);
     
       /** end */
     });
