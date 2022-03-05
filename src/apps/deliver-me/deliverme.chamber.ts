@@ -185,7 +185,7 @@ export const populate_deliverme_notification_obj = async (notification_model: IM
     }
     case DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_DROPPED_OFF: {
       const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} dropped off your delivery: ${delivery!.title}`;
+      message = `${full_name} dropped off your delivery: ${delivery!.title}. Please confirm and pay the carrier.`;
       mount_prop_key = 'delivery';
       mount_value = delivery!;
       break;
@@ -199,7 +199,7 @@ export const populate_deliverme_notification_obj = async (notification_model: IM
     }
     case DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED: {
       const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} completed the delivery: ${delivery!.title}. Please pay the carrier.`;
+      message = `${full_name} completed the delivery: ${delivery!.title}. Once confirmed, you will receive payment.`;
       mount_prop_key = 'delivery';
       mount_value = delivery!;
       break;
