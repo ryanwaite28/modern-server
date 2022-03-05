@@ -75,7 +75,14 @@ export const db_init = async () => {
 
   // console.log(`--- altering done ---`);
 
-  return sequelize.sync({ force: false, alter: true })
+  const sequelize_db_sync_options = {
+    force: false,
+    alter: !process.env.DATABASE_URL
+  };
+
+  console.log({ sequelize_db_sync_options });
+
+  return sequelize.sync(sequelize_db_sync_options)
     .then(() => {
       console.log('\n\nDatabase Initialized! ENV: ' + DB_ENV);
     })
