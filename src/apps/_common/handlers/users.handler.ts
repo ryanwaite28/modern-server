@@ -100,7 +100,7 @@ export class UsersRequestHandler {
       email: request.body.email as string,
       password: request.body.password as string,
       confirmPassword: request.body.confirmPassword as string,
-      host: request.get('origin')! as string
+      request_origin: request.get('origin')! as string
     };
     const serviceMethodResults: ServiceMethodResults = await UsersService.sign_up(opts);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
@@ -231,6 +231,22 @@ export class UsersRequestHandler {
   static async verify_customer_has_card_payment_method(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const serviceMethodResults: ServiceMethodResults = await UsersService.verify_customer_has_card_payment_method(you);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async submit_reset_password_request(request: Request, response: Response): ExpressResponse {
+    const email: string = request.params.email;
+    const request_origin: string = request.get('origin')!;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.submit_reset_password_request(email, request_origin);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  
+  @CatchRequestHandlerError()
+  static async submit_password_reset_code(request: Request, response: Response): ExpressResponse {
+    const code = request.params.code;
+    const request_origin: string = request.get('origin')!;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.submit_password_reset_code(code, request_origin);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 }

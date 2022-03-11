@@ -13,6 +13,7 @@ import {
   IContentSubscriptionModel,
   ITokenModel,
   IMyModel,
+  MyModelStatic,
 } from './common.model-types';
 
 export const Users = <MyModelStaticGeneric<IUserModel>> sequelize.define('common_users', {
@@ -225,7 +226,7 @@ export const UserReactions = <MyModelStaticGeneric<IMyModel>> sequelize.define('
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const ResetPasswordRequests = <MyModelStaticGeneric<IResetPasswordRequestModel>> sequelize.define('common_reset_password_requests', {
+export const ResetPasswordRequests = <MyModelStatic> sequelize.define('common_reset_password_requests', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   completed:           { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },

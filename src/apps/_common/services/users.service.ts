@@ -39,8 +39,8 @@ import {
 import { delete_cloudinary_image, store_image } from '../../../cloudinary-manager';
 import { send_email } from '../../../email-client';
 import { send_verify_sms_request, cancel_verify_sms_request, check_verify_sms_request } from '../../../sms-client';
-import { SignedUp_EMAIL, VerifyEmail_EMAIL } from '../../../template-engine';
-import { SiteFeedbacks, Users } from '../models/user.model';
+import { PasswordResetSuccess_EMAIL, PasswordReset_EMAIL, SignedUp_EMAIL, VerifyEmail_EMAIL } from '../../../template-engine';
+import { ResetPasswordRequests, SiteFeedbacks, Users } from '../models/user.model';
 import { get_user_unseen_notifications_count } from '../repos/notifications.repo';
 import { get_user_unread_conversations_messages_count } from '../repos/conversations.repo';
 import { get_user_unread_personal_messages_count } from '../repos/messagings.repo';
@@ -485,7 +485,7 @@ export class UsersService {
     password: string,
     confirmPassword: string,
 
-    host: string,
+    request_origin: string,
   }): ServiceMethodAsyncResults {
     const {
       firstname,
@@ -497,7 +497,7 @@ export class UsersService {
       password,
       confirmPassword,
 
-      host,
+      request_origin,
     } = data;
 
     const dataValidation: ServiceMethodResults = validateData({
@@ -594,9 +594,9 @@ export class UsersService {
       });
       const new_email_verf: PlainObject = new_email_verf_model.get({ plain: true });
 
-      const verify_link = (<string> host).endsWith('/')
-        ? (host + 'modern/verify-email/' + new_email_verf.verification_code)
-        : (host + '/modern/verify-email/' + new_email_verf.verification_code);
+      const verify_link = (<string> request_origin).endsWith('/')
+        ? (request_origin + 'modern/verify-email/' + new_email_verf.verification_code)
+        : (request_origin + '/modern/verify-email/' + new_email_verf.verification_code);
       const email_subject = `${process.env.APP_NAME} - Signed Up!`;
       const userName = `${new_user.firstname} ${new_user.lastname}`;
       const email_html = SignedUp_EMAIL({
@@ -956,6 +956,191 @@ export class UsersService {
     }
   }
 
+  static async submit_reset_password_request(email: string, request_origin: string): ServiceMethodAsyncResults {
+    if (!validateEmail(email)) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: 'Email input is not in valid format'
+        }
+      };
+      return serviceMethodResults;
+    }
+    
+    const user_result = await UserRepo.get_user_by_email(email);
+    if (!user_result) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: 'No account found by that email'
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const user = user_result!;
+    const name = getUserFullName(user);
+
+    const email_subject = `${process.env.APP_NAME} - Password reset requested`;
+    const link = request_origin.endsWith('/')
+      ? (request_origin + 'modern/password-reset') 
+      : (request_origin + '/modern/password-reset');
+
+    let password_request_result = await ResetPasswordRequests.findOne({
+      where: {
+        user_id: user.id,
+        completed: false,
+      } 
+    });
+
+    if (password_request_result) {
+      const unique_value = password_request_result.get('unique_value');      
+      const email_data = {
+        link,
+        unique_value,
+        name,
+      };
+      console.log(`email_data`, email_data);
+      let email_html = PasswordReset_EMAIL(email_data);
+      const email_result = await send_email({
+        to: user.email,
+        name: name,
+        subject: email_subject,
+        html: email_html
+      });
+      console.log(`email_result`, email_result);
+
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: 'A password reset has already been requested for this email. A copy has been sent.',
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    // send reset request email
+    const new_reset_request = await ResetPasswordRequests.create({ user_id: user.id });
+    const unique_value = new_reset_request.get('unique_value');
+    const email_data = {
+      link,
+      unique_value,
+      name,
+    };
+    console.log(`email_data`, email_data);
+    let email_html = PasswordReset_EMAIL(email_data);
+    const email_result = await send_email({
+      to: user.email,
+      name: name,
+      subject: email_subject,
+      html: email_html
+    });
+    console.log(`email_result`, email_result);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: 'A password reset request has been sent to the provided email!',
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async submit_password_reset_code(code: string, request_origin: string): ServiceMethodAsyncResults {
+    if(!code) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: 'reset code is required'
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const request_result = await ResetPasswordRequests.findOne({ where: { unique_value: code } });
+    if (!request_result) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.NOT_FOUND,
+        error: true,
+        info: {
+          message: 'Invalid code, no reset request found by that value'
+        }
+      };
+      return serviceMethodResults;
+    }
+    if (request_result.get('completed')) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: 'Code has already been used.'
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const user_result = await UserRepo.get_user_by_id(request_result.get(`user_id`));
+    if (!user_result) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `error loading user from reset request...`
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const name = getUserFullName(user_result);
+    const password = uniqueValue();
+    const hash = bcrypt.hashSync(password);
+    console.log({
+      name,
+      password,
+      hash,
+    });
+
+    const update_result = await UserRepo.update_user({ password: hash }, { id: user_result.id });
+    console.log({
+      update_result
+    });
+
+    const request_updates = await request_result.update({ completed: true }, { fields: [`completed`] });
+
+    // send new password email
+    const link = request_origin.endsWith('/')
+      ? (request_origin + 'modern/signin') 
+      : (request_origin + '/modern/signin');
+    const email_subject = `${process.env.APP_NAME} - Password reset successful!`;
+    const email_html = PasswordResetSuccess_EMAIL({
+      name: getUserFullName(user_result),
+      password,
+      link 
+    });
+
+    const email_result = await send_email({
+      to: user_result.email,
+      name: name,
+      subject: email_subject,
+      html: email_html
+    });
+    console.log(`email_result`, email_result);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: 'The Password has been reset! Check your email.'
+      }
+    };
+    return serviceMethodResults;
+  }
+
   static async verify_email(verification_code: string): ServiceMethodAsyncResults {
     const email_verf_model = await EmailVerfRepo.query_email_verification({ verification_code });
     if (!email_verf_model) {
@@ -1149,18 +1334,18 @@ export class UsersService {
 
     if (email_changed) {
       const new_email_verf_model = await EmailVerfRepo.create_email_verification({
-        user_id: you.id,
-        email: you.email
+        user_id: newYou.id,
+        email: newYou.email
       });
       const new_email_verf: PlainObject = new_email_verf_model.get({ plain: true });
   
       const verify_link = (<string> host).endsWith('/')
-        ? (host + 'verify-email/' + new_email_verf.verification_code)
-        : (host + '/verify-email/' + new_email_verf.verification_code);
-      const email_subject = `${process.env.APP_NAME} - Signed Up!`;
-      const userName = you.firstname;
+        ? (host + 'modern/verify-email/' + new_email_verf.verification_code)
+        : (host + '/modern/verify-email/' + new_email_verf.verification_code);
+      const email_subject = `${process.env.APP_NAME} - Email Changed`;
+      const userName = newYou.firstname;
       const email_html = VerifyEmail_EMAIL({
-        ...you,
+        ...newYou,
         name: userName,
         verify_link,
         appName: process.env.APP_NAME
@@ -1168,7 +1353,7 @@ export class UsersService {
   
       // don't "await" for email response.
       const send_email_params = {
-        to: you.email,
+        to: newYou.email,
         name: userName,
         subject: email_subject,
         html: email_html

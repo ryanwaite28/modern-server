@@ -204,7 +204,7 @@ export async function update_user(
       newState,
       whereClause
     });
-    return null;
+    throw e;
   }
 }
 

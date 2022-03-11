@@ -64,6 +64,7 @@ UsersRouter.get('/:user_id/get-followings/:follow_id', FollowsRequestHandler.get
 
 // POST
 UsersRouter.post('/', UsersRequestHandler.sign_up);
+UsersRouter.post('/:email/password-reset', UsersRequestHandler.submit_reset_password_request);
 UsersRouter.post('/:you_id/feedback', YouAuthorized, UsersRequestHandler.send_feedback);
 UsersRouter.post('/:you_id/conversations', YouAuthorized, ConversationsRequestHandler.create_conservation);
 UsersRouter.post('/:you_id/conversations/:conversation_id/messages', YouAuthorized, ConversationMessagesRequestHandler.create_conversation_message);
@@ -76,6 +77,7 @@ UsersRouter.post('/:you_id/customer-cards-payment-methods/:payment_method_id', Y
 
 // PUT
 UsersRouter.put('/', UsersRequestHandler.sign_in);
+UsersRouter.put('/password-reset/:code', UsersRequestHandler.submit_password_reset_code);
 UsersRouter.put('/:you_id/info', YouAuthorized, UsersRequestHandler.update_info);
 UsersRouter.put('/:you_id/password', YouAuthorized, UsersRequestHandler.update_password);
 UsersRouter.put('/:you_id/phone', YouAuthorized, UsersRequestHandler.update_phone);
