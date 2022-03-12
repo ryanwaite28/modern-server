@@ -62,25 +62,17 @@ CliqueMemberRequests.belongsTo(Cliques, { as: 'clique', foreignKey: 'clique_id',
 
 /** Init Database */
 
-export const db_init = async () => {
-  console.log({
-    DB_ENV,
-    // sequelize,
-    // process_env: process.env,
-  });
-
-  // await Photos.sync({ alter: true });
-  // await Videos.sync({ alter: true });
-  // await Audios.sync({ alter: true });
-
-  // console.log(`--- altering done ---`);
-
+export const db_init = async () => {  
   const sequelize_db_sync_options = {
     force: false,
-    alter: true, // !process.env.DATABASE_URL
+    alter: !process.env.DATABASE_URL,
+    // alter: true,
   };
-
-  console.log({ sequelize_db_sync_options });
+  
+  console.log({
+    DB_ENV,
+    sequelize_db_sync_options,
+  });
 
   return sequelize.sync(sequelize_db_sync_options)
     .then(() => {
