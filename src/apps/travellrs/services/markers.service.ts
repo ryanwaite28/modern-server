@@ -82,12 +82,12 @@ export class MarkersService {
     return serviceMethodResults;
   }
 
-  static async toggle_user_reaction(opts: {
+  static async toggle_user_reaction(options: {
     you: IUser,
     marker_id: number,
     reaction: string,
   }) {
-    const { you, marker_id, reaction } = opts;
+    const { you, marker_id, reaction } = options;
 
     if (!reaction) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -205,12 +205,12 @@ export class MarkersService {
     return serviceMethodResults;
   }
 
-  static async create_marker(opts: {
+  static async create_marker(options: {
     data: any,
     you: IUser,
     marker_icon?: UploadedFile
   }) {
-    const { you, data, marker_icon } = opts;
+    const { you, data, marker_icon } = options;
     
     let date_traveled: any = data.date_traveled;
     let time_traveled: any = data.time_traveled;

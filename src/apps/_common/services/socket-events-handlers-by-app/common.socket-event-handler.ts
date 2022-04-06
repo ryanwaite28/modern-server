@@ -1,6 +1,7 @@
 import socket_io from 'socket.io';
 import { COMMON_EVENT_TYPES } from '../../enums/common.enum';
-import { PlainObject } from '../../interfaces/common.interface';
+
+
 
 export class CommonSocketEventsHandler {
   private static io: socket_io.Server;
@@ -19,72 +20,84 @@ export class CommonSocketEventsHandler {
 
     socket.on(`disconnect`, (data: any) => {
       console.log(`disconnecting socket ${socket.id}...`);
-      CommonSocketEventsHandler.removeSocketBySocketId(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.removeSocketBySocketId(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.SOCKET_JOIN_ROOM, (data: any) => {
-      CommonSocketEventsHandler.SOCKET_JOIN_ROOM(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.SOCKET_JOIN_ROOM(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.SOCKET_LEAVE_ROOM, (data: any) => {
-      CommonSocketEventsHandler.SOCKET_LEAVE_ROOM(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.SOCKET_LEAVE_ROOM(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.JOIN_TO_MESSAGING_ROOM, (data: any) => {
-      CommonSocketEventsHandler.JOIN_TO_MESSAGING_ROOM(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.JOIN_TO_MESSAGING_ROOM(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.LEAVE_TO_MESSAGING_ROOM, (data: any) => {
-      CommonSocketEventsHandler.LEAVE_TO_MESSAGING_ROOM(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.LEAVE_TO_MESSAGING_ROOM(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.TO_MESSAGING_ROOM, (data: any) => {
-      CommonSocketEventsHandler.TO_MESSAGING_ROOM(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.TO_MESSAGING_ROOM(io, socket, data);
     });
 
     // socket.on(COMMON_EVENT_TYPES.MESSAGE_TYPING, (data: any) => {
-    //   CommonSocketEventsHandler.MESSAGE_TYPING(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+    //   CommonSocketEventsHandler.MESSAGE_TYPING(io, socket, data);
     // });
 
     // socket.on(COMMON_EVENT_TYPES.MESSAGE_TYPING_STOPPED, (data: any) => {
-    //   CommonSocketEventsHandler.MESSAGE_TYPING_STOPPED(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+    //   CommonSocketEventsHandler.MESSAGE_TYPING_STOPPED(io, socket, data);
     // });
 
     socket.on(COMMON_EVENT_TYPES.CONVERSATION_EVENTS_SUBSCRIBED, (data: any) => {
-      CommonSocketEventsHandler.CONVERSATION_EVENTS_SUBSCRIBED(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.CONVERSATION_EVENTS_SUBSCRIBED(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.CONVERSATION_EVENTS_UNSUBSCRIBED, (data: any) => {
-      CommonSocketEventsHandler.CONVERSATION_EVENTS_UNSUBSCRIBED(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.CONVERSATION_EVENTS_UNSUBSCRIBED(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.CONVERSATION_MESSAGE_TYPING, (data: any) => {
-      CommonSocketEventsHandler.CONVERSATION_MESSAGE_TYPING(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.CONVERSATION_MESSAGE_TYPING(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.CONVERSATION_MESSAGE_TYPING_STOPPED, (data: any) => {
-      CommonSocketEventsHandler.CONVERSATION_MESSAGE_TYPING_STOPPED(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.CONVERSATION_MESSAGE_TYPING_STOPPED(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.SOCKET_TRACK, (data: any) => {
-      CommonSocketEventsHandler.SOCKET_TRACK(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.SOCKET_TRACK(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.SOCKET_UNTRACK, (data: any) => {
-      CommonSocketEventsHandler.SOCKET_UNTRACK(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.SOCKET_UNTRACK(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.MESSAGING_EVENTS_SUBSCRIBED, (data: any) => {
-      CommonSocketEventsHandler.MESSAGING_EVENTS_SUBSCRIBED(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.MESSAGING_EVENTS_SUBSCRIBED(io, socket, data);
     });
 
     socket.on(COMMON_EVENT_TYPES.MESSAGING_EVENTS_UNSUBSCRIBED, (data: any) => {
-      CommonSocketEventsHandler.MESSAGING_EVENTS_UNSUBSCRIBED(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.MESSAGING_EVENTS_UNSUBSCRIBED(io, socket, data);
     });
 
     // socket.on(COMMON_EVENT_TYPES.SOCKET_TO_USER_EVENT, (data: any) => {
-    //   CommonSocketEventsHandler.SOCKET_TO_USER_EVENT(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+    //   CommonSocketEventsHandler.SOCKET_TO_USER_EVENT(io, socket, data);
     // });
+
+    socket.on(COMMON_EVENT_TYPES.MESSAGING_EVENTS_UNSUBSCRIBED, (data: any) => {
+      CommonSocketEventsHandler.MESSAGING_EVENTS_UNSUBSCRIBED(io, socket, data);
+    });
+
+    socket.on(`EMIT_TO_ROOM`, (data: any) => {
+      CommonSocketEventsHandler.EMIT_TO_ROOM(io, socket, data);
+    });
+
+    socket.on(`EMIT_TO_USER`, (data: any) => {
+      CommonSocketEventsHandler.EMIT_TO_USER(io, socket, data);
+    });
   }
 
 
@@ -95,8 +108,6 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>
   ) {
     const validEventData = (
       data.hasOwnProperty('room') &&
@@ -120,8 +131,6 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>
   ) {
     const validEventData = (
       data.hasOwnProperty('room') &&
@@ -145,13 +154,11 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>
   ) {
-    let roomKey = userSocketsRoomKeyByUserId.get(data.user_id);
+    let roomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(data.user_id);
     if (!roomKey) {
       roomKey = Date.now().toString();
-      userSocketsRoomKeyByUserId.set(data.user_id, roomKey);
+      CommonSocketEventsHandler.userSocketsRoomKeyByUserId.set(data.user_id, roomKey);
     }
 
     socket.join(roomKey, (err: any) => {
@@ -159,8 +166,7 @@ export class CommonSocketEventsHandler {
       console.log(`roomKey`, roomKey);
     });
 
-
-    userIdsBySocket.set(socket.id, data.user_id);
+    CommonSocketEventsHandler.userIdsBySocket.set(socket.id, data.user_id);
 
     console.log(
       `addUserSocket() - CommonSocketEventsHandler.userIdsBySocket:`, 
@@ -176,8 +182,6 @@ export class CommonSocketEventsHandler {
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>
   ) {
     socket.leaveAll();
     // for (const keyVal of userSocketsRoomKeyByUserId.entries()) {
@@ -195,9 +199,9 @@ export class CommonSocketEventsHandler {
     //   }
     // }
 
-    if (userIdsBySocket.has(socket.id)) {
-      const user_id: number = userIdsBySocket.get(socket.id)!;
-      const roomKey: string | undefined = userSocketsRoomKeyByUserId.get(user_id);
+    if (CommonSocketEventsHandler.userIdsBySocket.has(socket.id)) {
+      const user_id: number = CommonSocketEventsHandler.userIdsBySocket.get(socket.id)!;
+      const roomKey: string | undefined = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(user_id);
 
       if (roomKey) {
         socket.leave(roomKey);
@@ -213,11 +217,11 @@ export class CommonSocketEventsHandler {
   
         if (socket_ids.length === 0) {
           console.log(`user has no more sockets in room "${roomKey}"; deleting room...`);
-          userSocketsRoomKeyByUserId.delete(user_id);
+          CommonSocketEventsHandler.userSocketsRoomKeyByUserId.delete(user_id);
         }
       }
 
-      userIdsBySocket.delete(socket.id);
+      CommonSocketEventsHandler.userIdsBySocket.delete(socket.id);
     }
 
     console.log(
@@ -230,6 +234,10 @@ export class CommonSocketEventsHandler {
     );
   }
 
+  static getUserRoomKey(user_id: number) {
+    return CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(user_id);
+  }
+
   static emitEventToUserSockets(params: {
     event: string;
     data: any;
@@ -237,24 +245,37 @@ export class CommonSocketEventsHandler {
   }) {
     let roomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(params.user_id);
     if (!roomKey) {
-      console.log(`CommonSocketEventsHandler.emitEventToUser - no roomKey bu user Id`);
+      console.log(`CommonSocketEventsHandler.emitEventToUser - no roomKey by user Id`);
       return;
     }
     if (!('event' in params.data)) {
       params.data.event = params.event;
     }
-    this.io.to(roomKey).emit(params.event, params.data);
-    this.io.to(roomKey).emit(`FOR-USER:${params.user_id}`, params.data);
+    CommonSocketEventsHandler.io.to(roomKey).emit(params.event, params.data);
+    // CommonSocketEventsHandler.io.to(roomKey).emit(`FOR-USER:${params.user_id}`, params.data);
+  }
+
+  static emitEventToRoom(params: {
+    event: string;
+    data: any;
+    room: string;
+  }) {
+    if (!params.room) {
+      console.log(`CommonSocketEventsHandler.emitEventToRoom - no roomKey given`);
+      return;
+    }
+    if (!('event' in params.data)) {
+      params.data.event = params.event;
+    }
+    CommonSocketEventsHandler.io.to(params.room).emit(params.event, params.data);
   }
 
   public static emitUserToUserEvent(
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>
   ) {
-    const forUserSocketsRoomKey = userSocketsRoomKeyByUserId.get(data.to_user_id);
+    const forUserSocketsRoomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(data.to_user_id);
     if (forUserSocketsRoomKey) {
       socket.to(forUserSocketsRoomKey).emit(data.eventName, data);
     }
@@ -282,9 +303,7 @@ export class CommonSocketEventsHandler {
   private static JOIN_TO_MESSAGING_ROOM(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('messaging_id') &&
@@ -312,9 +331,7 @@ export class CommonSocketEventsHandler {
   private static LEAVE_TO_MESSAGING_ROOM(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('messaging_id') &&
@@ -342,9 +359,7 @@ export class CommonSocketEventsHandler {
   private static TO_MESSAGING_ROOM(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('from_user_id') &&
@@ -371,9 +386,7 @@ export class CommonSocketEventsHandler {
   private static MESSAGE_TYPING(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('to_user_id') &&
@@ -385,15 +398,13 @@ export class CommonSocketEventsHandler {
     }
 
     data.eventName = COMMON_EVENT_TYPES.MESSAGE_TYPING;
-    CommonSocketEventsHandler.emitUserToUserEvent(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+    CommonSocketEventsHandler.emitUserToUserEvent(io, socket, data);
   }
 
   private static MESSAGE_TYPING_STOPPED(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('to_user_id') &&
@@ -405,15 +416,13 @@ export class CommonSocketEventsHandler {
     }
 
     data.eventName = COMMON_EVENT_TYPES.MESSAGE_TYPING_STOPPED;
-    CommonSocketEventsHandler.emitUserToUserEvent(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+    CommonSocketEventsHandler.emitUserToUserEvent(io, socket, data);
   }
 
   private static CONVERSATION_EVENTS_SUBSCRIBED(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('conversation_id') &&
@@ -437,9 +446,7 @@ export class CommonSocketEventsHandler {
   private static CONVERSATION_EVENTS_UNSUBSCRIBED(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('conversation_id') &&
@@ -459,9 +466,7 @@ export class CommonSocketEventsHandler {
   private static CONVERSATION_MESSAGE_TYPING(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('conversation_id') &&
@@ -478,9 +483,7 @@ export class CommonSocketEventsHandler {
   private static CONVERSATION_MESSAGE_TYPING_STOPPED(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('conversation_id') &&
@@ -497,9 +500,7 @@ export class CommonSocketEventsHandler {
   private static SOCKET_TRACK(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('user_id') &&
@@ -510,15 +511,69 @@ export class CommonSocketEventsHandler {
       return;
     }
 
-    CommonSocketEventsHandler.addUserSocket(io, socket, data, userIdsBySocket, userSocketsRoomKeyByUserId);
+    CommonSocketEventsHandler.addUserSocket(io, socket, data);
+  }
+
+  private static EMIT_TO_ROOM(
+    io: socket_io.Server,
+    socket: socket_io.Socket,
+    data: any
+  ) {
+    const validEventData = 
+    (
+      data.hasOwnProperty('to_room') &&
+      typeof(data.to_room) === 'string'
+    ) &&
+    (
+      data.hasOwnProperty('event_name') &&
+      typeof(data.event_name) === 'string'
+    );
+    if (!validEventData) {
+      io.to(socket.id).emit(`EMIT_TO_ROOM-error`, { message: `to_room (string) is required; event_name (string) is required` });
+      return;
+    }
+
+    io.to(data.to_room).emit(data.event_name, data);
+
+    CommonSocketEventsHandler.addUserSocket(io, socket, data);
+  }
+
+  private static EMIT_TO_USER(
+    io: socket_io.Server,
+    socket: socket_io.Socket,
+    data: any
+  ) {
+    const validEventData = 
+    (
+      data.hasOwnProperty('user_id') &&
+      typeof(data.user_id) === 'number'
+    ) &&
+    (
+      data.hasOwnProperty('event_name') &&
+      typeof(data.event_name) === 'string'
+    ) &&
+    (
+      data.hasOwnProperty('data') &&
+      typeof(data.data) === 'object'
+    );
+    if (!validEventData) {
+      io.to(socket.id).emit(`EMIT_TO_USER-error`, { message: `user_id (number) is required; event_name (string) is required; data (object) is required` });
+      return;
+    }
+
+    console.log(`EMIT_TO_USER event:`, data);
+
+    CommonSocketEventsHandler.emitEventToUserSockets({
+      user_id: data.user_id,
+      data: data.data,
+      event: data.event_name,
+    });
   }
 
   private static SOCKET_UNTRACK(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('previous_socket_id') &&
@@ -531,10 +586,10 @@ export class CommonSocketEventsHandler {
 
     const previous_socket_id: string = data.previous_socket_id as string;
 
-    if (userIdsBySocket.has(previous_socket_id)) {
+    if (CommonSocketEventsHandler.userIdsBySocket.has(previous_socket_id)) {
       console.log(`Untracking ${previous_socket_id}...`);
-      const user_id: number = userIdsBySocket.get(previous_socket_id)!;
-      const roomKey: string | undefined = userSocketsRoomKeyByUserId.get(user_id);
+      const user_id: number = CommonSocketEventsHandler.userIdsBySocket.get(previous_socket_id)!;
+      const roomKey: string | undefined = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(user_id);
 
       if (roomKey) {
         const sockets_id_map = io.in(roomKey).sockets;
@@ -542,20 +597,18 @@ export class CommonSocketEventsHandler {
   
         if (socket_ids.length === 0) {
           console.log(`user has no more sockets in room "${roomKey}"; deleting room...`);
-          userSocketsRoomKeyByUserId.delete(user_id);
+          CommonSocketEventsHandler.userSocketsRoomKeyByUserId.delete(user_id);
         }
       }
 
-      userIdsBySocket.delete(socket.id);
+      CommonSocketEventsHandler.userIdsBySocket.delete(socket.id);
     }
   }
 
   private static MESSAGING_EVENTS_SUBSCRIBED(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('messaging_id') &&
@@ -579,9 +632,7 @@ export class CommonSocketEventsHandler {
   private static MESSAGING_EVENTS_UNSUBSCRIBED(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    data: any,
-    userIdsBySocket: Map<string, number>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
+    data: any
   ) {
     const validEventData = (
       data.hasOwnProperty('messaging_id') &&

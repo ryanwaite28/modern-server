@@ -18,12 +18,12 @@ import { ServiceMethodResults } from '../types/common.types';
 import { SocketsService } from './sockets.service';
 
 export class ConversationMessagesService {
-  static async get_conversation_messages(opts: {
+  static async get_conversation_messages(options: {
     you_id: number,
     conversation_id: number,
     message_id: number,
   }) {
-    const { you_id, conversation_id, message_id } = opts;
+    const { you_id, conversation_id, message_id } = options;
     const conversation_member_model = await ConversationMembers.findOne({
       where: { conversation_id, user_id: you_id }
     });
@@ -66,11 +66,11 @@ export class ConversationMessagesService {
     return serviceMethodResults;
   }
 
-  static async update_conversation_last_opened(opts: {
+  static async update_conversation_last_opened(options: {
     you_id: number,
     conversation_id: number,
   }) {
-    const { you_id, conversation_id } = opts;
+    const { you_id, conversation_id } = options;
 
     console.log(`updating last opened for conversation`);
     const updates = await ConversationLastOpeneds.update({ last_opened: fn('NOW') }, {
@@ -90,13 +90,13 @@ export class ConversationMessagesService {
     return serviceMethodResults;
   }
 
-  static async create_conversation_message(opts: {
+  static async create_conversation_message(options: {
     you_id: number,
     conversation_id: number,
     parent_message_id: number,
     body: string,
   }) {
-    let { you_id, conversation_id, parent_message_id, body } = opts;
+    let { you_id, conversation_id, parent_message_id, body } = options;
     body = body && body.trim();
 
     const conversation_member_model = await ConversationMembers.findOne({
@@ -158,12 +158,12 @@ export class ConversationMessagesService {
     return serviceMethodResults;
   }
 
-  static async mark_message_as_seen(opts: {
+  static async mark_message_as_seen(options: {
     you_id: number,
     conversation_id: number,
     message_id: number,
   }) {
-    const { you_id, conversation_id, message_id } = opts;
+    const { you_id, conversation_id, message_id } = options;
 
     let seen_message_model: IMyModel | null = await ConversationMessageSeens.findOne({
       where: { conversation_id, message_id, user_id: you_id, seen: true }

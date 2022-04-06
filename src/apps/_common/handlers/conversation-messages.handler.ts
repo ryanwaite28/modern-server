@@ -30,9 +30,9 @@ export class ConversationMessagesRequestHandler {
     const conversation_id = parseInt(request.params.conversation_id, 10);
     const body = request.body.body && request.body.body.trim();
     const parent_message_id = request.body.parent_message_id || null;
-    const opts = { you_id, conversation_id, body, parent_message_id };
+    const options = { you_id, conversation_id, body, parent_message_id };
 
-    const serviceMethodResults: ServiceMethodResults = await ConversationMessagesService.create_conversation_message(opts);
+    const serviceMethodResults: ServiceMethodResults = await ConversationMessagesService.create_conversation_message(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -41,9 +41,9 @@ export class ConversationMessagesRequestHandler {
     const you_id = parseInt(request.params.you_id, 10);
     const message_id = parseInt(request.params.message_id, 10);
     const conversation_id = parseInt(request.params.conversation_id, 10);
-    const opts = { you_id, message_id, conversation_id };
+    const options = { you_id, message_id, conversation_id };
     
-    const serviceMethodResults: ServiceMethodResults = await ConversationMessagesService.mark_message_as_seen(opts);
+    const serviceMethodResults: ServiceMethodResults = await ConversationMessagesService.mark_message_as_seen(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 }

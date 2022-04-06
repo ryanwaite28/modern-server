@@ -20,7 +20,7 @@ export class ResourcesService {
     return createGenericServiceMethodSuccess<IMyModel | null>(undefined, resource_model);
   }
 
-  static async create_resource(opts: {
+  static async create_resource(options: {
     you: IUser | {
       id: number,
     },
@@ -32,7 +32,7 @@ export class ResourcesService {
       link: string,
     }
   }): ServiceMethodAsyncResults {
-    const { you, data, icon_file } = opts;
+    const { you, data, icon_file } = options;
     const { title, description, resource_type, link } = data;
 
     if (!title || !title.trim()) {
@@ -77,7 +77,7 @@ export class ResourcesService {
     return createGenericServiceMethodSuccess(`Resource created successfully!`, resource_model);
   }
 
-  static async update_resource(opts: {
+  static async update_resource(options: {
     you: IUser | {
       id: number,
     },
@@ -90,7 +90,7 @@ export class ResourcesService {
       link: string,
     }
   }): ServiceMethodAsyncResults {
-    const { you, data, icon_file, resource_id } = opts;
+    const { you, data, icon_file, resource_id } = options;
     const { title, description, resource_type, link } = data;
 
     if (!title || !title.trim()) {

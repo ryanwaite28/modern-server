@@ -34,13 +34,13 @@ export class CliquesService {
     return createGenericServiceMethodSuccess(undefined, clique_model);
   }
 
-  static async create_clique(opts: {
+  static async create_clique(options: {
     you: IUser,
     title: string,
     summary: string,
     icon_file: UploadedFile | undefined,
   }): ServiceMethodAsyncResults {
-    const { you, title, summary, icon_file } = opts;
+    const { you, title, summary, icon_file } = options;
 
     if (!title) {
       return createGenericServiceMethodError('title is required; it was empty...');
@@ -79,14 +79,14 @@ export class CliquesService {
     return createGenericServiceMethodSuccess(`Clique created successfully!`, clique_model);
   }
 
-  static async update_clique(opts: {
+  static async update_clique(options: {
     you: IUser,
     clique_id: number,
     title: string,
     summary: string,
     icon_file: UploadedFile | undefined,
   }): ServiceMethodAsyncResults {
-    const { you, title, summary, clique_id, icon_file } = opts;
+    const { you, title, summary, clique_id, icon_file } = options;
 
     if (!title) {
       return createGenericServiceMethodError('title is required; it was empty...');

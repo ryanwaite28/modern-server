@@ -323,12 +323,12 @@ export class CliqueMembersService {
     return createGenericServiceMethodSuccess(undefined, newList);
   }
 
-  static async send_clique_member_request(opts: {
+  static async send_clique_member_request(options: {
     you_id: number,
     user_id: number,
     clique_model: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you_id, user_id, clique_model } = opts;
+    const { you_id, user_id, clique_model } = options;
     const clique_id: number = clique_model.get('id');
 
     // check if they are a clique member already
@@ -391,12 +391,12 @@ export class CliqueMembersService {
     return createGenericServiceMethodSuccess(`Member invitation sent!`, member_request_model);
   }
 
-  static async cancel_clique_member_request(opts: {
+  static async cancel_clique_member_request(options: {
     you: IUser,
     member_request_id: number,
     clique_model: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, clique_model, member_request_id } = opts;
+    const { you, clique_model, member_request_id } = options;
     const clique_id: number = clique_model.get('id');
 
     const check_request_model = await CliqueMemberRequests.findOne({
@@ -427,12 +427,12 @@ export class CliqueMembersService {
     return createGenericServiceMethodSuccess( `Member invitation canceled`, deletes);
   }
 
-  static async accept_clique_member_request(opts: {
+  static async accept_clique_member_request(options: {
     you: IUser,
     member_request_id: number,
     clique_model: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, clique_model, member_request_id } = opts;
+    const { you, clique_model, member_request_id } = options;
     const clique_id: number = clique_model.get('id');
 
     // check if there is a request
@@ -498,12 +498,12 @@ export class CliqueMembersService {
     return createGenericServiceMethodSuccess(`Member invitation accepted`, new_member);
   }
 
-  static async decline_clique_member_request(opts: {
+  static async decline_clique_member_request(options: {
     you: IUser,
     member_request_id: number,
     clique_model: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, clique_model, member_request_id } = opts;
+    const { you, clique_model, member_request_id } = options;
     const clique_id: number = clique_model.get('id');
 
     // check if there is a request

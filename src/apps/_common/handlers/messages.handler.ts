@@ -9,9 +9,9 @@ export class MessagesRequestHandler {
     const you_id: number = parseInt(request.params.you_id, 10);
     const user_id: number = parseInt(request.params.user_id, 10);
     const min_id: number = parseInt(request.params.min_id, 10);
-    const opts = { you_id, user_id, min_id };
+    const options = { you_id, user_id, min_id };
     
-    const serviceMethodResults: ServiceMethodResults = await MessagesService.get_user_messages(opts);
+    const serviceMethodResults: ServiceMethodResults = await MessagesService.get_user_messages(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
   
@@ -20,9 +20,9 @@ export class MessagesRequestHandler {
     const you_id: number = parseInt(request.params.you_id, 10);
     const user_id: number = parseInt(request.params.user_id, 10);
     const body: string = request.body.body;
-    const opts = { you_id, user_id, body };
+    const options = { you_id, user_id, body };
 
-    const serviceMethodResults: ServiceMethodResults = await MessagesService.send_user_message(opts);
+    const serviceMethodResults: ServiceMethodResults = await MessagesService.send_user_message(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

@@ -35,30 +35,30 @@ export class RecipesRequestHandler {
   }
 
   static async create_recipe(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       data: JSON.parse(request.body.payload) as PlainObject,
       recipe_image: request.files && (<UploadedFile> request.files.recipe_image) as UploadedFile | undefined,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await RecipesService.create_recipe(opts);
+    const serviceMethodResults: ServiceMethodResults = await RecipesService.create_recipe(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   static async update_recipe(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       recipe_model: response.locals.recipe_model as IRecipeModel,
       data: JSON.parse(request.body.payload) as PlainObject,
       recipe_image: request.files && (<UploadedFile> request.files.recipe_image) as UploadedFile | undefined,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await RecipesService.update_recipe(opts);
+    const serviceMethodResults: ServiceMethodResults = await RecipesService.update_recipe(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   static async update_recipe_ingredient(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       ingredient_id: parseInt(request.params.ingredient_id, 10) as number,
       data: {
         name: request.body.name,
@@ -66,7 +66,7 @@ export class RecipesRequestHandler {
       }
     };
 
-    const serviceMethodResults: ServiceMethodResults = await RecipesService.update_recipe_ingredient(opts);
+    const serviceMethodResults: ServiceMethodResults = await RecipesService.update_recipe_ingredient(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

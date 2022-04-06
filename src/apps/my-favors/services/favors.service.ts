@@ -66,12 +66,12 @@ const favorCommonFindCriteria = {
 export class FavorsService {
 
   @CatchAsyncServiceError()
-  static async search_favors(opts: {
+  static async search_favors(options: {
     you_id: number,
     city: string,
     state: string,
   }): ServiceMethodAsyncResults {
-    let { you_id, city, state } = opts;
+    let { you_id, city, state } = options;
 
     const useFind = Object.assign({}, favorCommonFindCriteria);
     (<any> useFind.where)['city'] = city;
@@ -118,13 +118,13 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async send_favor_message(opts: {
+  static async send_favor_message(options: {
     you: IUser,
     body: string,
     favor_model?: IMyModel,
     favor_id?: number,
   }): ServiceMethodAsyncResults {
-    const { you, body, favor_id, favor_model } = opts;
+    const { you, body, favor_id, favor_model } = options;
     
     const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
@@ -231,7 +231,7 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async create_favor_update(opts: {
+  static async create_favor_update(options: {
     you: IUser,
     favor_model?: IMyModel,
     favor_id?: number,
@@ -242,7 +242,7 @@ export class FavorsService {
       helper_lng: number,
     }
   }): ServiceMethodAsyncResults {
-    const { you, data, update_image, favor_id, favor_model } = opts;
+    const { you, data, update_image, favor_id, favor_model } = options;
     
     const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
@@ -542,13 +542,13 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async create_favor(opts: {
+  static async create_favor(options: {
     you: IUser,
     favor_image: UploadedFile | undefined,
     data: PlainObject | ICreateUpdateFavor,
   }): ServiceMethodAsyncResults {
     try {
-      const { you, favor_image, data } = opts;
+      const { you, favor_image, data } = options;
       const createObj: PlainObject = {
         owner_id: you.id
       };
@@ -631,13 +631,13 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async update_favor(opts: {
+  static async update_favor(options: {
     you: IUser,
     favor_model?: IMyModel,
     favor_id?: number,
     data: PlainObject | ICreateUpdateFavor,
   }): ServiceMethodAsyncResults {
-    const { you, favor_id, favor_model, data } = opts;
+    const { you, favor_id, favor_model, data } = options;
     const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
       return check;
@@ -744,12 +744,12 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async assign_favor(opts: {
+  static async assign_favor(options: {
     you: IUser,
     favor_id?: number,
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, favor_id, favor_model } = opts;
+    const { you, favor_id, favor_model } = options;
     const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
       return check;
@@ -861,12 +861,12 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async unassign_favor(opts: {
+  static async unassign_favor(options: {
     you: IUser,
     favor_id?: number,
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, favor_id, favor_model } = opts;
+    const { you, favor_id, favor_model } = options;
     const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
       return check;
@@ -955,12 +955,12 @@ export class FavorsService {
   }
   
   @CatchAsyncServiceError()
-  static async mark_favor_as_started(opts: {
+  static async mark_favor_as_started(options: {
     you: IUser,
     favor_id?: number,
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, favor_id, favor_model } = opts;
+    const { you, favor_id, favor_model } = options;
     const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
       return check;
@@ -1068,12 +1068,12 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async mark_favor_as_fulfilled(opts: {
+  static async mark_favor_as_fulfilled(options: {
     you: IUser,
     favor_id?: number,
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, favor_id, favor_model } = opts;
+    const { you, favor_id, favor_model } = options;
     const check: ServiceMethodResults<IMyModel | undefined> = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
       return check;
@@ -1182,13 +1182,13 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async mark_favor_as_canceled(opts: {
+  static async mark_favor_as_canceled(options: {
     you: IUser,
     favor_id?: number,
     favor_model?: IMyModel,
     reason?: string,
   }): ServiceMethodAsyncResults {
-    const { you, favor_id, favor_model, reason } = opts;
+    const { you, favor_id, favor_model, reason } = options;
     const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
       return check;
@@ -1312,12 +1312,12 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async mark_favor_as_uncanceled(opts: {
+  static async mark_favor_as_uncanceled(options: {
     you: IUser,
     favor_id?: number,
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, favor_id, favor_model } = opts;
+    const { you, favor_id, favor_model } = options;
     const check: ServiceMethodResults<IMyModel> = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
       return check;
@@ -1350,13 +1350,13 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async mark_helper_as_helped(opts: {
+  static async mark_helper_as_helped(options: {
     you: IUser,
     user_id: number,
     favor_id?: number,
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, user_id, favor_id, favor_model } = opts;
+    const { you, user_id, favor_id, favor_model } = options;
     const check: ServiceMethodResults<IMyModel> = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
       return check;
@@ -1452,13 +1452,13 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async mark_helper_as_unhelped(opts: {
+  static async mark_helper_as_unhelped(options: {
     you: IUser,
     user_id: number,
     favor_id?: number,
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, user_id, favor_id, favor_model } = opts;
+    const { you, user_id, favor_id, favor_model } = options;
     const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
       return check;
@@ -1575,11 +1575,11 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async update_settings(opts: {
+  static async update_settings(options: {
     you_id: number,
     data: PlainObject,
   }): ServiceMethodAsyncResults {
-    const { you_id, data } = opts;
+    const { you_id, data } = options;
 
     const updatesObj: any = {};
 
@@ -1618,13 +1618,13 @@ export class FavorsService {
   }
 
   @CatchAsyncServiceError()
-  static async pay_helper(opts: {
+  static async pay_helper(options: {
     you: IUser,
     user: IUser,
     favor_id?: number,
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, user, favor_id, favor_model } = opts;
+    const { you, user, favor_id, favor_model } = options;
     const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
     if (check.error) {
       return check;

@@ -43,11 +43,11 @@ export interface IGenericModelCrudService {
   get_model_by_id: (model_id: number) => ServiceMethodAsyncResults,
   get_models_all: (user_id: number) => ServiceMethodAsyncResults,
   get_user_models: (user_id: number, model_id: number) => ServiceMethodAsyncResults,
-  create_model: (opts: {
+  create_model: (options: {
     you: IUser,
     data: any,
   }) => ServiceMethodAsyncResults,
-  update_model: (opts: {
+  update_model: (options: {
     model: IMyModel,
     data: any,
   }) => ServiceMethodAsyncResults,
@@ -118,11 +118,11 @@ export function createCommonGenericModelCrudService (
       return serviceMethodResults;
     }
   
-    static async create_model(opts: {
+    static async create_model(options: {
       you: IUser,
       data: any,
     }) {
-      const { you, data } = opts;
+      const { you, data } = options;
       const createObj: any = {};
 
       const dataValidation = validateData({
@@ -156,11 +156,11 @@ export function createCommonGenericModelCrudService (
       return serviceMethodResults;
     }
   
-    static async update_model(opts: {
+    static async update_model(options: {
       model: IMyModel,
       data: any,
     }) {
-      const { model, data } = opts;
+      const { model, data } = options;
       const model_id = model.get('id');
       const updatesObj: any = {};
 

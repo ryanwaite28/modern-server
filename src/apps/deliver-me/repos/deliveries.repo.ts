@@ -10,6 +10,7 @@ import {
   Order
 } from 'sequelize';
 import {
+  COMMON_STATUSES,
   convertModel,
   convertModelCurry,
   convertModels,
@@ -20,6 +21,8 @@ import { IUser, PlainObject } from '../../_common/interfaces/common.interface';
 import { Users } from '../../_common/models/user.model';
 import {
   Delivery,
+  DeliveryCarrierTrackLocationRequests,
+  DeliveryCarrierTrackLocationUpdates,
   DeliveryMessages,
   DeliveryTrackingUpdates
 } from '../models/delivery.model';
@@ -50,39 +53,60 @@ export const deliveryTrackingOrderBy: Order = [
 const convertDeliveryModel = convertModelCurry<IDelivery>();
 const convertDeliveryModels = convertModelsCurry<IDelivery>();
 
-export const deliveryMasterIncludes: Includeable[] = [{
-  model: Users,
-  as: 'owner',
-  attributes: user_attrs_slim,
-  include: [{
-    model: DeliverMeUserProfileSettings,
-    as: 'deliverme_settings',
-  }]
-}, {
-  model: Users,
-  as: 'carrier',
-  attributes: user_attrs_slim,
-  include: [{
-    model: DeliverMeUserProfileSettings,
-    as: 'deliverme_settings',
-  }]
-}, {
-  model: DeliveryTrackingUpdates,
-  as: 'deliverme_delivery_tracking_updates',
-  include: [{
+export const deliveryMasterIncludes: Includeable[] = [
+  {
     model: Users,
-    as: 'user',
-    attributes: user_attrs_slim
-  }]
-}, {
-  model: DeliveryMessages,
-  as: 'delivery_messages',
-  include: [{
+    as: 'owner',
+    attributes: user_attrs_slim,
+    include: [
+      {
+        model: DeliverMeUserProfileSettings,
+        as: 'deliverme_settings',
+      }
+    ]
+  }, 
+  {
     model: Users,
-    as: 'user',
-    attributes: user_attrs_slim
-  }]
-}];
+    as: 'carrier',
+    attributes: user_attrs_slim,
+    include: [
+      {
+        model: DeliverMeUserProfileSettings,
+        as: 'deliverme_settings',
+      }
+    ]
+  }, 
+  {
+    model: DeliveryTrackingUpdates,
+    as: 'deliverme_delivery_tracking_updates',
+    include: [
+      {
+        model: Users,
+        as: 'user',
+        attributes: user_attrs_slim
+      }
+    ]
+  },
+  {
+    model: DeliveryCarrierTrackLocationRequests,
+    as: `delivery_carrier_track_location_requests`,
+  },
+  {
+    model: DeliveryCarrierTrackLocationUpdates,
+    as: `delivery_carrier_track_location_updates`,
+  },
+  {
+    model: DeliveryMessages,
+    as: 'delivery_messages',
+    include: [
+      {
+        model: Users,
+        as: 'user',
+        attributes: user_attrs_slim
+      }
+    ]
+  }
+];
 
 export const deliveryGeneralIncludes: Includeable[] = [{
   model: Users,
@@ -428,5 +452,83 @@ export function get_user_delivering_completed_count(user_id: number) {
 export function get_user_delivering_inprogress_count(user_id: number) {
   return Delivery.count({
     where: { carrier_id: user_id, completed: false }
+  });
+}
+
+export function get_delivery_carrier_location_request_pending(delivery_id: number) {
+  return DeliveryCarrierTrackLocationRequests.findOne({
+    where: {
+      delivery_id,
+      status: COMMON_STATUSES.PENDING,
+    }
+  });
+}
+
+export function create_delivery_carrier_location_request(delivery_id: number) {
+  return DeliveryCarrierTrackLocationRequests.create({
+    delivery_id,
+    status: COMMON_STATUSES.PENDING,
+  });
+}
+
+
+
+export function set_delivery_carrier_location_requested(id: number, carrier_location_requested: boolean) {
+  return Delivery.update(
+    { carrier_location_requested },
+    { where: { id } }
+  ).then((results) => {
+    console.log({ results });
+    return results;
+  });
+}
+
+export function set_delivery_carrier_shared_location(id: number, carrier_shared_location: boolean) {
+  if (!carrier_shared_location) {
+    return Delivery.update(
+      { carrier_shared_location, carrier_location_request_completed: true, carrier_latest_lat: null, carrier_latest_lng: null },
+      { where: { id } }
+    ).then((results) => {
+      console.log({ results });
+      return results;
+    });
+  }
+
+  return Delivery.update(
+    { carrier_shared_location, carrier_location_request_completed: true },
+    { where: { id } }
+  ).then((results) => {
+    console.log({ results });
+    return results;
+  });
+}
+
+export function set_delivery_carrier_lat_lng_location(params: {
+  id: number,
+  carrier_latest_lat: number | null,
+  carrier_latest_lng: number | null,
+}) {
+  const { id, carrier_latest_lat, carrier_latest_lng } = params;
+
+  return Delivery.update(
+    { carrier_latest_lat, carrier_latest_lng },
+    { where: { id } }
+  ).then((results) => {
+    console.log({ results });
+    return results;
+  });
+}
+
+export function create_delivery_carrier_lat_lng_location_update(params: {
+  delivery_id: number,
+  lat: number,
+  lng: number,
+}) {
+  const { delivery_id, lat, lng } = params;
+
+  return DeliveryCarrierTrackLocationUpdates.create({
+    delivery_id,
+    lat, 
+    lng,
   });
 }

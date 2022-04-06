@@ -75,9 +75,9 @@ export class NoticesRequestHandler {
     const data: PlainObject = request.body;
     const photo_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.photos);
     let filesInfo: PlainObject[] = data.filesInfo || [];
-    const opts = { you_id: you.id, data, photo_files, filesInfo };
+    const options = { you_id: you.id, data, photo_files, filesInfo };
 
-    const serviceMethodResults: ServiceMethodResults = await NoticesService.create_notice(opts);
+    const serviceMethodResults: ServiceMethodResults = await NoticesService.create_notice(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

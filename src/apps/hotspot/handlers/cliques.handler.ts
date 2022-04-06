@@ -19,14 +19,14 @@ export class CliquesRequestHandler {
   static async create_clique(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const icon_file: UploadedFile | undefined = request.files && (<UploadedFile> request.files.icon);
-    const opts = {
+    const options = {
       you,
       icon_file,
       title: request.body.title,
       summary: request.body.title,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await CliquesService.create_clique(opts);
+    const serviceMethodResults: ServiceMethodResults = await CliquesService.create_clique(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -34,7 +34,7 @@ export class CliquesRequestHandler {
     const you: IUser = response.locals.you;
     const clique_id: number = parseInt(request.params.clique_id, 10);
     const icon_file: UploadedFile | undefined = request.files && (<UploadedFile> request.files.icon);
-    const opts = {
+    const options = {
       you,
       icon_file,
       clique_id,
@@ -42,7 +42,7 @@ export class CliquesRequestHandler {
       summary: request.body.title,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await CliquesService.update_clique(opts);
+    const serviceMethodResults: ServiceMethodResults = await CliquesService.update_clique(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

@@ -13,12 +13,12 @@ import { IMyModel } from '../../_common/models/common.model-types';
 
 export class HotspotUsersService {
 
-  static async get_search_results(opts: {
+  static async get_search_results(options: {
     model: string,
     query: string,
     min_id?: number,
   }): ServiceMethodAsyncResults {
-    const { model, query, min_id } = opts;
+    const { model, query, min_id } = options;
 
     if (!model) {
       return createGenericServiceMethodError(`model query param is required`);
@@ -96,13 +96,13 @@ export class HotspotUsersService {
     }
   }
 
-  static async get_user_feed(opts: {
+  static async get_user_feed(options: {
     user_id: number,
     min_id: number,
     feed_type: string,
     limit?: number | string
   }): ServiceMethodAsyncResults {
-    const { user_id, min_id, feed_type, limit } = opts;
+    const { user_id, min_id, feed_type, limit } = options;
 
     if (!feed_type) {
       return createGenericServiceMethodError(`feed_type query param is required`);

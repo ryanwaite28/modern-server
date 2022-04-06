@@ -52,7 +52,7 @@ export class NewsPostsRequestHandler {
     let filesInfo: PlainObject[] = data.filesInfo || [];
     const photo_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.photos);
 
-    const opts = {
+    const options = {
       you,
       photo_files,
       data: {
@@ -68,7 +68,7 @@ export class NewsPostsRequestHandler {
       }
     };
 
-    const serviceMethodResults: ServiceMethodResults = await NewsPostsService.create_newspost(opts);
+    const serviceMethodResults: ServiceMethodResults = await NewsPostsService.create_newspost(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -79,7 +79,7 @@ export class NewsPostsRequestHandler {
     let body: string = request.body.caption;
     let link: string = request.body.caption;
 
-    const opts = {
+    const options = {
       you,
       newspost_id,
       title,
@@ -87,7 +87,7 @@ export class NewsPostsRequestHandler {
       link
     };
 
-    const serviceMethodResults: ServiceMethodResults = await NewsPostsService.update_newspost(opts);
+    const serviceMethodResults: ServiceMethodResults = await NewsPostsService.update_newspost(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

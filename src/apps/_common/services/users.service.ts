@@ -146,13 +146,13 @@ export class UsersService {
     return serviceMethodResults;
   }
 
-  static async send_feedback(opts: {
+  static async send_feedback(options: {
     you: IUser,
     rating: number,
     title: string,
     summary: string,
   }): ServiceMethodAsyncResults {
-    let { you, rating, title, summary } = opts;
+    let { you, rating, title, summary } = options;
 
     if (!rating) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -872,14 +872,14 @@ export class UsersService {
     }
   }
 
-  static async verify_sms_code(opts: {
+  static async verify_sms_code(options: {
     you: IUser,
     request_id: string,
     code: string,
     phone: string,
   }): ServiceMethodAsyncResults {
     try {
-      let { you, request_id, code, phone } = opts;
+      let { you, request_id, code, phone } = options;
       if (!request_id) {
         const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
@@ -1206,7 +1206,7 @@ export class UsersService {
     return serviceMethodResults;
   }
 
-  static async update_info(opts: {
+  static async update_info(options: {
     you: IUser,
     email: string,
     username: string,
@@ -1239,7 +1239,7 @@ export class UsersService {
       can_message,
       can_converse,
       host,
-    } = opts;
+    } = options;
 
     let email_changed = false;
     let paypal_changed = false;
@@ -1385,7 +1385,7 @@ export class UsersService {
     return serviceMethodResults;
   }
 
-  static async update_phone(opts: {
+  static async update_phone(options: {
     you: IUser,
     request_id: string,
     code: string,
@@ -1393,7 +1393,7 @@ export class UsersService {
     sms_results: PlainObject,
   }): ServiceMethodAsyncResults {
     try {
-      let { you, request_id, code, phone, sms_results } = opts;
+      let { you, request_id, code, phone, sms_results } = options;
 
       if (!sms_results) {
         const serviceMethodResults: ServiceMethodResults = {
@@ -1468,13 +1468,13 @@ export class UsersService {
     }
   }
 
-  static async update_password(opts: {
+  static async update_password(options: {
     you: IUser,
     password: string,
     confirmPassword: string,
   }): ServiceMethodAsyncResults {
     try {
-      let { you, password, confirmPassword } = opts;
+      let { you, password, confirmPassword } = options;
       if (!password) {
         const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
@@ -1558,13 +1558,13 @@ export class UsersService {
     }
   }
 
-  static async update_icon(opts: {
+  static async update_icon(options: {
     you: IUser,
     icon_file: UploadedFile | undefined,
     should_delete: boolean,
   }): ServiceMethodAsyncResults {
     try {
-      const { you, icon_file, should_delete } = opts;
+      const { you, icon_file, should_delete } = options;
       const updatesObj = {
         icon_id: '',
         icon_link: ''
@@ -1650,13 +1650,13 @@ export class UsersService {
     }
   }
 
-  static async update_wallpaper(opts: {
+  static async update_wallpaper(options: {
     you: IUser,
     wallpaper_file: UploadedFile | undefined,
     should_delete: boolean,
   }): ServiceMethodAsyncResults {
     try {
-      const { you, wallpaper_file, should_delete } = opts;
+      const { you, wallpaper_file, should_delete } = options;
       const updatesObj = {
         wallpaper_id: '',
         wallpaper_link: ''

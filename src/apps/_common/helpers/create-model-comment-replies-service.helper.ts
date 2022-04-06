@@ -34,13 +34,13 @@ export interface IGenericCommentRepliesService {
   get_comment_replies_count: (comment_id: number) => ServiceMethodAsyncResults,
   get_comment_replies_all: (comment_id: number) => ServiceMethodAsyncResults,
   get_comment_replies: (comment_id: number, reply_id?: number) => ServiceMethodAsyncResults,
-  create_comment_reply: (opts: {
+  create_comment_reply: (options: {
     body: string,
     comment_model: IMyModel,
     you: IUser,
     ignoreNotification?: boolean,
   }) => ServiceMethodAsyncResults,
-  update_comment_reply: (opts: {
+  update_comment_reply: (options: {
     body: string,
     reply_id: number,
   }) => ServiceMethodAsyncResults,
@@ -129,13 +129,13 @@ export function createCommonGenericModelCommentRepliesService (
       return serviceMethodResults;
     }
   
-    static async create_comment_reply(opts: {
+    static async create_comment_reply(options: {
       body: string,
       comment_model: IMyModel,
       you: IUser,
       ignoreNotification?: boolean,
     }) {
-      const { body, you, comment_model, ignoreNotification } = opts;
+      const { body, you, comment_model, ignoreNotification } = options;
       if (!body) {
         const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
@@ -191,11 +191,11 @@ export function createCommonGenericModelCommentRepliesService (
       return serviceMethodResults;
     }
   
-    static async update_comment_reply(opts: {
+    static async update_comment_reply(options: {
       body: string,
       reply_id: number,
     }) {
-      const { body, reply_id } = opts;
+      const { body, reply_id } = options;
       if (!body) {
         const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,

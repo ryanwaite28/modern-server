@@ -77,7 +77,7 @@ export class PostsService {
     return createGenericServiceMethodSuccess(undefined, posts);
   }
 
-  static async create_post(opts: {
+  static async create_post(options: {
     you_id: number,
     photo_files: UploadedFile | undefined,
     video_files: UploadedFile | undefined,
@@ -89,7 +89,7 @@ export class PostsService {
       tags: string[],
     }
   }): ServiceMethodAsyncResults {
-    const { you_id, photo_files, video_files, audio_files, filesInfo, data } = opts;
+    const { you_id, photo_files, video_files, audio_files, filesInfo, data } = options;
     let { body, title, tags } = data;
 
     if (!body) {
@@ -148,7 +148,7 @@ export class PostsService {
     return createGenericServiceMethodSuccess(`HotspotPost created successfully`, post_model);
   }
 
-  static async update_post(opts: {
+  static async update_post(options: {
     post_id: number,
     photo_files: UploadedFile | undefined,
     video_files: UploadedFile | undefined,
@@ -160,7 +160,7 @@ export class PostsService {
       tags: string[],
     }
   }): ServiceMethodAsyncResults {
-    const { post_id, photo_files, video_files, audio_files, filesInfo, data } = opts;
+    const { post_id, photo_files, video_files, audio_files, filesInfo, data } = options;
     let { body, title, tags } = data;
 
     if (!body) {

@@ -110,12 +110,12 @@ export class ResourceInterestsService {
     return createGenericServiceMethodSuccess(undefined, interest_model);
   }
 
-  static async show_interest(opts: {
+  static async show_interest(options: {
     you: IUser,
     resource_id: number,
     resource_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, resource_id, resource_model } = opts;
+    const { you, resource_id, resource_model } = options;
     const checkModelResults: ServiceMethodResults<IMyModel> = await check_model_args({
       model_id: resource_id,
       model: resource_model,
@@ -163,12 +163,12 @@ export class ResourceInterestsService {
     return createGenericServiceMethodSuccess(`You are now showing interest!`, new_interest_model);
   }
 
-  static async remove_interest(opts: {
+  static async remove_interest(options: {
     you: IUser,
     resource_id: number,
     resource_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, resource_id, resource_model } = opts;
+    const { you, resource_id, resource_model } = options;
     const checkModelResults: ServiceMethodResults<IMyModel> = await check_model_args({
       model_id: resource_id,
       model: resource_model,

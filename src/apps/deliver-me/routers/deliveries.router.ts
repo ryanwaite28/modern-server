@@ -1,7 +1,18 @@
 import { Router } from 'express';
-import { YouAuthorized, YouAuthorizedSlim, YouAuthorizedSlimWeak } from '../../_common/guards/user.guard';
-import { DeliveryExists, IsDeliveryOwner } from '../guards/delivery.guard';
 import { DeliveriesRequestHandler } from '../handlers/deliveries.handler';
+import {
+  YouAuthorized,
+  YouAuthorizedSlim,
+  YouAuthorizedSlimWeak
+} from '../../_common/guards/user.guard';
+import {
+  DeliveryExists,
+  IsDeliveryOwner,
+  IsDeliveryCarrier,
+  DeliveryNotCompleted,
+  IsDeliveryCarrierLocationRequestCompleted,
+  IsNotDeliveryCarrierLocationRequestCompleted,
+} from '../guards/delivery.guard';
 
 
 export const DeliveriesRouter: Router = Router();
@@ -30,6 +41,14 @@ DeliveriesRouter.post('/:delivery_id/pay-carrier', YouAuthorizedSlim, DeliveryEx
 // DeliveriesRouter.post('/:delivery_id/create-payment-intent', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesRequestHandler.create_payment_intent);
 DeliveriesRouter.post('/:delivery_id/payment-success', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesRequestHandler.payment_success);
 DeliveriesRouter.post('/:delivery_id/payment-cancel', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesRequestHandler.payment_cancel);
+
+DeliveriesRouter.post('/:delivery_id/request-carrier-location', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveryNotCompleted, IsNotDeliveryCarrierLocationRequestCompleted, DeliveriesRequestHandler.request_carrier_location);
+// DeliveriesRouter.post('/:delivery_id/cancel-request-carrier-location', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveryNotCompleted, DeliveriesRequestHandler.cancel_request_carrier_location);
+DeliveriesRouter.post('/:delivery_id/accept-request-carrier-location', YouAuthorizedSlim, DeliveryExists, IsDeliveryCarrier, DeliveryNotCompleted, IsNotDeliveryCarrierLocationRequestCompleted, DeliveriesRequestHandler.accept_request_carrier_location);
+DeliveriesRouter.post('/:delivery_id/decline-request-carrier-location', YouAuthorizedSlim, DeliveryExists, IsDeliveryCarrier, DeliveryNotCompleted, IsNotDeliveryCarrierLocationRequestCompleted, DeliveriesRequestHandler.decline_request_carrier_location);
+DeliveriesRouter.post('/:delivery_id/carrier-share-location', YouAuthorizedSlim, DeliveryExists, IsDeliveryCarrier, DeliveryNotCompleted, IsNotDeliveryCarrierLocationRequestCompleted, DeliveriesRequestHandler.carrier_share_location);
+DeliveriesRouter.post('/:delivery_id/carrier-unshare-location', YouAuthorizedSlim, DeliveryExists, IsDeliveryCarrier, DeliveryNotCompleted,IsDeliveryCarrierLocationRequestCompleted, DeliveriesRequestHandler.carrier_unshare_location);
+DeliveriesRouter.post('/:delivery_id/carrier-update-location', YouAuthorizedSlim, DeliveryExists, IsDeliveryCarrier, DeliveryNotCompleted, IsDeliveryCarrierLocationRequestCompleted, DeliveriesRequestHandler.carrier_update_location);
 
 
 /** PUT */

@@ -13,32 +13,32 @@ export class FavorsRequestHandler {
 
   @CatchRequestHandlerError()
   static async search_favors(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you_id: response.locals.you.id as number,
       city: request.body.city as string,
       state: request.body.state as string,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.search_favors(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.search_favors(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async send_favor_message(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       body: request.body.body as string,
       favor_model: response.locals.favor_model as IMyModel,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.send_favor_message(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.send_favor_message(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
   
   @CatchRequestHandlerError()
   static async create_favor_update(request: Request, response: Response): ExpressResponse {
     const data: PlainObject = JSON.parse(request.body.payload);
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       update_image: request.files && (<UploadedFile> request.files.update_image) as UploadedFile | undefined,
       favor_model: response.locals.favor_model as IMyModel,
@@ -49,7 +49,7 @@ export class FavorsRequestHandler {
       }
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.create_favor_update(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.create_favor_update(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -115,25 +115,25 @@ export class FavorsRequestHandler {
   @CatchRequestHandlerError()
   static async create_favor(request: Request, response: Response): ExpressResponse {
     const data: PlainObject = JSON.parse(request.body.payload);
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       favor_image: request.files && (<UploadedFile> request.files.favor_image) as UploadedFile | undefined,
       data,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.create_favor(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.create_favor(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async update_favor(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       favor_model: response.locals.favor_model as IMyModel,
       data: request.body as PlainObject,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.update_favor(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.update_favor(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -147,92 +147,92 @@ export class FavorsRequestHandler {
 
   @CatchRequestHandlerError()
   static async assign_favor(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       favor_model: response.locals.favor_model as IMyModel,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.assign_favor(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.assign_favor(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async unassign_favor(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       favor_model: response.locals.favor_model as IMyModel,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.unassign_favor(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.unassign_favor(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
   
   @CatchRequestHandlerError()
   static async mark_favor_as_started(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       favor_model: response.locals.favor_model as IMyModel,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_favor_as_started(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_favor_as_started(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async mark_favor_as_fulfilled(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       favor_model: response.locals.favor_model as IMyModel,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_favor_as_fulfilled(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_favor_as_fulfilled(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async mark_favor_as_canceled(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       favor_model: response.locals.favor_model as IMyModel,
       reason: request.body.reason as string | undefined,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_favor_as_canceled(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_favor_as_canceled(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async mark_favor_as_uncanceled(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       favor_model: response.locals.favor_model as IMyModel,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_favor_as_uncanceled(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_favor_as_uncanceled(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async mark_helper_as_helped(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       user_id: parseInt(request.params.user_id, 10) as number,
       favor_model: response.locals.favor_model as IMyModel,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_helper_as_helped(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_helper_as_helped(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async mark_helper_as_unhelped(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       user_id: parseInt(request.params.user_id, 10) as number,
       favor_model: response.locals.favor_model as IMyModel,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_helper_as_unhelped(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.mark_helper_as_unhelped(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -246,24 +246,24 @@ export class FavorsRequestHandler {
 
   @CatchRequestHandlerError()
   static async update_settings(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you_id: response.locals.you.id as number,
       data: request.body as PlainObject,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.update_settings(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.update_settings(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async pay_helper(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       user: response.locals.user as IUser,
       favor_model: response.locals.favor_model as IMyModel,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await FavorsService.pay_helper(opts);
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.pay_helper(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 }

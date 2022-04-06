@@ -10,6 +10,7 @@ import { TravellrsRouter } from './travellrs/travellrs.app';
 import { WorldNewsRouter } from './world-news/worldnews.app';
 import { DeliverMeRouter } from './deliver-me/deliverme.app';
 import { ContenderRouter } from './contender/contender.app';
+import { CashlyRouter } from './cashly/cashly.app';
 
 import { StripeService } from './_common/services/stripe.service';
 import { StripeWebhookEventsRequestHandler } from './_common/handlers/stripe-webhook-events.handler';
@@ -23,13 +24,10 @@ export const AppsRouter: Router = Router({ mergeParams: true });
 // Mount Apps
 
 AppsRouter.use('/common', CommonRouter);
-AppsRouter.use('/hotspot', HotspotRouter);
 AppsRouter.use('/deliverme', DeliverMeRouter);
 AppsRouter.use('/travellrs', TravellrsRouter);
-AppsRouter.use('/worldnews', WorldNewsRouter);
-AppsRouter.use('/contender', ContenderRouter);
-AppsRouter.use('/myfavors', MyfavorsRouter);
-AppsRouter.use('/blueworld', BlueworldRouter);
+AppsRouter.use('/cashly', CashlyRouter);
+
 
 
 
@@ -37,9 +35,9 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
   console.log(`-------stripe webhook request:-------`, request.body, request.headers);
   
   const stripe_signature = request.get('stripe-signature') ?? '';
-
+  
   let event;
-
+  
   // Verify webhook signature and extract the event.
   // See https://stripe.com/docs/webhooks/signatures for more information.
   try {
@@ -49,9 +47,9 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
     console.log(errMsg);
     return response.status(400).send(errMsg);
   }
-
+  
   console.log(`stripe webhook event:`, { event });
-
+  
   return StripeWebhookEventsRequestHandler.handleEvent(event, request, response);
 });
 
@@ -60,5 +58,10 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
 Deactivated/Disabled apps
 ---
 
+AppsRouter.use('/hotspot', HotspotRouter);
+AppsRouter.use('/worldnews', WorldNewsRouter);
+AppsRouter.use('/contender', ContenderRouter);
+AppsRouter.use('/myfavors', MyfavorsRouter);
+AppsRouter.use('/blueworld', BlueworldRouter);
 
 */

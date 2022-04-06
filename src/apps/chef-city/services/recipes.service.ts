@@ -63,7 +63,7 @@ export class RecipesService {
     return createGenericServiceMethodSuccess(undefined, recipes);
   }
 
-  static async create_recipe(opts: {
+  static async create_recipe(options: {
     you: IUser,
     recipe_image: UploadedFile | undefined,
     data: {
@@ -75,7 +75,7 @@ export class RecipesService {
     } | PlainObject,
   }): ServiceMethodAsyncResults {
     
-    let { you, data, recipe_image } = opts;
+    let { you, data, recipe_image } = options;
     let {
       title,
       tags,
@@ -151,7 +151,7 @@ export class RecipesService {
     return createGenericServiceMethodSuccess(`Recipe created successfully`, recipe_model);
   }
 
-  static async update_recipe(opts: {
+  static async update_recipe(options: {
     you: IUser,
     recipe_id?: number,
     recipe_model?: IMyModel,
@@ -164,7 +164,7 @@ export class RecipesService {
       ingredients: { name: string; notes: string; }[],
     }
   }): ServiceMethodAsyncResults {
-    let { you, recipe_image, recipe_id, recipe_model, data } = opts;
+    let { you, recipe_image, recipe_id, recipe_model, data } = options;
     
     const checkModelResults: ServiceMethodResults<IMyModel> = await check_model_args({
       model_id: recipe_id,
@@ -254,7 +254,7 @@ export class RecipesService {
     });
   }
 
-  static async update_recipe_ingredient(opts: {
+  static async update_recipe_ingredient(options: {
     ingredient_id: number,
     data: PlainObject | {
       name: string,
@@ -262,9 +262,9 @@ export class RecipesService {
     }
   }): ServiceMethodAsyncResults {
     const updates = await RecipesRepo.update_recipe_ingredient({
-      name: opts.data.name,
-      notes: opts.data.notes,
-    }, opts.ingredient_id);
+      name: options.data.name,
+      notes: options.data.notes,
+    }, options.ingredient_id);
 
     return createGenericServiceMethodSuccess(`Recipe ingredient updated successfully`, updates);
   }

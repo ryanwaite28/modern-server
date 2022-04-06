@@ -32,8 +32,8 @@ export class UsersRequestHandler {
     const rating: number = request.body.rating;
     const title: string = request.body.title;
     const summary: string = request.body.rating;
-    const opts = { you, rating, title, summary };
-    const serviceMethodResults: ServiceMethodResults = await UsersService.send_feedback(opts);
+    const options = { you, rating, title, summary };
+    const serviceMethodResults: ServiceMethodResults = await UsersService.send_feedback(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -90,7 +90,7 @@ export class UsersRequestHandler {
 
   @CatchRequestHandlerError()
   static async sign_up(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       firstname: request.body.firstname as string,
       middlename: request.body.middlename as string,
@@ -102,7 +102,7 @@ export class UsersRequestHandler {
       confirmPassword: request.body.confirmPassword as string,
       request_origin: request.get('origin')! as string
     };
-    const serviceMethodResults: ServiceMethodResults = await UsersService.sign_up(opts);
+    const serviceMethodResults: ServiceMethodResults = await UsersService.sign_up(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -124,13 +124,13 @@ export class UsersRequestHandler {
 
   @CatchRequestHandlerError()
   static async verify_sms_code(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       request_id: request.params.request_id as string,
       code: request.params.code as string,
       phone: request.params.phone as string,
     };
-    const serviceMethodResults: ServiceMethodResults = await UsersService.verify_sms_code(opts);
+    const serviceMethodResults: ServiceMethodResults = await UsersService.verify_sms_code(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -143,7 +143,7 @@ export class UsersRequestHandler {
 
   @CatchRequestHandlerError()
   static async update_info(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       email: request.body.email as string,
       username: request.body.username as string,
@@ -162,53 +162,53 @@ export class UsersRequestHandler {
       can_converse: request.body.can_converse as boolean,
       host: request.get('origin')! as string,
     };
-    const serviceMethodResults: ServiceMethodResults = await UsersService.update_info(opts);
+    const serviceMethodResults: ServiceMethodResults = await UsersService.update_info(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async update_phone(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       request_id: request.params.request_id as string,
       code: request.params.code as string,
       phone: request.params.phone as string,
       sms_results: (<IRequest> request).session.sms_verification as PlainObject,
     };
-    const serviceMethodResults: ServiceMethodResults = await UsersService.update_phone(opts);
+    const serviceMethodResults: ServiceMethodResults = await UsersService.update_phone(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async update_password(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       password: request.body.password as string,
       confirmPassword: request.body.confirmPassword as string,
     };
-    const serviceMethodResults: ServiceMethodResults = await UsersService.update_password(opts);
+    const serviceMethodResults: ServiceMethodResults = await UsersService.update_password(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async update_icon(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       icon_file: request.files && (<UploadedFile> request.files.icon) as UploadedFile | undefined,
       should_delete: !!request.body.should_delete as boolean,
     };
-    const serviceMethodResults: ServiceMethodResults = await UsersService.update_icon(opts);
+    const serviceMethodResults: ServiceMethodResults = await UsersService.update_icon(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
   @CatchRequestHandlerError()
   static async update_wallpaper(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       wallpaper_file: request.files && (<UploadedFile> request.files.wallpaper) as UploadedFile | undefined,
       should_delete: !!request.body.should_delete as boolean,
     };
-    const serviceMethodResults: ServiceMethodResults = await UsersService.update_wallpaper(opts);
+    const serviceMethodResults: ServiceMethodResults = await UsersService.update_wallpaper(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
