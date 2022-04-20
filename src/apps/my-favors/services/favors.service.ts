@@ -15,14 +15,20 @@ import { check_model_args, getUserFullName, user_attrs_slim, validateAndUploadIm
 import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
 import { UserPaymentIntents, Users } from '../../_common/models/user.model';
 import { FavorCancellations, FavorHelpers, FavorMessages, Favors, FavorUpdates } from '../models/favor.model';
-import * as FavorsRepo from '../repos/favors.repo';
 import { MyfavorsUserProfileSettings } from '../models/myfavors.model';
-import { create_favor_update_required_props, create_update_favor_required_props, favor_date_needed_validator, myfavors_user_settings_required_props, populate_myfavors_notification_obj } from '../myfavors.chamber';
+import {
+  create_favor_update_required_props,
+  create_update_favor_required_props,
+  favor_date_needed_validator,
+  myfavors_user_settings_required_props,
+  populate_myfavors_notification_obj
+} from '../myfavors.chamber';
 import { ICreateUpdateFavor } from '../interfaces/myfavors.interface';
 import { MYFAVORS_EVENT_TYPES, MYFAVORS_NOTIFICATION_TARGET_TYPES } from '../enums/myfavors.enum';
 import { SocketsService } from '../../_common/services/sockets.service';
 import { ServiceMethodAsyncResults, ServiceMethodResults } from '../../_common/types/common.types';
 import { CatchAsyncServiceError } from '../../_common/decorators/common.decorator';
+import { browse_featured_favors, browse_map_favors, browse_recent_favors, create_favor, create_favor_update, delete_favor, favorMasterIncludes, get_favor_by_id, update_favor } from '../repos/favors.repo';
 
 
 
@@ -126,7 +132,7 @@ export class FavorsService {
   }): ServiceMethodAsyncResults {
     const { you, body, favor_id, favor_model } = opts;
     
-    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -244,7 +250,7 @@ export class FavorsService {
   }): ServiceMethodAsyncResults {
     const { you, data, update_image, favor_id, favor_model } = opts;
     
-    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -289,7 +295,7 @@ export class FavorsService {
       return imageValidation;
     }
 
-    const new_favor_update_model = await FavorsRepo.create_favor_update(createObj);
+    const new_favor_update_model = await create_favor_update(createObj);
 
     let notify_users = [];
 
@@ -368,7 +374,7 @@ export class FavorsService {
 
   @CatchAsyncServiceError()
   static async get_favor_by_id(favor_id: number): ServiceMethodAsyncResults {
-    const favor: IMyModel | null = await FavorsRepo.get_favor_by_id(favor_id);
+    const favor: IMyModel | null = await get_favor_by_id(favor_id);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -386,7 +392,7 @@ export class FavorsService {
       Favors,
       'owner_id',
       user_id,
-      FavorsRepo.favorMasterIncludes,
+      favorMasterIncludes,
       undefined,
       undefined,
       undefined,
@@ -410,7 +416,7 @@ export class FavorsService {
       'owner_id',
       user_id,
       favor_id,
-      FavorsRepo.favorMasterIncludes,
+      favorMasterIncludes,
       undefined,
       undefined,
       undefined,
@@ -436,7 +442,7 @@ export class FavorsService {
       [{
         model: Favors,
         as: 'favor',
-        include: FavorsRepo.favorMasterIncludes,
+        include: favorMasterIncludes,
         where: { datetime_fulfilled: null }
       }],
       undefined,
@@ -465,7 +471,7 @@ export class FavorsService {
       [{
         model: Favors,
         as: 'favor',
-        include: FavorsRepo.favorMasterIncludes,
+        include: favorMasterIncludes,
         where: { datetime_fulfilled: null }
       }],
       undefined,
@@ -493,7 +499,7 @@ export class FavorsService {
       [{
         model: Favors,
         as: 'favor',
-        include: FavorsRepo.favorMasterIncludes,
+        include: favorMasterIncludes,
         where: { datetime_fulfilled: { [Op.ne]: null } },
       }],
       undefined,
@@ -522,7 +528,7 @@ export class FavorsService {
       [{
         model: Favors,
         as: 'favor',
-        include: FavorsRepo.favorMasterIncludes,
+        include: favorMasterIncludes,
         where: { datetime_fulfilled: { [Op.ne]: null } }
       }],
       undefined,
@@ -536,6 +542,114 @@ export class FavorsService {
       error: false,
       info: {
         data: results
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async browse_recent_favors(params: {
+    you_id: number,
+    favor_id?: number,
+  }) {
+    const favors = await browse_recent_favors(params.you_id, params.favor_id);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: favors,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async browse_featured_favors(params: {
+    you_id: number,
+    favor_id?: number,
+  }) {
+    const favors = await browse_featured_favors(params.you_id, params.favor_id);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: favors,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async browse_map_favors(params: {
+    you_id: number,
+    swLat: number,
+    swLng: number,
+    neLat: number,
+    neLng: number,
+  }) {
+    if (!params) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Query data/params not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!params.swLat) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `SouthWest Latitude not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+    if (!params.swLng) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `SouthWest Longitude not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+    if (!params.neLat) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `NorthEast Latitude not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+    if (!params.neLng) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `NorthEast Longitude not given.`,
+          data: {},
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const favors = await browse_map_favors(params);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: favors,
       }
     };
     return serviceMethodResults;
@@ -603,7 +717,7 @@ export class FavorsService {
 
       console.log(`createObj`, createObj);
 
-      const new_favor_model = await FavorsRepo.create_favor(createObj as ICreateUpdateFavor);
+      const new_favor_model = await create_favor(createObj as ICreateUpdateFavor);
       console.log({ new_favor_model });
 
       const serviceMethodResults: ServiceMethodResults = {
@@ -638,7 +752,7 @@ export class FavorsService {
     data: PlainObject | ICreateUpdateFavor,
   }): ServiceMethodAsyncResults {
     const { you, favor_id, favor_model, data } = opts;
-    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -688,7 +802,7 @@ export class FavorsService {
       return dataValidation;
     }
 
-    const updates = await FavorsRepo.update_favor(updateObj as ICreateUpdateFavor, favorObj.id);
+    const updates = await update_favor(updateObj as ICreateUpdateFavor, favorObj.id);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -703,7 +817,7 @@ export class FavorsService {
 
   @CatchAsyncServiceError()
   static async delete_favor(favor_id?: number, favor_model?: IMyModel): ServiceMethodAsyncResults {
-    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -730,7 +844,7 @@ export class FavorsService {
       return serviceMethodResults;
     }
 
-    const deletes = await FavorsRepo.delete_favor(favorObj.id);
+    const deletes = await delete_favor(favorObj.id);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -750,7 +864,7 @@ export class FavorsService {
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
     const { you, favor_id, favor_model } = opts;
-    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -799,7 +913,7 @@ export class FavorsService {
     });
     const new_helper = await new_helper_model.get();
 
-    const data = await FavorsRepo.get_favor_by_id(favorObj.id);
+    const data = await get_favor_by_id(favorObj.id);
 
     let notify_users = [];
 
@@ -867,7 +981,7 @@ export class FavorsService {
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
     const { you, favor_id, favor_model } = opts;
-    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -893,7 +1007,7 @@ export class FavorsService {
       where: { favor_id: favorObj.id, user_id: you.id }
     });
 
-    const data = await FavorsRepo.get_favor_by_id(favorObj.id);
+    const data = await get_favor_by_id(favorObj.id);
 
     let notify_users = [];
 
@@ -961,7 +1075,7 @@ export class FavorsService {
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
     const { you, favor_id, favor_model } = opts;
-    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -1007,7 +1121,7 @@ export class FavorsService {
     check.info.data.datetime_started = fn('NOW');
     const updates = await check.info.data.save({ fields: ['datetime_started'] });
     
-    const data = await FavorsRepo.get_favor_by_id(favorObj.id);
+    const data = await get_favor_by_id(favorObj.id);
 
     let notify_users = [];
 
@@ -1074,7 +1188,7 @@ export class FavorsService {
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
     const { you, favor_id, favor_model } = opts;
-    const check: ServiceMethodResults<IMyModel | undefined> = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults<IMyModel | undefined> = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -1121,7 +1235,7 @@ export class FavorsService {
     // check.info.data.datetime_fulfilled = fn('NOW');
     const updates = await check.info.data!.update({ fulfilled: fn(`NOW`) });
     
-    const data = await FavorsRepo.get_favor_by_id(favorObj.id);
+    const data = await get_favor_by_id(favorObj.id);
 
     let notify_users = [];
 
@@ -1189,7 +1303,7 @@ export class FavorsService {
     reason?: string,
   }): ServiceMethodAsyncResults {
     const { you, favor_id, favor_model, reason } = opts;
-    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -1251,7 +1365,7 @@ export class FavorsService {
       reason: reason || '',
     });
 
-    const data = await FavorsRepo.get_favor_by_id(favorObj.id);
+    const data = await get_favor_by_id(favorObj.id);
 
     let notify_users = [];
 
@@ -1318,7 +1432,7 @@ export class FavorsService {
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
     const { you, favor_id, favor_model } = opts;
-    const check: ServiceMethodResults<IMyModel> = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults<IMyModel> = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -1357,7 +1471,7 @@ export class FavorsService {
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
     const { you, user_id, favor_id, favor_model } = opts;
-    const check: ServiceMethodResults<IMyModel> = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults<IMyModel> = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -1400,7 +1514,7 @@ export class FavorsService {
       where: { favor_id: favorObj.id, user_id }
     });
     
-    const data = await FavorsRepo.get_favor_by_id(favorObj.id);
+    const data = await get_favor_by_id(favorObj.id);
 
     let notify_users = favorObj.favor_helpers.map((helper: any) => helper.helper);
 
@@ -1459,7 +1573,7 @@ export class FavorsService {
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
     const { you, user_id, favor_id, favor_model } = opts;
-    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }
@@ -1502,7 +1616,7 @@ export class FavorsService {
       where: { favor_id: favorObj.id, user_id }
     });
     
-    const data = await FavorsRepo.get_favor_by_id(favorObj.id);
+    const data = await get_favor_by_id(favorObj.id);
 
     let notify_users = favorObj.favor_helpers.map((helper: any) => helper.helper);
 
@@ -1625,7 +1739,7 @@ export class FavorsService {
     favor_model?: IMyModel
   }): ServiceMethodAsyncResults {
     const { you, user, favor_id, favor_model } = opts;
-    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: FavorsRepo.get_favor_by_id });
+    const check: ServiceMethodResults = await check_model_args({ model_id: favor_id, model: favor_model, get_model_fn: get_favor_by_id });
     if (check.error) {
       return check;
     }

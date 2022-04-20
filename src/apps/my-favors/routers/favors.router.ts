@@ -8,7 +8,8 @@ import {
 import {
   YouAuthorizedSlim,
   UserExists,
-  YouHasStripeConnect
+  YouHasStripeConnect,
+  YouAuthorizedSlimWeak
 } from '../../_common/guards/user.guard';
 import { FavorsRequestHandler } from '../handlers/favors.handler';
 
@@ -34,6 +35,13 @@ FavorsRouter.post('/:favor_id/pay-helper/:user_id', YouAuthorizedSlim, UserExist
 
 FavorsRouter.post('/:favor_id/mark-helper-as-helped/:user_id', YouAuthorizedSlim, FavorExists, IsFavorOwner, IsFavorActive, IsFavorNotCanceled, FavorsRequestHandler.mark_helper_as_helped);
 FavorsRouter.post('/:favor_id/mark-helper-as-unhelped/:user_id', YouAuthorizedSlim, FavorExists, IsFavorOwner, IsFavorActive, IsFavorNotCanceled, FavorsRequestHandler.mark_helper_as_unhelped);
+
+FavorsRouter.post('/browse-recent', YouAuthorizedSlimWeak, FavorsRequestHandler.browse_recent_favors);
+FavorsRouter.post('/browse-recent/:delivery_id', YouAuthorizedSlimWeak, FavorsRequestHandler.browse_featured_favors);
+// FavorsRouter.post('/browse-featured', YouAuthorizedSlimWeak, FavorsRequestHandler.browse_featured_favors);
+// FavorsRouter.post('/browse-featured/:delivery_id', YouAuthorizedSlimWeak, FavorsRequestHandler.browse_featured_favors);
+FavorsRouter.post('/browse-map/swlat/:swlat/swlng/:swlng/nelat/:nelat/nelng/:nelng', YouAuthorizedSlimWeak, FavorsRequestHandler.browse_map_favors);
+
 
 
 /** PUT */

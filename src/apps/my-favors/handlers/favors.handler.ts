@@ -111,6 +111,40 @@ export class FavorsRequestHandler {
     const serviceMethodResults: ServiceMethodResults = await FavorsService.get_user_favor_helpings_past(user_id, favor_id);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
+
+  static async browse_recent_favors(request: Request, response: Response): ExpressResponse {
+    const opts: { you_id: number, favor_id?: number, } = {
+      you_id: (response.locals.you?.id as number) || 0
+    };
+    if (request.params.favor_id) {
+      opts.favor_id = parseInt(request.params.favor_id);
+    }
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.browse_recent_favors(opts);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  static async browse_featured_favors(request: Request, response: Response): ExpressResponse {
+    const opts: { you_id: number, favor_id?: number, } = {
+      you_id: response.locals.you?.id as number
+    };
+    if (request.params.favor_id) {
+      opts.favor_id = parseInt(request.params.favor_id);
+    }
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.browse_featured_favors(opts);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  static async browse_map_favors(request: Request, response: Response): ExpressResponse {
+    const opts = {
+      you_id: response.locals.you?.id as number,
+      swLat: parseFloat(request.params.swlat?.toString() || '0'),
+      swLng: parseFloat(request.params.swlng?.toString() || '0'),
+      neLat: parseFloat(request.params.nelat?.toString() || '0'),
+      neLng: parseFloat(request.params.nelng?.toString() || '0'),
+    };
+    const serviceMethodResults: ServiceMethodResults = await FavorsService.browse_map_favors(opts);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
   
   @CatchRequestHandlerError()
   static async create_favor(request: Request, response: Response): ExpressResponse {
