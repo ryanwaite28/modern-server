@@ -52,9 +52,6 @@ export const Favors = <MyModelStatic> sequelize.define('myfavors_favors', {
   payment_intent_id:         { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
   auto_assign_lead_helper:   { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
 
-  // started:                   { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
-  // fulfilled:                 { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
-
   datetime_started:         { type: Sequelize.DATE, allowNull: true, },
   datetime_fulfilled:       { type: Sequelize.DATE, allowNull: true, },
   cancel:                      { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },

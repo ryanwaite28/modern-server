@@ -11,9 +11,10 @@ import {
   Order
 } from 'sequelize';
 import { PlainObject } from '../interfaces/common.interface';
+import { convertModel, convertModels } from '../common.chamber';
 
-export async function paginateTable<T = IMyModel>(
-  model: MyModelStaticGeneric<IMyModel>,
+export async function paginateTable<T = any>(
+  model: MyModelStatic,
   user_id_field: string,
   user_id?: number,
   min_id?: number,
@@ -30,14 +31,19 @@ export async function paginateTable<T = IMyModel>(
   if (whereClause) {
     Object.assign(useWhereClause, whereClause);
   }
-  const models = await (<any> model).findAll({
+
+  const models = await model.findAll({
     attributes,
     group,
     where: useWhereClause,
     include: include || [],
     limit: 5,
     order: orderBy || [['id', 'DESC']]
+  })
+  .then((models: IMyModel[]) => {
+    return convertModels<T>(models);
   });
+
   return models;
 }
 
@@ -52,10 +58,10 @@ export async function getAll<T = IMyModel>(
   orderBy?: Order
 )  {
   // const models = await model.findAll<Model<T>>({
-
   const useWhereClause = whereClause
     ? { ...whereClause, [user_id_field]: user_id }
     : { [user_id_field]: user_id };
+
   const models = await model.findAll({
     attributes,
     group,
@@ -63,11 +69,12 @@ export async function getAll<T = IMyModel>(
     include: include || [],
     order: orderBy || [['id', 'DESC']]
   });
+
   return models;
 }
 
-export async function getById<T>(
-  model: MyModelStaticGeneric<T>,
+export async function getById<T = any>(
+  model: MyModelStatic,
   id: number,
   include?: Includeable[],
   attributes?: FindAttributeOptions,
@@ -75,21 +82,24 @@ export async function getById<T>(
   whereClause?: WhereOptions,
 )  {
   // const result = await model.findOne<Model<T>>({
-
-    const useWhereClause = whereClause
+  const useWhereClause = whereClause
     ? { ...whereClause, id }
     : { id };
 
-  const result = await (<any> model).findOne({
+  const result = await model.findOne({
     attributes,
     group,
     where: useWhereClause,
     include: include || [],
+  })
+  .then((model: IMyModel | null) => {
+    return convertModel<T>(model);
   });
-  return result as Model<T>;
+
+  return result;
 }
 
-export async function getRandomModels<T>(
+export async function getRandomModels<T = any>(
   model: MyModelStaticGeneric<T>,
   limit: number,
   include?: Includeable[],
@@ -97,15 +107,20 @@ export async function getRandomModels<T>(
   group?: GroupOption,
 ) {
   try {
-    const users = await (<any> model).findAll({
+    const results = await (<any> model).findAll({
       limit,
       order: [fn( 'RANDOM' )],
       attributes,
       group,
       include,
+    })
+    .then((models: IMyModel[]) => {
+      return convertModels<T>(models);
     });
-    return users;
-  } catch (e) {
+
+    return results;
+  } 
+  catch (e) {
     console.log(`get_random_models error - `, e);
     return null;
   }

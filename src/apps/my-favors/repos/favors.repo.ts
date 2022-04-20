@@ -1,4 +1,4 @@
-import { user_attrs_slim } from '../../_common/common.chamber';
+import { convertModelCurry, convertModelsCurry, user_attrs_slim } from '../../_common/common.chamber';
 import { IStoreImage } from '../../../cloudinary-manager';
 import { PlainObject } from '../../_common/interfaces/common.interface';
 import { Photos } from '../../_common/models/photo.model';
@@ -14,11 +14,13 @@ import {
   FavorMessages,
 } from '../models/favor.model';
 import { getRandomModels } from '../../_common/repos/_common.repo';
-import { ICreateFavorUpdateProps, ICreateUpdateFavor } from '../interfaces/myfavors.interface';
-import { Includeable } from 'sequelize/types';
+import { ICreateFavorUpdateProps, ICreateUpdateFavor, IFavor } from '../interfaces/myfavors.interface';
+import { Includeable, Op } from 'sequelize/types';
 
 
 
+const convertDeliveryModel = convertModelCurry<IFavor>();
+const convertDeliveryModels = convertModelsCurry<IFavor>();
 
 export const favorMasterIncludes: Includeable[] = [
   {
@@ -268,4 +270,100 @@ export async function create_favor_update(createObj: ICreateFavorUpdateProps) {
     }]
   });
   return update!;
+}
+
+export function browse_recent_favors(
+  you_id?: number,
+  favor_id?: number
+): Promise<IFavor[]> {
+  const useWhere: any = {
+    completed: false,
+    carrier_id: null,
+  };
+  if (you_id) {
+    useWhere.owner_id = { [Op.ne]: you_id };
+  }
+  if (favor_id) {
+    useWhere.favor_id = { [Op.lt]: favor_id };
+  }
+
+  const findQuery = {
+    where: useWhere,
+    include: favorMasterIncludes,
+    order: [],
+    limit: 10,
+  };
+
+  return Favors.findAll(findQuery).then(convertDeliveryModels);
+}
+
+export function browse_featured_favors(
+  you_id?: number,
+  favor_id?: number
+): Promise<IFavor[]> {
+  const useWhere: any = {
+    datetime_started: null,
+    datetime_fulfilled: null,
+  };
+  if (you_id) {
+    useWhere.owner_id = { [Op.ne]: you_id };
+  }
+  if (favor_id) {
+    useWhere.favor_id = { [Op.lt]: favor_id };
+  }
+
+  const findQuery = {
+    where: useWhere,
+    include: favorMasterIncludes,
+    order: [],
+    limit: 10,
+  };
+
+  return Favors.findAll(findQuery).then(convertDeliveryModels);
+}
+
+export function browse_map_favors(params: {
+  you_id: number,
+  swLat: number,
+  swLng: number,
+  neLat: number,
+  neLng: number,
+}): Promise<IFavor[]> {
+  // https://stackoverflow.com/questions/4834772/get-all-records-from-mysql-database-that-are-within-google-maps-getbounds
+  // swlat, swlng, nelat, nelng = a, b, c, d.
+
+  const useLatBetween = params.swLat < params.neLat
+    // ? [params.swLat, params.neLat]
+    ? { [Op.gt]: params.swLat, [Op.lt]: params.neLat }
+    // : [params.neLat, params.swLat];
+    : { [Op.gt]: params.neLat, [Op.lt]: params.swLat };
+
+  const useLngBetween = params.swLng < params.neLng
+    // ? [params.swLng, params.neLng]
+    ? { [Op.gt]: params.swLng, [Op.lt]: params.neLng }
+    // : [params.neLng, params.swLng];
+    : { [Op.gt]: params.neLng, [Op.lt]: params.swLng };
+
+  const useWhere: any = {
+    datetime_fulfilled: null,
+    lat: useLatBetween,
+    lng: useLngBetween,
+  };
+
+  if (params.you_id) {
+    useWhere.owner_id = { [Op.ne]: params.you_id };
+    useWhere[Op.or] = [{ carrier_id: null }, { carrier_id: {[Op.ne]: params.you_id} }];
+  } else {
+    useWhere.carrier_id = null;
+  }
+
+  console.log({ params, useWhere }); 
+
+  const findQuery = {
+    where: useWhere,
+    include: favorMasterIncludes,
+    order: [],
+  };
+
+  return Favors.findAll(findQuery).then(convertDeliveryModels);
 }
