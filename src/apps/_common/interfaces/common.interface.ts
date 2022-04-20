@@ -54,6 +54,7 @@ export interface IUser extends ICommonModel {
   stripe_customer_account_id:  string,
   stripe_account_id:           string,
   stripe_account_verified:     boolean,
+  platform_subscription_id:    string,
   phone:                       string,
   headline:                    string,
   bio:                         string,

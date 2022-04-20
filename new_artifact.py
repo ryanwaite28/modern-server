@@ -18,7 +18,7 @@ if not app or app == '':
   print('An app name needs to be specified; exiting...')
   sys.exit(1)
 
-app_path = os.path.join(CWD, './src/' + app)
+app_path = os.path.join(CWD, 'src/apps/' + app)
 app_dir_exists = os.path.isdir(app_path)
 if app_dir_exists:
   print('A directory with the app name \"' + app + '\" already exists; exiting...')
@@ -29,13 +29,13 @@ artifact = cli_args.pop(1)
 print("Artifact", artifact)
 CWD = os.getcwd()
 
-GUARDS_PATH = os.path.join(CWD,  './src/' + app + '/guards')
-HANDLERS_PATH = os.path.join(CWD,  './src/' + app + '/handlers')
-INTERFACES_PATH = os.path.join(CWD,  './src/' + app + '/interfaces')
-MODELS_PATH = os.path.join(CWD,  './src/' + app + '/models')
-REPOS_PATH = os.path.join(CWD,  './src/' + app + '/repos')
-ROUTERS_PATH = os.path.join(CWD,  './src/' + app + '/routers')
-SERVICES_PATH = os.path.join(CWD,  './src/' + app + '/services')
+GUARDS_PATH = os.path.join(CWD,  'src/apps/' + app + '/guards')
+HANDLERS_PATH = os.path.join(CWD,  'src/apps/' + app + '/handlers')
+INTERFACES_PATH = os.path.join(CWD,  'src/apps/' + app + '/interfaces')
+MODELS_PATH = os.path.join(CWD,  'src/apps/' + app + '/models')
+REPOS_PATH = os.path.join(CWD,  'src/apps/' + app + '/repos')
+ROUTERS_PATH = os.path.join(CWD,  'src/apps/' + app + '/routers')
+SERVICES_PATH = os.path.join(CWD,  'src/apps/' + app + '/services')
 
 
 

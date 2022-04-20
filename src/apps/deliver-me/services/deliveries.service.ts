@@ -88,6 +88,7 @@ import { ServiceMethodResults } from '../../_common/types/common.types';
 import { get_user_ratings_stats_via_model } from '../../_common/repos/ratings.repo';
 import Stripe from 'stripe';
 import { get_user_by_id } from '../../_common/repos/users.repo';
+import { UsersService } from '../../_common/services/users.service';
 
 
 
@@ -616,7 +617,8 @@ export class DeliveriesService {
 
       // try charging customer for delivery listing
       let payment_intent: Stripe.PaymentIntent;
-      const chargeFeeData = StripeService.add_on_stripe_processing_fee(createObj.payout);
+      const is_subscription_active: boolean = (await UsersService.is_subscription_active(you)).info.data as boolean;
+      const chargeFeeData = StripeService.add_on_stripe_processing_fee(createObj.payout, is_subscription_active);
 
       try {
         // https://stripe.com/docs/payments/save-during-payment
@@ -830,7 +832,8 @@ export class DeliveriesService {
     // try to refund the charge
     if (delivery.payment_intent_id) {
       let refund: Stripe.Refund;
-      const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout);
+      const is_subscription_active: boolean = (await UsersService.is_subscription_active(delivery.owner!)).info.data as boolean;
+      const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout, is_subscription_active);
       const refund_amount = chargeFeeData.final_total  - chargeFeeData.app_fee;
 
       try {
@@ -1726,7 +1729,8 @@ export class DeliveriesService {
     let paymentIntent: Stripe.PaymentIntent;
     
     try {
-      const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout);
+      const is_subscription_active: boolean = (await UsersService.is_subscription_active(delivery.owner!)).info.data as boolean;
+      const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout, is_subscription_active);
       paymentIntent = await StripeService.stripe.paymentIntents.create({
         payment_method_types: ['card'],
         amount: chargeFeeData.final_total,
@@ -2003,7 +2007,8 @@ export class DeliveriesService {
     
     // try charging customer for delivery listing
     let payment_intent: Stripe.PaymentIntent;
-    const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout);
+    const is_subscription_active: boolean = (await UsersService.is_subscription_active(delivery.owner!)).info.data as boolean;
+    const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout, is_subscription_active);
 
     try {
       // https://stripe.com/docs/payments/save-during-payment

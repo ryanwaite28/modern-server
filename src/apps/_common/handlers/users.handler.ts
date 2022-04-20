@@ -249,4 +249,28 @@ export class UsersRequestHandler {
     const serviceMethodResults: ServiceMethodResults = await UsersService.submit_password_reset_code(code, request_origin);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
+
+
+
+  @CatchRequestHandlerError()
+  static async is_subscription_active(request: Request, response: Response): ExpressResponse {
+    const you: IUser = response.locals.you;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.is_subscription_active(you);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async get_subscription(request: Request, response: Response): ExpressResponse {
+    const you: IUser = response.locals.you;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.get_subscription(you);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async create_subscription(request: Request, response: Response): ExpressResponse {
+    const you: IUser = response.locals.you;
+    const payment_method_id: string = request.params.payment_method_id as string;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.create_subscription(you, payment_method_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
 }

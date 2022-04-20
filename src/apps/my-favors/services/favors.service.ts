@@ -1663,7 +1663,7 @@ export class FavorsService {
     let paymentIntent;
     
     try {
-      const chargeFeeData = StripeService.add_on_stripe_processing_fee(favorObj.payout_per_helper);
+      const chargeFeeData = StripeService.add_on_stripe_processing_fee(favorObj.payout_per_helper, false);
       paymentIntent = await StripeService.stripe.paymentIntents.create({
         payment_method_types: ['card'],
         amount: chargeFeeData.final_total,
