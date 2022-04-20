@@ -53,7 +53,7 @@ export class PostsRequestHandler {
     const photo_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.photos);
     const video_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.videos);
     const audio_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.audios);
-    const opts = {
+    const options = {
       you_id: you.id,
       data,
       filesInfo,
@@ -62,7 +62,7 @@ export class PostsRequestHandler {
       audio_files,
     }
 
-    const serviceMethodResults: ServiceMethodResults = await PostsService.create_post(opts);
+    const serviceMethodResults: ServiceMethodResults = await PostsService.create_post(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -74,7 +74,7 @@ export class PostsRequestHandler {
     const photo_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.photos);
     const video_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.videos);
     const audio_files: UploadedFile | undefined = request.files && (<UploadedFile> request.files.audios);
-    const opts = {
+    const options = {
       you_id: you.id,
       post_id,
       data,
@@ -84,7 +84,7 @@ export class PostsRequestHandler {
       audio_files,
     }
 
-    const serviceMethodResults: ServiceMethodResults = await PostsService.update_post(opts);
+    const serviceMethodResults: ServiceMethodResults = await PostsService.update_post(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

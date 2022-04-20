@@ -19,12 +19,12 @@ import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common
 import { SocketsService } from './sockets.service';
 
 export class MessagesService {
-  static async get_user_messages(opts: {
+  static async get_user_messages(options: {
     you_id: number,
     user_id: number,
     min_id: number,
   }): ServiceMethodAsyncResults {
-    let { you_id, user_id, min_id } = opts;
+    let { you_id, user_id, min_id } = options;
 
     if (!user_id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -104,12 +104,12 @@ export class MessagesService {
     return serviceMethodResults;
   }
 
-  static async send_user_message(opts: {
+  static async send_user_message(options: {
     you_id: number,
     user_id: number,
     body: string,
   }): ServiceMethodAsyncResults {
-    let { you_id, user_id, body } = opts;
+    let { you_id, user_id, body } = options;
 
     if (!user_id) {
       const serviceMethodResults: ServiceMethodResults = {

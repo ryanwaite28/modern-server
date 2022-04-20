@@ -16,25 +16,25 @@ export class ResourcesRequestHandler {
   }
 
   static async create_resource(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       icon_file: request.files && (<UploadedFile> request.files.icon) as UploadedFile | undefined,
       data: request.body,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await ResourcesService.create_resource(opts);
+    const serviceMethodResults: ServiceMethodResults = await ResourcesService.create_resource(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
   
   static async update_resource(request: Request, response: Response): ExpressResponse {
-    const opts = {
+    const options = {
       you: response.locals.you as IUser,
       resource_id: parseInt(request.params.resource_id, 10) as number,
       icon_file: request.files && (<UploadedFile> request.files.icon) as UploadedFile | undefined,
       data: request.body,
     };
 
-    const serviceMethodResults: ServiceMethodResults = await ResourcesService.update_resource(opts);
+    const serviceMethodResults: ServiceMethodResults = await ResourcesService.update_resource(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

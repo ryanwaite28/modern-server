@@ -78,4 +78,30 @@ export class UtilsService {
     };
     return serviceMethodResults;
   }
+
+  static get_stripe_public_key(): ServiceMethodResults {
+    const key = process.env.STRIPE_PK;
+    
+    if (!key) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.SERVICE_UNAVAILABLE,
+        error: true,
+        info: {
+          message: `Could not get stripe public key...`
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: {
+          key,
+        }
+      }
+    };
+    return serviceMethodResults;
+  }
 }

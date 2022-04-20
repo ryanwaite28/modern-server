@@ -72,7 +72,8 @@ export async function get_conversation_member_by_user_id_and_conversation_id(use
 
 export async function find_or_create_conversation_member(user_id: number, conversation_id: number) {
   // get all the conversations that the user is a part of via when they last opened it
-  return ConversationMembers.findOrCreate({
+
+  let member = await ConversationMembers.findOne({
     where: {
       conversation_id,
       user_id
@@ -83,6 +84,26 @@ export async function find_or_create_conversation_member(user_id: number, conver
       attributes: user_attrs_slim
     }]
   });
+
+  if (member) {
+    return member;
+  }
+
+  const newMember = await ConversationMembers.create({
+    conversation_id,
+    user_id
+  });
+
+  member = await ConversationMembers.findOne({
+    where: { id: newMember.get('id') as number },
+    include: [{
+      model: Users,
+      as: 'user',
+      attributes: user_attrs_slim
+    }]
+  });
+
+  return member!;
 }
 
 export async function remove_conversation_member(user_id: number, conversation_id: number) {

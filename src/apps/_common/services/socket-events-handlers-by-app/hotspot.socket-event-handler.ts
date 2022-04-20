@@ -6,7 +6,7 @@ export class HotspotSocketEventsHandler {
   public static handleNewSocket(
     io: socket_io.Server,
     socket: socket_io.Socket,
-    socketsByUserIdMap: Map<number, Set<string>>,
+    userIdsBySocket: Map<string, number>,
     userSocketsRoomKeyByUserId: Map<number, string>,
   ): void {
     // socket.on(HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ADDED, (data: any) => {

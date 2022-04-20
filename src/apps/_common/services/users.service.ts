@@ -33,13 +33,14 @@ import {
   capitalize,
   validateData,
   create_user_required_props,
-  validateAndUploadImageFile
+  validateAndUploadImageFile,
+  getUserFullName
 } from '../common.chamber';
 import { delete_cloudinary_image, store_image } from '../../../cloudinary-manager';
 import { send_email } from '../../../email-client';
 import { send_verify_sms_request, cancel_verify_sms_request, check_verify_sms_request } from '../../../sms-client';
-import { SignedUp_EMAIL, VerifyEmail_EMAIL } from '../../../template-engine';
-import { SiteFeedbacks, Users } from '../models/user.model';
+import { PasswordResetSuccess_EMAIL, PasswordReset_EMAIL, SignedUp_EMAIL, VerifyEmail_EMAIL } from '../../../template-engine';
+import { ResetPasswordRequests, SiteFeedbacks, Users } from '../models/user.model';
 import { get_user_unseen_notifications_count } from '../repos/notifications.repo';
 import { get_user_unread_conversations_messages_count } from '../repos/conversations.repo';
 import { get_user_unread_personal_messages_count } from '../repos/messagings.repo';
@@ -47,6 +48,9 @@ import { StripeService } from './stripe.service';
 import { ServiceMethodAsyncResults, ServiceMethodResults } from '../types/common.types';
 import { IMyModel } from '../models/common.model-types';
 import { COMMON_API_KEY_SUBSCRIPTION_PLAN } from '../enums/common.enum';
+import Stripe from 'stripe';
+
+
 
 export class UsersService {
 
@@ -55,19 +59,49 @@ export class UsersService {
   static async check_session(request: Request): ServiceMethodAsyncResults {
     try {
       const auth = AuthorizeJWT(request, false);
+      let jwt = null;
+
       if (auth.you) {
         const you_model = await UserRepo.get_user_by_id(auth.you.id);
         auth.you = you_model!;
-      }
 
-      // const stripe_acct = !!auth.you && await StripeService.account_is_complete(auth.you.stripe_account_id);
+        if (!auth.you.stripe_customer_account_id) {
+          console.log(`Creating stripe customer account for user ${auth.you.id}...`);
+          
+          const userDisplayName = getUserFullName(auth.you);
+
+          // create stripe customer account       stripe_customer_account_id
+          const customer = await StripeService.stripe.customers.create({
+            name: userDisplayName,
+            description: `Modern Apps Customer: ${userDisplayName}`,
+            email: auth.you.email,
+            metadata: {
+              user_id: auth.you.id,
+            }
+          });
+
+          const updateUserResults = await UserRepo.update_user({ stripe_customer_account_id: customer.id }, { id: auth.you.id });
+          let new_user_model = await UserRepo.get_user_by_id(auth.you.id);
+          let new_user = new_user_model!;
+          auth.you = new_user;
+
+          // create JWT
+          jwt = TokensService.newUserJwtToken(auth.you);
+        }
+
+        // const stripe_acct_status = await StripeService.account_is_complete(auth.you.stripe_account_id);
+        // console.log({ stripe_acct_status });
+      }
 
       const serviceMethodResults: ServiceMethodResults = {
         status: auth.status,
         error: false,
         info: {
           message: auth.message,
-          data: auth,
+          data: {
+            ...auth,
+            token: jwt,
+          },
         }
       };
       return serviceMethodResults;
@@ -112,13 +146,13 @@ export class UsersService {
     return serviceMethodResults;
   }
 
-  static async send_feedback(opts: {
+  static async send_feedback(options: {
     you: IUser,
     rating: number,
     title: string,
     summary: string,
   }): ServiceMethodAsyncResults {
-    let { you, rating, title, summary } = opts;
+    let { you, rating, title, summary } = options;
 
     if (!rating) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -231,6 +265,163 @@ export class UsersService {
     return serviceMethodResults;
   }
 
+  static async get_user_customer_cards_payment_methods(stripe_customer_id: string): ServiceMethodAsyncResults {
+    const paymentMethods = await StripeService.get_customer_cards_payment_methods(stripe_customer_id);
+
+    const serviceMethodResults: ServiceMethodResults<Stripe.PaymentMethod[]> = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: paymentMethods.data || []
+      }
+    };
+    return serviceMethodResults;
+  }
+  
+  static async add_card_payment_method_to_user_customer(stripe_customer_account_id: string, payment_method_id: string): ServiceMethodAsyncResults {
+    let payment_method: Stripe.Response<Stripe.PaymentMethod>;
+    const user = await UserRepo.get_user_by_stripe_customer_account_id(stripe_customer_account_id);
+    if (!user) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `User not found by customer id: ${stripe_customer_account_id}`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    try {
+      payment_method = await StripeService.stripe.paymentMethods.retrieve(payment_method_id);
+      if (!payment_method) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Could not retrieve payment method by id: ${payment_method_id}`,
+          }
+        };
+        return serviceMethodResults;
+      }
+    } catch (e) {
+      console.log(e);
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Could not retrieve payment method by id: ${payment_method_id}`,
+          data: {
+            e
+          }
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (payment_method.customer) {
+      if (payment_method.customer === stripe_customer_account_id) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Payment method already attached to your customer account`,
+          }
+        };
+        return serviceMethodResults;
+      }
+      else {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Payment method already attached another customer account`,
+          }
+        };
+        return serviceMethodResults;
+      }
+    }
+
+    let paymentMethod = await StripeService.stripe.paymentMethods.attach(
+      payment_method.id,
+      { customer: stripe_customer_account_id }
+    );
+    paymentMethod = await StripeService.stripe.paymentMethods.update(
+      payment_method.id,
+      { metadata: { user_id: user.id } }
+    );
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Payment method added successfully!`,
+        data: paymentMethod
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async remove_card_payment_method_to_user_customer(stripe_customer_account_id: string, payment_method_id: string): ServiceMethodAsyncResults {
+    let payment_method: Stripe.Response<Stripe.PaymentMethod>;
+
+    try {
+      payment_method = await StripeService.stripe.paymentMethods.retrieve(payment_method_id);
+      if (!payment_method) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Could not retrieve payment method by id: ${payment_method_id}`,
+          }
+        };
+        return serviceMethodResults;
+      }
+    } catch (e) {
+      console.log(e);
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Could not retrieve payment method by id: ${payment_method_id}`,
+          data: {
+            e
+          }
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const user_payment_methods = await UsersService.get_user_customer_cards_payment_methods(stripe_customer_account_id);
+    const payment_methods = user_payment_methods.info.data! as Stripe.PaymentMethod[];
+
+    for (const pm of payment_methods) {
+      if (pm.id === payment_method.id) {
+        const paymentMethod = await StripeService.stripe.paymentMethods.detach(
+          payment_method.id,
+        );
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.OK,
+          error: false,
+          info: {
+            message: `Payment method removed successfully!`,
+            data: paymentMethod
+          }
+        };
+        return serviceMethodResults;
+      }
+    }
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.BAD_REQUEST,
+      error: true,
+      info: {
+        message: `Payment method not attached to customer`,
+      }
+    };
+    return serviceMethodResults;
+  }
+
   static async create_user_api_key(user: IUser): ServiceMethodAsyncResults {
     const api_key = await UserRepo.get_user_api_key(user.id);
     if (api_key) {
@@ -294,7 +485,7 @@ export class UsersService {
     password: string,
     confirmPassword: string,
 
-    host: string,
+    request_origin: string,
   }): ServiceMethodAsyncResults {
     const {
       firstname,
@@ -306,7 +497,7 @@ export class UsersService {
       password,
       confirmPassword,
 
-      host,
+      request_origin,
     } = data;
 
     const dataValidation: ServiceMethodResults = validateData({
@@ -364,8 +555,8 @@ export class UsersService {
       email: email.toLowerCase(),
       password: bcrypt.hashSync(password)
     };
-    const new_user_model = await UserRepo.create_user(createInfo);
-    const new_user = new_user_model!;
+    let new_user_model: IUser | null = await UserRepo.create_user(createInfo);
+    let new_user = new_user_model!;
     delete new_user.password;
 
     const user_api_key = await UserRepo.create_user_api_key({
@@ -378,6 +569,22 @@ export class UsersService {
       phone: '',
       website: '',
     });
+
+    const userDisplayName = getUserFullName(new_user);
+
+    // create stripe customer account       stripe_customer_account_id
+    const customer = await StripeService.stripe.customers.create({
+      name: userDisplayName,
+      description: `Modern Apps Customer: ${userDisplayName}`,
+      email: new_user.email,
+      metadata: {
+        user_id: new_user.id,
+      }
+    });
+
+    const updateUserResults = await UserRepo.update_user({ stripe_customer_account_id: customer.id }, { id: new_user.id });
+    new_user_model = await UserRepo.get_user_by_id(new_user.id);
+    new_user = new_user_model!;
   
     try {
       /** Email Sign up and verify */
@@ -387,9 +594,9 @@ export class UsersService {
       });
       const new_email_verf: PlainObject = new_email_verf_model.get({ plain: true });
 
-      const verify_link = (<string> host).endsWith('/')
-        ? (host + 'modern/verify-email/' + new_email_verf.verification_code)
-        : (host + '/modern/verify-email/' + new_email_verf.verification_code);
+      const verify_link = (<string> request_origin).endsWith('/')
+        ? (request_origin + 'modern/verify-email/' + new_email_verf.verification_code)
+        : (request_origin + '/modern/verify-email/' + new_email_verf.verification_code);
       const email_subject = `${process.env.APP_NAME} - Signed Up!`;
       const userName = `${new_user.firstname} ${new_user.lastname}`;
       const email_html = SignedUp_EMAIL({
@@ -665,14 +872,14 @@ export class UsersService {
     }
   }
 
-  static async verify_sms_code(opts: {
+  static async verify_sms_code(options: {
     you: IUser,
     request_id: string,
     code: string,
     phone: string,
   }): ServiceMethodAsyncResults {
     try {
-      let { you, request_id, code, phone } = opts;
+      let { you, request_id, code, phone } = options;
       if (!request_id) {
         const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
@@ -749,6 +956,191 @@ export class UsersService {
     }
   }
 
+  static async submit_reset_password_request(email: string, request_origin: string): ServiceMethodAsyncResults {
+    if (!validateEmail(email)) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: 'Email input is not in valid format'
+        }
+      };
+      return serviceMethodResults;
+    }
+    
+    const user_result = await UserRepo.get_user_by_email(email);
+    if (!user_result) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: 'No account found by that email'
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const user = user_result!;
+    const name = getUserFullName(user);
+
+    const email_subject = `${process.env.APP_NAME} - Password reset requested`;
+    const link = request_origin.endsWith('/')
+      ? (request_origin + 'modern/password-reset') 
+      : (request_origin + '/modern/password-reset');
+
+    let password_request_result = await ResetPasswordRequests.findOne({
+      where: {
+        user_id: user.id,
+        completed: false,
+      } 
+    });
+
+    if (password_request_result) {
+      const unique_value = password_request_result.get('unique_value');      
+      const email_data = {
+        link,
+        unique_value,
+        name,
+      };
+      console.log(`email_data`, email_data);
+      let email_html = PasswordReset_EMAIL(email_data);
+      const email_result = await send_email({
+        to: user.email,
+        name: name,
+        subject: email_subject,
+        html: email_html
+      });
+      console.log(`email_result`, email_result);
+
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: 'A password reset has already been requested for this email. A copy has been sent.',
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    // send reset request email
+    const new_reset_request = await ResetPasswordRequests.create({ user_id: user.id });
+    const unique_value = new_reset_request.get('unique_value');
+    const email_data = {
+      link,
+      unique_value,
+      name,
+    };
+    console.log(`email_data`, email_data);
+    let email_html = PasswordReset_EMAIL(email_data);
+    const email_result = await send_email({
+      to: user.email,
+      name: name,
+      subject: email_subject,
+      html: email_html
+    });
+    console.log(`email_result`, email_result);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: 'A password reset request has been sent to the provided email!',
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async submit_password_reset_code(code: string, request_origin: string): ServiceMethodAsyncResults {
+    if(!code) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: 'reset code is required'
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const request_result = await ResetPasswordRequests.findOne({ where: { unique_value: code } });
+    if (!request_result) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.NOT_FOUND,
+        error: true,
+        info: {
+          message: 'Invalid code, no reset request found by that value'
+        }
+      };
+      return serviceMethodResults;
+    }
+    if (request_result.get('completed')) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: 'Code has already been used.'
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const user_result = await UserRepo.get_user_by_id(request_result.get(`user_id`));
+    if (!user_result) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `error loading user from reset request...`
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const name = getUserFullName(user_result);
+    const password = uniqueValue();
+    const hash = bcrypt.hashSync(password);
+    console.log({
+      name,
+      password,
+      hash,
+    });
+
+    const update_result = await UserRepo.update_user({ password: hash }, { id: user_result.id });
+    console.log({
+      update_result
+    });
+
+    const request_updates = await request_result.update({ completed: true }, { fields: [`completed`] });
+
+    // send new password email
+    const link = request_origin.endsWith('/')
+      ? (request_origin + 'modern/signin') 
+      : (request_origin + '/modern/signin');
+    const email_subject = `${process.env.APP_NAME} - Password reset successful!`;
+    const email_html = PasswordResetSuccess_EMAIL({
+      name: getUserFullName(user_result),
+      password,
+      link 
+    });
+
+    const email_result = await send_email({
+      to: user_result.email,
+      name: name,
+      subject: email_subject,
+      html: email_html
+    });
+    console.log(`email_result`, email_result);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: 'The Password has been reset! Check your email.'
+      }
+    };
+    return serviceMethodResults;
+  }
+
   static async verify_email(verification_code: string): ServiceMethodAsyncResults {
     const email_verf_model = await EmailVerfRepo.query_email_verification({ verification_code });
     if (!email_verf_model) {
@@ -814,7 +1206,7 @@ export class UsersService {
     return serviceMethodResults;
   }
 
-  static async update_info(opts: {
+  static async update_info(options: {
     you: IUser,
     email: string,
     username: string,
@@ -847,7 +1239,7 @@ export class UsersService {
       can_message,
       can_converse,
       host,
-    } = opts;
+    } = options;
 
     let email_changed = false;
     let paypal_changed = false;
@@ -942,18 +1334,18 @@ export class UsersService {
 
     if (email_changed) {
       const new_email_verf_model = await EmailVerfRepo.create_email_verification({
-        user_id: you.id,
-        email: you.email
+        user_id: newYou.id,
+        email: newYou.email
       });
       const new_email_verf: PlainObject = new_email_verf_model.get({ plain: true });
   
       const verify_link = (<string> host).endsWith('/')
-        ? (host + 'verify-email/' + new_email_verf.verification_code)
-        : (host + '/verify-email/' + new_email_verf.verification_code);
-      const email_subject = `${process.env.APP_NAME} - Signed Up!`;
-      const userName = you.firstname;
+        ? (host + 'modern/verify-email/' + new_email_verf.verification_code)
+        : (host + '/modern/verify-email/' + new_email_verf.verification_code);
+      const email_subject = `${process.env.APP_NAME} - Email Changed`;
+      const userName = newYou.firstname;
       const email_html = VerifyEmail_EMAIL({
-        ...you,
+        ...newYou,
         name: userName,
         verify_link,
         appName: process.env.APP_NAME
@@ -961,7 +1353,7 @@ export class UsersService {
   
       // don't "await" for email response.
       const send_email_params = {
-        to: you.email,
+        to: newYou.email,
         name: userName,
         subject: email_subject,
         html: email_html
@@ -993,7 +1385,7 @@ export class UsersService {
     return serviceMethodResults;
   }
 
-  static async update_phone(opts: {
+  static async update_phone(options: {
     you: IUser,
     request_id: string,
     code: string,
@@ -1001,7 +1393,7 @@ export class UsersService {
     sms_results: PlainObject,
   }): ServiceMethodAsyncResults {
     try {
-      let { you, request_id, code, phone, sms_results } = opts;
+      let { you, request_id, code, phone, sms_results } = options;
 
       if (!sms_results) {
         const serviceMethodResults: ServiceMethodResults = {
@@ -1076,13 +1468,13 @@ export class UsersService {
     }
   }
 
-  static async update_password(opts: {
+  static async update_password(options: {
     you: IUser,
     password: string,
     confirmPassword: string,
   }): ServiceMethodAsyncResults {
     try {
-      let { you, password, confirmPassword } = opts;
+      let { you, password, confirmPassword } = options;
       if (!password) {
         const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,
@@ -1166,13 +1558,13 @@ export class UsersService {
     }
   }
 
-  static async update_icon(opts: {
+  static async update_icon(options: {
     you: IUser,
     icon_file: UploadedFile | undefined,
     should_delete: boolean,
   }): ServiceMethodAsyncResults {
     try {
-      const { you, icon_file, should_delete } = opts;
+      const { you, icon_file, should_delete } = options;
       const updatesObj = {
         icon_id: '',
         icon_link: ''
@@ -1258,13 +1650,13 @@ export class UsersService {
     }
   }
 
-  static async update_wallpaper(opts: {
+  static async update_wallpaper(options: {
     you: IUser,
     wallpaper_file: UploadedFile | undefined,
     should_delete: boolean,
   }): ServiceMethodAsyncResults {
     try {
-      const { you, wallpaper_file, should_delete } = opts;
+      const { you, wallpaper_file, should_delete } = options;
       const updatesObj = {
         wallpaper_id: '',
         wallpaper_link: ''
@@ -1411,20 +1803,8 @@ export class UsersService {
     return serviceMethodResults;
   }
 
-  static async verify_stripe_account(you_id: number): ServiceMethodAsyncResults {
-    const you_model: IUser | null = await UserRepo.get_user_by_id(you_id);
-    if (!you_model) {
-      const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.NOT_FOUND,
-        error: true,
-        info: {
-          message: `User not found`,
-        }
-      };
-      return serviceMethodResults;
-    }
-
-    let you: IUser = you_model!;
+  static async verify_stripe_account(user: IUser): ServiceMethodAsyncResults {
+    let you: IUser = { ...user };
 
     if (!you.stripe_account_id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1460,6 +1840,20 @@ export class UsersService {
       (<any> results).token = jwt;
       (<any> results).you = you;
     }
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: results.status,
+      error: results.error,
+      info: {
+        data: results
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async verify_customer_has_card_payment_method(user: IUser): ServiceMethodAsyncResults {
+    const results = await StripeService.customer_account_has_card_payment_method(user.stripe_customer_account_id);
+    console.log({ results });
 
     const serviceMethodResults: ServiceMethodResults = {
       status: results.status,

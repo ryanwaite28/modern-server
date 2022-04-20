@@ -83,7 +83,7 @@
     "pg-hstore": "^2.3.4",
     "postcss-loader": "^3.0.0",
     "reflect-metadata": "^0.1.13",
-    "sequelize": "^6.6.5",
+    "sequelize": "^5.22.5",
     "socket.io": "^2.3.0",
     "sqlite3": "^4.2.0",
     "stripe": "^8.176.0",

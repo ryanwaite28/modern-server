@@ -13,6 +13,7 @@ import {
   IContentSubscriptionModel,
   ITokenModel,
   IMyModel,
+  MyModelStatic,
 } from './common.model-types';
 
 export const Users = <MyModelStaticGeneric<IUserModel>> sequelize.define('common_users', {
@@ -30,6 +31,7 @@ export const Users = <MyModelStaticGeneric<IUserModel>> sequelize.define('common
 
   paypal:                              { type: Sequelize.STRING, allowNull: true },
   paypal_verified:                     { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  stripe_customer_account_id:          { type: Sequelize.STRING, allowNull: true },
   stripe_account_id:                   { type: Sequelize.STRING, allowNull: true },
   stripe_account_verified:             { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
   phone:                               { type: Sequelize.STRING, allowNull: true },
@@ -77,6 +79,22 @@ export const Users = <MyModelStaticGeneric<IUserModel>> sequelize.define('common
 //   date_created:                        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
 //   uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 // }, common_options);
+
+export const StripeActions = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_stripe_actions', {
+  id:                                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  action_event:                        { type: Sequelize.STRING, allowNull: false }, // charge, refund, transfer
+  action_id:                           { type: Sequelize.STRING, allowNull: false },
+  action_metadata:                     { type: Sequelize.JSON, allowNull: true, defaultValue: '' },
+  micro_app:                           { type: Sequelize.STRING, allowNull: true },
+  target_type:                         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  target_id:                           { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
+  target_metadata:                     { type: Sequelize.JSON, allowNull: true, defaultValue: '' },
+  status:                              { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  date_created:                        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+
 
 export const UserPaymentIntents = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_payment_intents', {
   id:                                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
@@ -208,7 +226,7 @@ export const UserReactions = <MyModelStaticGeneric<IMyModel>> sequelize.define('
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const ResetPasswordRequests = <MyModelStaticGeneric<IResetPasswordRequestModel>> sequelize.define('common_reset_password_requests', {
+export const ResetPasswordRequests = <MyModelStatic> sequelize.define('common_reset_password_requests', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   completed:           { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },

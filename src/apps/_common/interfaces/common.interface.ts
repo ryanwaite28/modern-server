@@ -7,7 +7,7 @@ import { IUserModel } from '../models/common.model-types';
 import { SocketsService } from '../services/sockets.service';
 import socket_io from 'socket.io';
 import { ServiceMethodAsyncResults } from '../types/common.types';
-import { Optional } from 'sequelize/types';
+import { Options } from 'sequelize/types';
 
 export interface PlainObject<T = any> {
   [key: string]: T;
@@ -51,6 +51,7 @@ export interface IUser extends ICommonModel {
   password?:                   string,
   paypal:                      string,
   paypal_verified:             boolean,
+  stripe_customer_account_id:  string,
   stripe_account_id:           string,
   stripe_account_verified:     boolean,
   phone:                       string,
@@ -84,7 +85,6 @@ export interface IUser extends ICommonModel {
   can_converse:                boolean,
   notifications_last_opened:   string,
 }
-export interface IUserCreation extends Optional<IUser, 'middlename'> {};
 
 export interface IUserPaymentIntent extends ICommonModel {
   user_id:                             number,

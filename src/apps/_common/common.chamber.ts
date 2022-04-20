@@ -519,6 +519,7 @@ export const user_attrs_slim = [
   'public',
   'can_message',
   'can_converse',
+  'stripe_customer_account_id',
   'stripe_account_id',
   'stripe_account_verified',
   'can_converse',
@@ -544,6 +545,13 @@ const isAppEnvSet: boolean = ('APP_ENV' in process.env);
 const isDevEnv: boolean = isAppEnvSet && process.env.APP_ENV === "DEV";
 
 export const isProd: boolean = (process.env.NODE_ENV === 'production') && !isDevEnv;
+
+export const COMMON_STATUSES =  Object.freeze({
+  PENDING: `PENDING`,
+  CANCELED: `CANCELED`,
+  ACCEPTED: `ACCEPTED`,
+  DECLINED: `DECLINED`,
+})
 
 export const populate_common_notification_obj = async (notification_model: any) => {
   const notificationObj = notification_model.toJSON();
@@ -728,6 +736,11 @@ export const numberValidator = (arg: any) => typeof(arg) === 'number';
 export const booleanValidator = (arg: any) => typeof(arg) === 'boolean';
 export const notNullValidator = (arg: any) => arg !== null;
 
+export const stripeValidators = Object.freeze({
+  customerId: (arg: any) => !!arg && typeof(arg) === 'string' && (/^cus_[a-zA-Z0-9]{19,35}/).test(arg),
+  paymentMethodId: (arg: any) => !!arg && typeof(arg) === 'string' && (/^pm_[a-zA-Z0-9]{19,35}/).test(arg),
+});
+
 export function uniqueValue() {
   return String(Date.now()) +
     Math.random().toString(36).substr(2, 34) +
@@ -909,12 +922,12 @@ export const corsOptions: CorsOptions = {
 
 export const corsMiddleware = cors(corsOptions);
 
-export const validateData = (opts: {
+export const validateData = (options: {
   data: any,
   validators: IModelValidator[],
   mutateObj?: any
 }): ServiceMethodResults => {
-  const { data, validators, mutateObj } = opts;
+  const { data, validators, mutateObj } = options;
   const dataObj: any = {};
 
   for (const prop of validators) {
@@ -960,7 +973,7 @@ export const validateData = (opts: {
 
 export const validateAndUploadImageFile = async (
   image_file: UploadedFile | undefined,
-  opts?: {
+  options?: {
     treatNotFoundAsError: boolean,
 
     mutateObj?: PlainObject,
@@ -971,7 +984,7 @@ export const validateAndUploadImageFile = async (
   if (!image_file) {
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.NOT_FOUND,
-      error: opts && opts.hasOwnProperty('treatNotFoundAsError') ? opts.treatNotFoundAsError : true,
+      error: options && options.hasOwnProperty('treatNotFoundAsError') ? options.treatNotFoundAsError : true,
       info: {
         message: `No image file found/given`
       }
@@ -1004,12 +1017,16 @@ export const validateAndUploadImageFile = async (
     return serviceMethodResults;
   }
 
-  if (opts && opts.mutateObj && opts.id_prop && opts.link_prop) {
-    opts.mutateObj[opts.id_prop] = image_results.result.public_id;
-    opts.mutateObj[opts.link_prop] = image_results.result.secure_url;
+  if (options && options.mutateObj && options.id_prop && options.link_prop) {
+    options.mutateObj[options.id_prop] = image_results.result.public_id;
+    options.mutateObj[options.link_prop] = image_results.result.secure_url;
   }
 
-  const serviceMethodResults: ServiceMethodResults = {
+  const serviceMethodResults: ServiceMethodResults<{
+    image_results: any,
+    image_id: string,
+    image_link: string,
+  }> = {
     status: HttpStatusCode.OK,
     error: false,
     info: {
@@ -1044,13 +1061,13 @@ export const create_rating_required_props: IModelValidator[] = [
 ];
 
 
-export const check_model_args = async (opts: {
+export const check_model_args = async (options: {
   model_id?: number,
   model?: IMyModel,
   model_name?: string,
   get_model_fn: (id: number) => Promise<IMyModel | null>
 }) => {
-  const { model_id, model, model_name, get_model_fn } = opts;
+  const { model_id, model, model_name, get_model_fn } = options;
   const useName = model_name || 'model';
 
   if (!model_id && !model) {

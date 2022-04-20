@@ -10,16 +10,19 @@ import {
   Order
 } from 'sequelize';
 import {
+  COMMON_STATUSES,
   convertModel,
   convertModelCurry,
   convertModels,
   convertModelsCurry,
   user_attrs_slim
 } from '../../_common/common.chamber';
-import { IUser } from '../../_common/interfaces/common.interface';
+import { IUser, PlainObject } from '../../_common/interfaces/common.interface';
 import { Users } from '../../_common/models/user.model';
 import {
   Delivery,
+  DeliveryCarrierTrackLocationRequests,
+  DeliveryCarrierTrackLocationUpdates,
   DeliveryMessages,
   DeliveryTrackingUpdates
 } from '../models/delivery.model';
@@ -33,6 +36,7 @@ import {
 import { DeliverMeUserProfileSettings } from '../models/deliverme.model';
 import { delivery_search_attrs } from '../deliverme.chamber';
 import { IMyModel } from 'src/apps/_common/models/common.model-types';
+import Bluebird from 'bluebird';
 
 
 
@@ -49,39 +53,60 @@ export const deliveryTrackingOrderBy: Order = [
 const convertDeliveryModel = convertModelCurry<IDelivery>();
 const convertDeliveryModels = convertModelsCurry<IDelivery>();
 
-export const deliveryMasterIncludes: Includeable[] = [{
-  model: Users,
-  as: 'owner',
-  attributes: user_attrs_slim,
-  include: [{
-    model: DeliverMeUserProfileSettings,
-    as: 'deliverme_settings',
-  }]
-}, {
-  model: Users,
-  as: 'carrier',
-  attributes: user_attrs_slim,
-  include: [{
-    model: DeliverMeUserProfileSettings,
-    as: 'deliverme_settings',
-  }]
-}, {
-  model: DeliveryTrackingUpdates,
-  as: 'deliverme_delivery_tracking_updates',
-  include: [{
+export const deliveryMasterIncludes: Includeable[] = [
+  {
     model: Users,
-    as: 'user',
-    attributes: user_attrs_slim
-  }]
-}, {
-  model: DeliveryMessages,
-  as: 'delivery_messages',
-  include: [{
+    as: 'owner',
+    attributes: user_attrs_slim,
+    include: [
+      {
+        model: DeliverMeUserProfileSettings,
+        as: 'deliverme_settings',
+      }
+    ]
+  }, 
+  {
     model: Users,
-    as: 'user',
-    attributes: user_attrs_slim
-  }]
-}];
+    as: 'carrier',
+    attributes: user_attrs_slim,
+    include: [
+      {
+        model: DeliverMeUserProfileSettings,
+        as: 'deliverme_settings',
+      }
+    ]
+  }, 
+  {
+    model: DeliveryTrackingUpdates,
+    as: 'deliverme_delivery_tracking_updates',
+    include: [
+      {
+        model: Users,
+        as: 'user',
+        attributes: user_attrs_slim
+      }
+    ]
+  },
+  {
+    model: DeliveryCarrierTrackLocationRequests,
+    as: `delivery_carrier_track_location_requests`,
+  },
+  {
+    model: DeliveryCarrierTrackLocationUpdates,
+    as: `delivery_carrier_track_location_updates`,
+  },
+  {
+    model: DeliveryMessages,
+    as: 'delivery_messages',
+    include: [
+      {
+        model: Users,
+        as: 'user',
+        attributes: user_attrs_slim
+      }
+    ]
+  }
+];
 
 export const deliveryGeneralIncludes: Includeable[] = [{
   model: Users,
@@ -107,7 +132,7 @@ export const deliveryGeneralIncludes: Includeable[] = [{
 
 // Repo Functions
 
-export function get_delivery_by_id(id: number): Promise<IDelivery | null> {
+export function get_delivery_by_id(id: number): Bluebird<IDelivery | null> {
   return Delivery.findOne({
     where: { id },
     include: deliveryMasterIncludes,
@@ -116,9 +141,9 @@ export function get_delivery_by_id(id: number): Promise<IDelivery | null> {
   .then(convertDeliveryModel);
 }
 
-export async function create_delivery(
+export function create_delivery(
   createObj: ICreateDeliveryProps
-): Promise<IDelivery> {
+): Bluebird<IDelivery> {
   return Delivery.create(<any> createObj, {
     include: deliveryMasterIncludes,
   })
@@ -131,20 +156,22 @@ export async function update_delivery(
 ): Promise<{updates: number, delivery: IDelivery}> {
   const updates = await Delivery.update(<any> updateObj, { where: { id } });
   const delivery = await get_delivery_by_id(id);
-  return {
+  const data = {
     updates: updates[0],
     delivery: delivery!
   };
+
+  return Bluebird.resolve(data);
 }
 
-export function delete_delivery(id: number): Promise<number> {
+export function delete_delivery(id: number) {
   return Delivery.destroy({ where: { id } });
 }
 
 export function find_available_delivery_by_from_city_and_state(
   city: string, 
   state: string
-): Promise<IDelivery | null> {
+): Bluebird<IDelivery | null> {
   return Delivery.findOne({
     where: {
       carrier_id: null,
@@ -161,7 +188,7 @@ export function find_available_delivery_by_from_city_and_state(
 export function find_available_delivery_by_to_city_and_state(
   city: string, 
   state: string
-): Promise<IDelivery | null> {
+) {
   return Delivery.findOne({
     where: {
       carrier_id: null,
@@ -175,7 +202,7 @@ export function find_available_delivery_by_to_city_and_state(
   .then(convertDeliveryModel);
 }
 
-export function find_available_delivery(params: {
+export async function find_available_delivery(params: {
   you_id: number,
   where: {
     from_city?: string,
@@ -183,20 +210,28 @@ export function find_available_delivery(params: {
     to_city?: string,
     to_state?: string,
   }
-}): Promise<IDelivery | null> {
-  return Delivery.findOne({
-    where: {
-      owner_id: {
-        [Op.ne]: params.you_id
-      },
-      carrier_id: null,
-      completed: false,
-      ...params.where
+}) {
+  const useWhere: any = {
+    owner_id: {
+      [Op.ne]: params.you_id
     },
+    carrier_id: null,
+    completed: false,
+  };
+  for (const key of Object.keys(params.where)) {
+    if (params.where.hasOwnProperty(key) && !!(<PlainObject> params.where)[key]) {
+      useWhere[key] = (<PlainObject> params.where)[key];
+    }
+  }
+
+  const delivery = await Delivery.findOne({
+    where: useWhere,
     order: [fn('RANDOM')],
     include: deliveryMasterIncludes
   })
   .then(convertDeliveryModel);
+
+  return delivery;
 }
 
 export async function search_deliveries(params: {
@@ -205,7 +240,7 @@ export async function search_deliveries(params: {
   from_state: string,
   to_city: string,
   to_state: string,
-}): Promise<IDelivery[]> {
+}) {
   const {
     you_id,
     from_city,
@@ -260,7 +295,7 @@ export async function search_deliveries(params: {
 
 export function get_delivery_tracking_updates(
   delivery_id: number
-): Promise<IDeliveryTrackingUpdate[]> {
+): Bluebird<IDeliveryTrackingUpdate[]> {
   return DeliveryTrackingUpdates.findAll({
     where: { delivery_id },
     include: []
@@ -270,7 +305,7 @@ export function get_delivery_tracking_updates(
 
 export async function get_delivery_tracking_update_by_id(
   id: number
-): Promise<IDeliveryTrackingUpdate | null> {
+) {
   return DeliveryTrackingUpdates.findOne({
     where: { id, deleted_at: null },
     include: []
@@ -280,7 +315,7 @@ export async function get_delivery_tracking_update_by_id(
 
 export function create_delivery_tracking_update(
   createObj: ICreateDeliveryTrackingUpdateProps
-): Promise<IDeliveryTrackingUpdate> {
+): Bluebird<IDeliveryTrackingUpdate> {
   return DeliveryTrackingUpdates.create(<any> createObj)
     .then((model: IMyModel) => convertModel<IDeliveryTrackingUpdate>(model)!);
 }
@@ -288,7 +323,7 @@ export function create_delivery_tracking_update(
 export function browse_recent_deliveries(
   you_id?: number,
   delivery_id?: number
-): Promise<IDelivery[]> {
+): Bluebird<IDelivery[]> {
   const useWhere: any = {
     completed: false,
     carrier_id: null,
@@ -313,7 +348,7 @@ export function browse_recent_deliveries(
 export function browse_featured_deliveries(
   you_id?: number,
   delivery_id?: number
-): Promise<IDelivery[]> {
+): Bluebird<IDelivery[]> {
   const useWhere: any = {
     completed: false,
     carrier_id: null,
@@ -341,7 +376,7 @@ export function browse_map_deliveries(params: {
   swLng: number,
   neLat: number,
   neLng: number,
-}): Promise<IDelivery[]> {
+}): Bluebird<IDelivery[]> {
   // https://stackoverflow.com/questions/4834772/get-all-records-from-mysql-database-that-are-within-google-maps-getbounds
   // swlat, swlng, nelat, nelng = a, b, c, d.
 
@@ -385,7 +420,7 @@ export function create_delivery_message(params: {
   body: string,
   delivery_id: number,
   user_id: number
-}): Promise<IDeliveryMessage> {
+}): Bluebird<IDeliveryMessage> {
   return DeliveryMessages.create(params)
     .then((new_model: IMyModel) => {
       return DeliveryMessages.findOne({
@@ -402,20 +437,98 @@ export function create_delivery_message(params: {
     });
 }
 
-export function get_user_deliveries_count(user_id: number): Promise<number> {
+export function get_user_deliveries_count(user_id: number) {
   return Delivery.count({
     where: { owner_id: user_id }
   });
 }
 
-export function get_user_delivering_completed_count(user_id: number): Promise<number> {
+export function get_user_delivering_completed_count(user_id: number) {
   return Delivery.count({
     where: { carrier_id: user_id, completed: true }
   });
 }
 
-export function get_user_delivering_inprogress_count(user_id: number): Promise<number> {
+export function get_user_delivering_inprogress_count(user_id: number) {
   return Delivery.count({
     where: { carrier_id: user_id, completed: false }
+  });
+}
+
+export function get_delivery_carrier_location_request_pending(delivery_id: number) {
+  return DeliveryCarrierTrackLocationRequests.findOne({
+    where: {
+      delivery_id,
+      status: COMMON_STATUSES.PENDING,
+    }
+  });
+}
+
+export function create_delivery_carrier_location_request(delivery_id: number) {
+  return DeliveryCarrierTrackLocationRequests.create({
+    delivery_id,
+    status: COMMON_STATUSES.PENDING,
+  });
+}
+
+
+
+export function set_delivery_carrier_location_requested(id: number, carrier_location_requested: boolean) {
+  return Delivery.update(
+    { carrier_location_requested },
+    { where: { id } }
+  ).then((results) => {
+    console.log({ results });
+    return results;
+  });
+}
+
+export function set_delivery_carrier_shared_location(id: number, carrier_shared_location: boolean) {
+  if (!carrier_shared_location) {
+    return Delivery.update(
+      { carrier_shared_location, carrier_location_request_completed: true, carrier_latest_lat: null, carrier_latest_lng: null },
+      { where: { id } }
+    ).then((results) => {
+      console.log({ results });
+      return results;
+    });
+  }
+
+  return Delivery.update(
+    { carrier_shared_location, carrier_location_request_completed: true },
+    { where: { id } }
+  ).then((results) => {
+    console.log({ results });
+    return results;
+  });
+}
+
+export function set_delivery_carrier_lat_lng_location(params: {
+  id: number,
+  carrier_latest_lat: number | null,
+  carrier_latest_lng: number | null,
+}) {
+  const { id, carrier_latest_lat, carrier_latest_lng } = params;
+
+  return Delivery.update(
+    { carrier_latest_lat, carrier_latest_lng },
+    { where: { id } }
+  ).then((results) => {
+    console.log({ results });
+    return results;
+  });
+}
+
+export function create_delivery_carrier_lat_lng_location_update(params: {
+  delivery_id: number,
+  lat: number,
+  lng: number,
+}) {
+  const { delivery_id, lat, lng } = params;
+
+  return DeliveryCarrierTrackLocationUpdates.create({
+    delivery_id,
+    lat, 
+    lng,
   });
 }

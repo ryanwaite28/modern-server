@@ -104,7 +104,7 @@ export class NewsPostsService {
     return serviceMethodResults;
   }
 
-  static async create_newspost(opts: {
+  static async create_newspost(options: {
     you: IUser,
     photo_files: UploadedFile | UploadedFile[] | undefined,
     data: {
@@ -119,7 +119,7 @@ export class NewsPostsService {
       filesInfo: PlainObject[],
     },
   }): ServiceMethodAsyncResults {
-    let { you, photo_files, data } = opts;
+    let { you, photo_files, data } = options;
     let {
       location,
       lat,
@@ -228,14 +228,14 @@ export class NewsPostsService {
     return serviceMethodResults;
   }
 
-  static async update_newspost(opts: {
+  static async update_newspost(options: {
     you: IUser,
     newspost_id: number,
     title: string,
     body: string,
     link: string,
   }): ServiceMethodAsyncResults {
-    const { you, newspost_id, title, body, link } = opts;
+    const { you, newspost_id, title, body, link } = options;
     const checkObj: any = { title, body };
     
     const required_props: string[] = [

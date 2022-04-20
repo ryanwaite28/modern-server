@@ -99,7 +99,7 @@ export class ResourceInterestsService {
     return createGenericServiceMethodSuccess(undefined, resource_interests_models);
   }
 
-  static async check_interest(you_id: number, resource_id?: number): ServiceMethodAsyncResults {
+  static async check_interest(you_id: number, resource_id: number): ServiceMethodAsyncResults {
     const interest_model = await HotspotResourceInterests.findOne({
       where: {
         resource_id,
@@ -110,12 +110,12 @@ export class ResourceInterestsService {
     return createGenericServiceMethodSuccess(undefined, interest_model);
   }
 
-  static async show_interest(opts: {
+  static async show_interest(options: {
     you: IUser,
-    resource_id?: number,
+    resource_id: number,
     resource_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, resource_id, resource_model } = opts;
+    const { you, resource_id, resource_model } = options;
     const checkModelResults: ServiceMethodResults<IMyModel> = await check_model_args({
       model_id: resource_id,
       model: resource_model,
@@ -163,12 +163,12 @@ export class ResourceInterestsService {
     return createGenericServiceMethodSuccess(`You are now showing interest!`, new_interest_model);
   }
 
-  static async remove_interest(opts: {
+  static async remove_interest(options: {
     you: IUser,
-    resource_id?: number,
+    resource_id: number,
     resource_model?: IMyModel
   }): ServiceMethodAsyncResults {
-    const { you, resource_id, resource_model } = opts;
+    const { you, resource_id, resource_model } = options;
     const checkModelResults: ServiceMethodResults<IMyModel> = await check_model_args({
       model_id: resource_id,
       model: resource_model,
@@ -181,7 +181,7 @@ export class ResourceInterestsService {
     
     const interest_model = await HotspotResourceInterests.findOne({
       where: {
-        resource_id,
+        resource_id: resource_id || -1,
         user_id: you.id
       }
     });

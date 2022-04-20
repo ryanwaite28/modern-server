@@ -35,14 +35,14 @@ export interface ICommonGenericCommentsService {
   get_comments_count: (model_id: number) => ServiceMethodAsyncResults,
   get_comments_all: (model_id: number) => ServiceMethodAsyncResults,
   get_comments: (model_id: number, comment_id?: number) => ServiceMethodAsyncResults,
-  create_comment: (opts: {
+  create_comment: (options: {
     body: string,
     base_model: IMyModel,
     you: IUser,
     ignoreNotification?: boolean,
     owner_field?: string,
   }) => ServiceMethodAsyncResults,
-  update_comment: (opts: {
+  update_comment: (options: {
     body: string,
     comment_id: number,
   }) => ServiceMethodAsyncResults,
@@ -133,15 +133,15 @@ export function createCommonGenericModelCommentsService(
       return serviceMethodResults;
     }
   
-    static async create_comment(opts: {
+    static async create_comment(options: {
       you: IUser,
       base_model: IMyModel,
       body: string,
       ignoreNotification?: boolean,
       owner_field?: string;
     }) {
-      const { you, body, base_model, ignoreNotification } = opts;
-      const base_model_owner_field = opts.owner_field || 'owner_id';
+      const { you, body, base_model, ignoreNotification } = options;
+      const base_model_owner_field = options.owner_field || 'owner_id';
       const model_id: number = base_model.get('id');
       if (!body) {
         const serviceMethodResults: ServiceMethodResults = {
@@ -197,11 +197,11 @@ export function createCommonGenericModelCommentsService(
       return serviceMethodResults;
     }
   
-    static async update_comment(opts: {
+    static async update_comment(options: {
       body: string,
       comment_id: number,
     }) {
-      const { body, comment_id } = opts;
+      const { body, comment_id } = options;
       if (!body) {
         const serviceMethodResults: ServiceMethodResults = {
           status: HttpStatusCode.BAD_REQUEST,

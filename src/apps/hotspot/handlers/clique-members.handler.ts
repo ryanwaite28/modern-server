@@ -90,9 +90,9 @@ export class CliqueMembersRequestHandler {
     const you_id = parseInt(request.params.you_id, 10);
     const user_id = parseInt(request.params.user_id, 10);
     const clique_model = response.locals.clique_model as IMyModel;
-    const opts = { you_id, user_id, clique_model };
+    const options = { you_id, user_id, clique_model };
 
-    const serviceMethodResults: ServiceMethodResults = await CliqueMembersService.send_clique_member_request(opts);
+    const serviceMethodResults: ServiceMethodResults = await CliqueMembersService.send_clique_member_request(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -100,9 +100,9 @@ export class CliqueMembersRequestHandler {
     const you = response.locals.you as IUser;
     const member_request_id = parseInt(request.params.member_request_id, 10);
     const clique_model = response.locals.clique_model as IMyModel;
-    const opts = { you, member_request_id, clique_model };
+    const options = { you, member_request_id, clique_model };
 
-    const serviceMethodResults: ServiceMethodResults = await CliqueMembersService.cancel_clique_member_request(opts);
+    const serviceMethodResults: ServiceMethodResults = await CliqueMembersService.cancel_clique_member_request(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -110,9 +110,9 @@ export class CliqueMembersRequestHandler {
     const you = response.locals.you as IUser;
     const member_request_id = parseInt(request.params.member_request_id, 10);
     const clique_model = response.locals.clique_model as IMyModel;
-    const opts = { you, member_request_id, clique_model };
+    const options = { you, member_request_id, clique_model };
 
-    const serviceMethodResults: ServiceMethodResults = await CliqueMembersService.accept_clique_member_request(opts);
+    const serviceMethodResults: ServiceMethodResults = await CliqueMembersService.accept_clique_member_request(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -120,9 +120,9 @@ export class CliqueMembersRequestHandler {
     const you = response.locals.you as IUser;
     const member_request_id = parseInt(request.params.member_request_id, 10);
     const clique_model = response.locals.clique_model as IMyModel;
-    const opts = { you, member_request_id, clique_model };
+    const options = { you, member_request_id, clique_model };
 
-    const serviceMethodResults: ServiceMethodResults = await CliqueMembersService.decline_clique_member_request(opts);
+    const serviceMethodResults: ServiceMethodResults = await CliqueMembersService.decline_clique_member_request(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 }

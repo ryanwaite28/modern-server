@@ -32,3 +32,7 @@ export const BlueworldUserRatings = <MyModelStatic> sequelize.define('blueworld_
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
 }, common_options);
+
+
+Users.hasOne(BlueworldUserProfileSettings, { as: 'blueworld_settings', foreignKey: 'user_id', sourceKey: 'id' });
+BlueworldUserProfileSettings.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });

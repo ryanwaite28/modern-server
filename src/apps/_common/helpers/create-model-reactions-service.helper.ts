@@ -35,7 +35,7 @@ export interface ICreateCommonGenericModelReactionsService {
 
 export interface IGenericModelReactionsService {
   get_user_reaction: (user_id: number, model_id: number) => ServiceMethodAsyncResults,
-  toggle_user_reaction: (opts: {
+  toggle_user_reaction: (options: {
     you: IUser,
     model: IMyModel,
     reaction: string,
@@ -86,13 +86,13 @@ export function createCommonGenericModelReactionsService (
       }
     }
   
-    static async toggle_user_reaction(opts: {
+    static async toggle_user_reaction(options: {
       you: IUser,
       model: IMyModel,
       reaction: string,
       ignoreNotification?: boolean
     }) {
-      const { you, model, reaction, ignoreNotification } = opts;
+      const { you, model, reaction, ignoreNotification } = options;
       const model_id: number = model.get('id');
 
       if (!reaction) {

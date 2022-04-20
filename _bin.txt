@@ -30,26 +30,26 @@ export async function method() {
 import { Request, Response } from 'express';
 
 
-(opts: {
+(options: {
   prop: type
   }): ServiceMethodAsyncResults {
-    let {  } = opts;
+    let {  } = options;
 
 
-(opts: {
+(options: {
     prop: type,
   }): ServiceMethodAsyncResults {
-    let {  } = opts;
+    let {  } = options;
 
 
-opts: {
+options: {
     
   }
-let {  } = opts;
+let {  } = options;
 
-let {  } = opts;
+let {  } = options;
 
-const opts = {  };
+const options = {  };
 
 
 
@@ -386,3 +386,21 @@ export class NullService {
   }
 
 }
+
+
+
+
+
+
+:([\s]+)\{(.*)(STRING|DATE|TEXT)(.*)\},?       ->   : string,
+:([\s]+)\{(.*)(INTEGER|FLOAT|DOUBLE)(.*)\},?   ->   : number,
+:([\s]+)\{(.*)(BOOLEAN)(.*)\},?                ->   : boolean,
+
+export interface I extends ICommonModel {
+  
+}
+
+
+
+python new_artifact.py pulse guard handler repo router service
+('Artifact', 'pulse')

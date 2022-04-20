@@ -38,13 +38,13 @@ export interface ICommonGenericModelChildrenCrudService {
   get_models_count: (parent_id: number) => ServiceMethodAsyncResults,
   get_models_all: (parent_id: number) => ServiceMethodAsyncResults,
   get_models: (parent_id: number, child_id?: number) => ServiceMethodAsyncResults,
-  create_model: (opts: {
+  create_model: (options: {
     data: any,
     you: IUser,
     parent_model: IMyModel,
     ignoreNotification?: boolean
   }) => ServiceMethodAsyncResults,
-  update_model: (opts: {
+  update_model: (options: {
     data: any, 
     child_model_id: number
   }) => ServiceMethodAsyncResults,
@@ -125,13 +125,13 @@ export function createCommonGenericModelChildrenCrudService(
       return serviceMethodResults;
     }
   
-    static async create_model(opts: {
+    static async create_model(options: {
       data: any,
       you: IUser,
       parent_model: IMyModel,
       ignoreNotification?: boolean,
     }) {
-      const { data, you, parent_model, ignoreNotification } = opts;
+      const { data, you, parent_model, ignoreNotification } = options;
       const createObj: any = {};
 
       const dataValidation = validateData({
@@ -183,11 +183,11 @@ export function createCommonGenericModelChildrenCrudService(
       return serviceMethodResults;
     }
   
-    static async update_model(opts: {
+    static async update_model(options: {
       data: any,
       child_model_id: number
     }) {
-      const { data, child_model_id } = opts;
+      const { data, child_model_id } = options;
       const updatesObj: any = {};
 
       const dataValidation = validateData({

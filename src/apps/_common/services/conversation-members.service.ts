@@ -68,12 +68,12 @@ export class ConversationMembersService {
     return serviceMethodResults;
   }
 
-  static async add_conversation_member(opts: {
+  static async add_conversation_member(options: {
     you_id: number,
     user_id: number,
     conversation_id: number,
   }) {
-    const { you_id, user_id, conversation_id } = opts;
+    const { you_id, user_id, conversation_id } = options;
 
     const member_model = await get_conversation_member_by_user_id_and_conversation_id(user_id, conversation_id);
     if (member_model) {
@@ -160,12 +160,12 @@ export class ConversationMembersService {
     return serviceMethodResults;
   }
 
-  static async remove_conversation_member(opts: {
+  static async remove_conversation_member(options: {
     you_id: number,
     user_id: number,
     conversation_id: number,
   }) {
-    const { you_id, user_id, conversation_id } = opts;
+    const { you_id, user_id, conversation_id } = options;
 
     const member_model = await get_conversation_member_by_user_id_and_conversation_id(user_id, conversation_id);
 

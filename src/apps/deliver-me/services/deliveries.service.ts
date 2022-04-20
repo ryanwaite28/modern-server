@@ -2,6 +2,7 @@ import {
   HttpStatusCode
 } from '../../_common/enums/http-codes.enum';
 import { 
+  COMMON_STATUSES,
   user_attrs_slim,
   validateAndUploadImageFile,
   validateData,
@@ -36,16 +37,26 @@ import {
   update_delivery,
   get_user_deliveries_count,
   get_user_delivering_completed_count,
-  get_user_delivering_inprogress_count
+  get_user_delivering_inprogress_count,
+  set_delivery_carrier_location_requested,
+  set_delivery_carrier_shared_location,
+  set_delivery_carrier_lat_lng_location,
+  get_delivery_carrier_location_request_pending,
+  create_delivery_carrier_location_request,
+  create_delivery_carrier_lat_lng_location_update
 } from '../repos/deliveries.repo';
 import { create_notification } from '../../_common/repos/notifications.repo';
-import { UserPaymentIntents, Users } from '../../_common/models/user.model';
+import { StripeActions, UserPaymentIntents, Users } from '../../_common/models/user.model';
 import {
+  COMMON_STRIPE_ACTION_EVENTS,
+  COMMON_TRANSACTION_STATUS,
   MODERN_APP_NAMES
 } from '../../_common/enums/common.enum';
 import { SocketsService } from '../../_common/services/sockets.service';
 import {
   Delivery,
+  DeliveryCarrierTrackLocationRequests,
+  DeliveryCarrierTrackLocationUpdates,
   DeliveryMessages,
   DeliveryTrackingUpdates
 } from '../models/delivery.model';
@@ -55,7 +66,8 @@ import {
   create_delivery_tracking_update_required_props,
   deliveryme_user_settings_required_props,
   delivery_search_attrs,
-  populate_deliverme_notification_obj
+  populate_deliverme_notification_obj,
+  update_delivery_required_props
 } from '../deliverme.chamber';
 import {
   ICreateDeliveryProps,
@@ -75,6 +87,7 @@ import { StripeService } from '../../_common/services/stripe.service';
 import { ServiceMethodResults } from '../../_common/types/common.types';
 import { get_user_ratings_stats_via_model } from '../../_common/repos/ratings.repo';
 import Stripe from 'stripe';
+import { get_user_by_id } from '../../_common/repos/users.repo';
 
 
 
@@ -105,14 +118,14 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async find_available_delivery(opts: {
+  static async find_available_delivery(options: {
     you_id: number,
     criteria: string,
     city: string,
     state: string,
   }) {
     try {
-      const { you_id, criteria, city, state } = opts;
+      const { you_id, criteria, city, state } = options;
       const searchCriterias = [
         { label: 'From City', value: 'from-city' },
         { label: 'To City', value: 'to-city' },
@@ -203,14 +216,14 @@ export class DeliveriesService {
     }
   }
 
-  static async search_deliveries(opts: {
+  static async search_deliveries(options: {
     you_id: number,
     from_city: string,
     from_state: string,
     to_city: string,
     to_state: string,
   }) {
-    const results = await search_deliveries(opts);
+    const results = await search_deliveries(options);
     let serviceMethodResults: ServiceMethodResults;
 
     if (results) {
@@ -343,13 +356,13 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async send_delivery_message(opts: {
+  static async send_delivery_message(options: {
     you_id: number,
     delivery: IDelivery,
     body: string,
     ignoreNotification?: boolean,
   }) {
-    const { you_id, delivery, body, ignoreNotification } = opts;
+    const { you_id, delivery, body, ignoreNotification } = options;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -406,9 +419,9 @@ export class DeliveriesService {
           user_id: you_id,
           notification,
         }
-        const TO_ROOM = `${DELIVERME_EVENT_TYPES.TO_DELIVERY}:${delivery_id}`;
+        // const TO_ROOM = `${DELIVERME_EVENT_TYPES.TO_DELIVERY}:${delivery_id}`;
         // console.log({ TO_ROOM, eventData });
-        SocketsService.get_io().to(TO_ROOM).emit(TO_ROOM, eventData);
+        // SocketsService.get_io().to(TO_ROOM).emit(TO_ROOM, eventData);
         
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: to_id,
@@ -546,17 +559,23 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async create_delivery(opts: {
-    you_id: number,
+  /**
+   * @deprecated
+   * @param options 
+   * @returns 
+   */
+  static async create_delivery_and_charge(options: {
+    you: IUser,
     data: any,
-    delivery_image?: UploadedFile
+    delivery_image?: UploadedFile,
   }) {
     try {
-      const { you_id, data, delivery_image } = opts;
+      const { you, data, delivery_image } = options;
       const createObj: PlainObject = {
-        owner_id: you_id
+        owner_id: you.id
       };
 
+      // validate inputs
       const dataValidation = validateData({
         data,
         validators: create_delivery_required_props,
@@ -576,10 +595,82 @@ export class DeliveriesService {
         return imageValidation;
       }
 
+      // make sure payment method belongs to user
+      const userPaymentMethodsResults = await StripeService.payment_method_belongs_to_customer(
+        you.stripe_customer_account_id,
+        data.payment_method_id
+      );
+      if (userPaymentMethodsResults.error) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: userPaymentMethodsResults.status,
+          error: userPaymentMethodsResults.error,
+          info: {
+            message: userPaymentMethodsResults.message
+          }
+        };
+        return serviceMethodResults;
+      }
+
+      // all inputs validated
       console.log(`createObj`, createObj);
 
+      // try charging customer for delivery listing
+      let payment_intent: Stripe.PaymentIntent;
+      const chargeFeeData = StripeService.add_on_stripe_processing_fee(createObj.payout);
+
+      try {
+        // https://stripe.com/docs/payments/save-during-payment
+        payment_intent = await StripeService.stripe.paymentIntents.create({
+          description: `${MODERN_APP_NAMES.DELIVERME} - new delivery listing: ${createObj.title}`,
+          amount: chargeFeeData.final_total,
+          currency: 'usd',
+          customer: you.stripe_customer_account_id,
+          payment_method: data.payment_method_id,
+          off_session: true,
+          confirm: true,
+        });
+      } catch (e) {
+        console.log(e);
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `Could not charge payment method`,
+            error: e,
+          }
+        };
+        return serviceMethodResults;
+      }
+
+      // charge was successful; create the delivery listing
+      createObj.payment_intent_id = payment_intent.id;
       const new_delivery_model = await create_delivery(createObj as ICreateDeliveryProps);
 
+      // record the charge
+      const payment_intent_action = await StripeActions.create({
+        action_event:                        COMMON_STRIPE_ACTION_EVENTS.PAYMENT_INTENT,
+        action_id:                           payment_intent.id,
+        action_metadata:                     null,
+        micro_app:                           MODERN_APP_NAMES.DELIVERME,
+        target_type:                         DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+        target_id:                           new_delivery_model.id,
+        target_metadata:                     null,
+        status:                              COMMON_TRANSACTION_STATUS.COMPLETED,
+      });
+
+      // update charge metadata with delivery id
+      payment_intent = await StripeService.stripe.paymentIntents.update(
+        payment_intent.id,
+        { metadata: { delivery_id: new_delivery_model.id } }
+      );
+
+      console.log(`Delivery created successfully. Delivery ID:`, new_delivery_model.id, {
+        chargeFeeData,
+        payment_intent,
+        payment_intent_action: payment_intent_action.toJSON(),
+      });
+
+      // return delivery object
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.OK,
         error: false,
@@ -602,21 +693,97 @@ export class DeliveriesService {
     }
   }
 
-  static async update_delivery(opts: {
+  static async create_delivery(options: {
+    you: IUser,
+    data: any,
+    delivery_image?: UploadedFile,
+  }) {
+    try {
+      const { you, data, delivery_image } = options;
+      const createObj: PlainObject = {
+        owner_id: you.id
+      };
+
+      // validate inputs
+      const dataValidation = validateData({
+        data,
+        validators: create_delivery_required_props,
+        mutateObj: createObj
+      });
+      if (dataValidation.error) {
+        return dataValidation;
+      }
+
+      const imageValidation = await validateAndUploadImageFile(delivery_image, {
+        treatNotFoundAsError: false,
+        mutateObj: createObj,
+        id_prop: 'item_image_id',
+        link_prop: 'item_image_link',
+      });
+      if (imageValidation.error) {
+        return imageValidation;
+      }
+
+      // make sure payment method belongs to user
+      const userPaymentMethodsResults = await StripeService.payment_method_belongs_to_customer(
+        you.stripe_customer_account_id,
+        data.payment_method_id
+      );
+      if (userPaymentMethodsResults.error) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: userPaymentMethodsResults.status,
+          error: userPaymentMethodsResults.error,
+          info: {
+            message: userPaymentMethodsResults.message
+          }
+        };
+        return serviceMethodResults;
+      }
+
+      // all inputs validated
+      console.log(`createObj`, createObj);
+
+      const new_delivery_model = await create_delivery(createObj as ICreateDeliveryProps);
+
+      // return delivery object
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `New Delivery Created!`,
+          data: new_delivery_model
+        }
+      };
+      return serviceMethodResults;
+    } catch (e) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+        error: true,
+        info: {
+          message: `Could not create new delivery`,
+          error: e,
+        }
+      };
+      return serviceMethodResults;
+    }
+  }
+
+  static async update_delivery(options: {
     delivery_id: number,
     data: any
   }) {
-    const { delivery_id, data } = opts;
+    const { delivery_id, data } = options;
 
     const updateObj: PlainObject = {};
     const dataValidation = validateData({
       data,
-      validators: create_delivery_required_props,
+      validators: update_delivery_required_props,
       mutateObj: updateObj
     });
     if (dataValidation.error) {
       return dataValidation;
     }
+
     const updates = await update_delivery(delivery_id, updateObj);
 
     const serviceMethodResults: ServiceMethodResults = {
@@ -625,6 +792,91 @@ export class DeliveriesService {
       info: {
         message: `Delivery Updated!`,
         data: updates
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  /**
+   * @deprecated
+   * @param delivery 
+   * @returns 
+   */
+  static async delete_delivery_and_refund(delivery: IDelivery) {
+    // const delivery_model = await get_delivery_by_id(delivery_id);
+
+    if (!delivery) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.NOT_FOUND,
+        error: true,
+        info: {
+          message: `Delivery not found`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!!delivery.carrier_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery is in progress`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    // try to refund the charge
+    if (delivery.payment_intent_id) {
+      let refund: Stripe.Refund;
+      const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout);
+      const refund_amount = chargeFeeData.final_total  - chargeFeeData.app_fee;
+
+      try {
+        refund = await StripeService.stripe.refunds.create({
+          payment_intent: delivery.payment_intent_id,
+          amount: refund_amount,
+        });
+        
+        // record the refund
+        const refund_action = await StripeActions.create({
+          action_event:                        COMMON_STRIPE_ACTION_EVENTS.REFUND,
+          action_id:                           refund.id,
+          action_metadata:                     null,
+          micro_app:                           MODERN_APP_NAMES.DELIVERME,
+          target_type:                         DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+          target_id:                           delivery.id,
+          target_metadata:                     null,
+          status:                              COMMON_TRANSACTION_STATUS.COMPLETED,
+        });
+
+        console.log(`refund issued and recorded successfully`, {
+          refund_amount,
+          refund_id: refund.id,
+          refund_action_id: refund_action.get('id')
+        });
+      } catch (e) {
+        console.log(e);
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.INTERNAL_SERVER_ERROR,
+          error: true,
+          info: {
+            message: `Could not issue refund`,
+            error: e,
+          }
+        };
+        return serviceMethodResults;
+      }
+    }
+
+    const deletes = await delete_delivery(delivery.id);
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Delivery Deleted!`,
+        data: deletes
       }
     };
     return serviceMethodResults;
@@ -667,12 +919,12 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async assign_delivery(opts: {
+  static async assign_delivery(options: {
     you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean
   }) {
-    const { you_id, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = options;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -684,6 +936,18 @@ export class DeliveriesService {
         error: true,
         info: {
           message: `Delivery already has carrier assigned.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const you = await get_user_by_id(you_id);
+    if (!(you!.stripe_account_verified) || !(you!.stripe_account_id)) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Your stripe account is not setup`,
         }
       };
       return serviceMethodResults;
@@ -737,12 +1001,12 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async unassign_delivery(opts: {
+  static async unassign_delivery(options: {
     you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean
   }) {
-    const { you_id, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = options;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -769,6 +1033,12 @@ export class DeliveriesService {
       where: { delivery_id }
     });
     const messagesDeletes = await DeliveryMessages.destroy({ 
+      where: { delivery_id }
+    });
+    const carrierTrackLocationRequestDeletes = await DeliveryCarrierTrackLocationRequests.destroy({ 
+      where: { delivery_id }
+    });
+    const carrierTrackLocationUpdateDeletes = await DeliveryCarrierTrackLocationUpdates.destroy({ 
       where: { delivery_id }
     });
 
@@ -814,14 +1084,14 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async create_tracking_update(opts: {
+  static async create_tracking_update(options: {
     you_id: number,
     delivery: IDelivery,
     data: any,
     tracking_update_image?: UploadedFile,
     ignoreNotification?: boolean,
   }) {
-    const { you_id, delivery, data, tracking_update_image, ignoreNotification } = opts;
+    const { you_id, delivery, data, tracking_update_image, ignoreNotification } = options;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -926,13 +1196,13 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async add_delivered_picture(opts: {
+  static async add_delivered_picture(options: {
     you_id: number,
     delivery: IDelivery,
     delivered_image?: UploadedFile,
     ignoreNotification?: boolean,
   }) {
-    const { you_id, delivery, delivered_image, ignoreNotification } = opts;
+    const { you_id, delivery, delivered_image, ignoreNotification } = options;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -1013,12 +1283,12 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async mark_delivery_as_picked_up(opts: {
+  static async mark_delivery_as_picked_up(options: {
     you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you_id, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = options;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -1081,12 +1351,12 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async mark_delivery_as_dropped_off(opts: {
+  static async mark_delivery_as_dropped_off(options: {
     you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you_id, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = options;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -1150,12 +1420,12 @@ export class DeliveriesService {
   }
 
   
-  static async mark_delivery_as_completed(opts: {
+  static async mark_delivery_as_completed(options: {
     you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you_id, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = options;
 
     if (delivery.owner_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1225,12 +1495,12 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async mark_delivery_as_returned(opts: {
+  static async mark_delivery_as_returned(options: {
     you_id: number,
     delivery: IDelivery,
     ignoreNotification?: boolean,
   }) {
-    const { you_id, delivery, ignoreNotification } = opts;
+    const { you_id, delivery, ignoreNotification } = options;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -1370,12 +1640,12 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async create_payment_intent(opts: {
+  static async create_payment_intent(options: {
     you_id: number,
     delivery: IDelivery,
     host: string,
   }) {
-    const { you_id, delivery, host } = opts;
+    const { you_id, delivery, host } = options;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -1520,13 +1790,13 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async payment_success(opts: {
+  static async payment_success(options: {
     you_id: number,
     delivery: IDelivery,
     session_id: string,
     ignoreNotification?: boolean,
   }) {
-    const { you_id, delivery, session_id, ignoreNotification } = opts;
+    const { you_id, delivery, session_id, ignoreNotification } = options;
     
     const delivery_id = delivery.id;
     const owner_id = delivery.owner_id;
@@ -1613,12 +1883,12 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async payment_cancel(opts: {
+  static async payment_cancel(options: {
     you_id: number,
     delivery: IDelivery,
     session_id: string,
   }) {
-    const { you_id, delivery, session_id } = opts;
+    const { you_id, delivery, session_id } = options;
 
     if (!session_id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -1681,7 +1951,609 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
-  static async pay_carrier(delivery: IDelivery) {
+  static async pay_carrier(options: {
+    you: IUser,
+    delivery: IDelivery
+  }) {
+    const { you, delivery } = options;
+
+    if (delivery.owner_id !== you.id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the owner of this delivery.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (delivery.completed) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery is already completed`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!delivery.owner?.stripe_account_verified || !delivery.owner?.stripe_account_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Owner's stripe account is not setup`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!delivery.carrier?.stripe_account_verified || !delivery.carrier?.stripe_account_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier's stripe account is not setup`,
+        }
+      };
+      return serviceMethodResults;
+    }
     
+    // try charging customer for delivery listing
+    let payment_intent: Stripe.PaymentIntent;
+    const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout);
+
+    try {
+      // https://stripe.com/docs/payments/save-during-payment
+      const paymentIntentCreateData: Stripe.PaymentIntentCreateParams = {
+        description: `${MODERN_APP_NAMES.DELIVERME} - payment for delivery listing: ${delivery.title}`,
+        amount: chargeFeeData.final_total,
+        currency: 'usd',
+
+        customer: you.stripe_customer_account_id,
+        payment_method: delivery.payment_method_id,
+        application_fee_amount: chargeFeeData.app_fee,
+        transfer_data: {
+          destination: delivery.carrier?.stripe_account_id,
+        },
+        
+        off_session: true,
+        confirm: true,
+        metadata: {
+          delivery_id: delivery.id,
+          payment_intent_event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
+          micro_app: MODERN_APP_NAMES.DELIVERME,
+          target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+          target_id: delivery.id
+        }
+      };
+
+      console.log({ paymentIntentCreateData });
+
+      payment_intent = await StripeService.stripe.paymentIntents.create(paymentIntentCreateData);
+    } catch (e) {
+      console.log(e);
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Could not charge payment method`,
+          error: e,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    // record the transaction
+    const payment_intent_action = await StripeActions.create({
+      action_event:                        COMMON_STRIPE_ACTION_EVENTS.PAYMENT_INTENT,
+      action_id:                           payment_intent.id,
+      action_metadata:                     null,
+      micro_app:                           MODERN_APP_NAMES.DELIVERME,
+      target_type:                         DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+      target_id:                           delivery.id,
+      target_metadata:                     null,
+      status:                              COMMON_TRANSACTION_STATUS.COMPLETED,
+    });
+
+    console.log(`Delivery paid successfully. Delivery ID:`, delivery.id, {
+      chargeFeeData,
+      payment_intent,
+      payment_intent_action: payment_intent_action.toJSON(),
+    });
+
+
+    const deliveryCompletedResults = await DeliveriesService.mark_delivery_as_completed({
+      you_id: you.id,
+      delivery
+    });
+
+    deliveryCompletedResults.info.message && console.log(deliveryCompletedResults.info.message);
+
+    if (deliveryCompletedResults.error) {
+      return deliveryCompletedResults;
+    }
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Payment successful!`,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async request_carrier_location(options: {
+    you: IUser,
+    delivery: IDelivery
+  }) {
+    const { you, delivery } = options;
+
+    if (delivery.carrier_shared_location) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier already shared location`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    let carrier_tracking_request = await get_delivery_carrier_location_request_pending(delivery.id);
+    if (carrier_tracking_request) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier location already requested`,
+          data: carrier_tracking_request,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const updates = await set_delivery_carrier_location_requested(delivery.id, true);
+    carrier_tracking_request = await create_delivery_carrier_location_request(delivery.id);
+
+    create_notification({
+      from_id: you.id,
+      to_id: delivery.carrier_id,
+      event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUESTED,
+      micro_app: MODERN_APP_NAMES.DELIVERME,
+      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+      target_id: delivery.id
+    }).then(async (notification_model) => {
+      const notification = await populate_deliverme_notification_obj(notification_model);
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: delivery.carrier_id,
+        event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUESTED,
+        data: {
+          data: {
+            delivery_id: delivery.id,
+            updates,
+            carrier_tracking_request,
+          },
+          message: notification.message || `Carrier location requested!`,
+          user: you.id,
+          notification,
+        }
+      });
+
+      const to_phone_number = delivery.carrier?.deliverme_settings?.phone || delivery.carrier?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Carrier location requested`,
+        data: carrier_tracking_request,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async cancel_request_carrier_location(options: {
+    you: IUser,
+    delivery: IDelivery
+  }) {
+    const { you, delivery } = options;
+
+    if (delivery.carrier_shared_location) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier already shared location`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    let carrier_tracking_request = await get_delivery_carrier_location_request_pending(delivery.id);
+    if (!carrier_tracking_request) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier location not requested`,
+          data: carrier_tracking_request,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const updates = await set_delivery_carrier_location_requested(delivery.id, false);
+    await carrier_tracking_request.update({ status: COMMON_STATUSES.CANCELED }, { fields: [`status`] });
+
+    create_notification({
+      from_id: you.id,
+      to_id: delivery.carrier_id,
+      event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_CANCELED,
+      micro_app: MODERN_APP_NAMES.DELIVERME,
+      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+      target_id: delivery.id
+    }).then(async (notification_model) => {
+      const notification = await populate_deliverme_notification_obj(notification_model);
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: delivery.carrier_id,
+        event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_CANCELED,
+        data: {
+          data: carrier_tracking_request,
+          message: notification.message || `Carrier location request canceled!`,
+          user: you,
+          notification,
+        }
+      });
+
+      const to_phone_number = delivery.carrier?.deliverme_settings?.phone || delivery.carrier?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Carrier location request canceled`,
+        data: carrier_tracking_request,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async accept_request_carrier_location(options: {
+    you: IUser,
+    delivery: IDelivery
+  }) {
+    const { you, delivery } = options;
+
+    if (delivery.carrier_shared_location) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier already shared location`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    let carrier_tracking_request = await get_delivery_carrier_location_request_pending(delivery.id);
+    if (!carrier_tracking_request) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier location not requested`,
+          data: carrier_tracking_request,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const updates = await set_delivery_carrier_shared_location(delivery.id, true);
+    await carrier_tracking_request.update({ status: COMMON_STATUSES.ACCEPTED }, { fields: [`status`] });
+
+    create_notification({
+      from_id: you.id,
+      to_id: delivery.owner_id,
+      event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_ACCEPTED,
+      micro_app: MODERN_APP_NAMES.DELIVERME,
+      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+      target_id: delivery.id
+    }).then(async (notification_model) => {
+      const notification = await populate_deliverme_notification_obj(notification_model);
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: delivery.owner_id,
+        event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_ACCEPTED,
+        data: {
+          data: {
+            delivery_id: delivery.id,
+            updates,
+            carrier_tracking_request,
+          },
+          message: notification.message || `Carrier location request accepted!`,
+          user: you,
+          notification,
+        }
+      });
+
+      const to_phone_number = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Carrier location request accepted`,
+        data: carrier_tracking_request,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async decline_request_carrier_location(options: {
+    you: IUser,
+    delivery: IDelivery
+  }) {
+    const { you, delivery } = options;
+
+    if (delivery.carrier_shared_location) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier already shared location`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    let carrier_tracking_request = await get_delivery_carrier_location_request_pending(delivery.id);
+    if (!carrier_tracking_request) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier location not requested`,
+          data: carrier_tracking_request,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const updates = await set_delivery_carrier_shared_location(delivery.id, false);
+    await carrier_tracking_request.update({ status: COMMON_STATUSES.DECLINED }, { fields: [`status`] });
+
+    create_notification({
+      from_id: you.id,
+      to_id: delivery.owner_id,
+      event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_DECLINED,
+      micro_app: MODERN_APP_NAMES.DELIVERME,
+      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+      target_id: delivery.id
+    }).then(async (notification_model) => {
+      const notification = await populate_deliverme_notification_obj(notification_model);
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: delivery.owner_id,
+        event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_DECLINED,
+        data: {
+          data: {
+            delivery_id: delivery.id,
+            updates,
+            carrier_tracking_request,
+          },
+          message: notification.message || `Carrier location request declined!`,
+          user: you,
+          notification,
+        }
+      });
+
+      const to_phone_number = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Carrier location request declined`,
+        data: updates,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async carrier_share_location(options: {
+    you: IUser,
+    delivery: IDelivery
+  }) {
+    const { you, delivery } = options;
+
+    if (delivery.carrier_shared_location) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier already shared location`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const updates = await set_delivery_carrier_shared_location(delivery.id, true);
+
+    create_notification({
+      from_id: you.id,
+      to_id: delivery.owner_id,
+      event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_SHARED,
+      micro_app: MODERN_APP_NAMES.DELIVERME,
+      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+      target_id: delivery.id
+    }).then(async (notification_model) => {
+      const notification = await populate_deliverme_notification_obj(notification_model);
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: delivery.owner_id,
+        event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_SHARED,
+        data: {
+          data: {
+            delivery_id: delivery.id,
+            updates,
+          },
+          message: notification.message || `Carrier location shared!`,
+          user: you,
+          notification,
+        }
+      });
+
+      const to_phone_number = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Carrier location shared`,
+        data: updates,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async carrier_unshare_location(options: {
+    you: IUser,
+    delivery: IDelivery
+  }) {
+    const { you, delivery } = options;
+
+    if (!delivery.carrier_shared_location) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Carrier not sharing location`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const updates = await set_delivery_carrier_shared_location(delivery.id, false);
+
+    create_notification({
+      from_id: you.id,
+      to_id: delivery.owner_id,
+      event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_UNSHARED,
+      micro_app: MODERN_APP_NAMES.DELIVERME,
+      target_type: DELIVERME_NOTIFICATION_TARGET_TYPES.DELIVERY,
+      target_id: delivery.id
+    }).then(async (notification_model) => {
+      const notification = await populate_deliverme_notification_obj(notification_model);
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: delivery.owner_id,
+        event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_UNSHARED,
+        data: {
+          data: {
+            delivery_id: delivery.id,
+            updates,
+          },
+          message: notification.message || `Carrier location unshared!`,
+          user: you,
+          notification,
+        }
+      });
+
+      const to_phone_number = delivery.owner?.deliverme_settings?.phone || delivery.owner?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Carrier location unshared`,
+        data: updates,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async carrier_update_location(options: {
+    you: IUser,
+    delivery: IDelivery,
+    carrier_latest_lat: number,
+    carrier_latest_lng: number
+  }) {
+    const updates = await set_delivery_carrier_lat_lng_location({
+      id: options.delivery.id,
+      carrier_latest_lat: options.carrier_latest_lat,
+      carrier_latest_lng: options.carrier_latest_lng,
+    });
+
+    const new_tracking_location_update = await create_delivery_carrier_lat_lng_location_update({
+      delivery_id: options.delivery.id,
+      lat: options.carrier_latest_lat,
+      lng: options.carrier_latest_lng,
+    });
+
+    CommonSocketEventsHandler.emitEventToUserSockets({
+      user_id: options.delivery.owner_id,
+      event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_UPDATED,
+      data: {
+        data: {
+          delivery_id: options.delivery.id,
+          updates,
+          new_tracking_location_update,
+        },
+        message: `Carrier location updated!`,
+        user: options.you,
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Carrier location unshared`,
+        data: new_tracking_location_update,
+      }
+    };
+    return serviceMethodResults;
   }
 }

@@ -11,10 +11,11 @@ import {
   MyModelStaticGeneric,
   IResourceModel,
   IMyModel,
+  MyModelStatic,
 } from '../../_common/models/common.model-types';
 import { Cliques } from './clique.model';
 
-export const HotspotResources = <MyModelStaticGeneric<IResourceModel>> sequelize.define('hotspot_resources', {
+export const HotspotResources = <MyModelStatic> sequelize.define('hotspot_resources', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   clique_id:           { type: Sequelize.INTEGER, allowNull: true, references: { model: Cliques, key: 'id' } },
@@ -35,7 +36,7 @@ export const HotspotResources = <MyModelStaticGeneric<IResourceModel>> sequelize
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
 }, common_options);
 
-export const HotspotResourceInterests = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_interests', {
+export const HotspotResourceInterests = <MyModelStatic> sequelize.define('hotspot_resource_interests', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   resource_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResources, key: 'id' } },
   user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
@@ -43,7 +44,7 @@ export const HotspotResourceInterests = <MyModelStaticGeneric<IMyModel>> sequeli
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
 }, common_options);
 
-export const HotspotResourceReactions = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_reactions', {
+export const HotspotResourceReactions = <MyModelStatic> sequelize.define('hotspot_resource_reactions', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   resource_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResources, key: 'id' } },
@@ -53,7 +54,7 @@ export const HotspotResourceReactions = <MyModelStaticGeneric<IMyModel>> sequeli
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const HotspotResourceComments = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_comments', {
+export const HotspotResourceComments = <MyModelStatic> sequelize.define('hotspot_resource_comments', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   resource_id:         { type: Sequelize.INTEGER, allowNull: true, references: { model: HotspotResources, key: 'id' } },
@@ -63,7 +64,7 @@ export const HotspotResourceComments = <MyModelStaticGeneric<IMyModel>> sequeliz
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const HotspotResourceCommentReactions = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_comment_reactions', {
+export const HotspotResourceCommentReactions = <MyModelStatic> sequelize.define('hotspot_resource_comment_reactions', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResourceComments, key: 'id' } },
@@ -73,7 +74,7 @@ export const HotspotResourceCommentReactions = <MyModelStaticGeneric<IMyModel>> 
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const HotspotResourceCommentPhotos = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_comment_photos', {
+export const HotspotResourceCommentPhotos = <MyModelStatic> sequelize.define('hotspot_resource_comment_photos', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResources, key: 'id' } },
   photo_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Photos, key: 'id' } },
@@ -81,7 +82,7 @@ export const HotspotResourceCommentPhotos = <MyModelStaticGeneric<IMyModel>> seq
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const HotspotResourceCommentVideos = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_comment_videos', {
+export const HotspotResourceCommentVideos = <MyModelStatic> sequelize.define('hotspot_resource_comment_videos', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResources, key: 'id' } },
   video_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Videos, key: 'id' } },
@@ -89,7 +90,7 @@ export const HotspotResourceCommentVideos = <MyModelStaticGeneric<IMyModel>> seq
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const HotspotResourceCommentAudios = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_comment_audios', {
+export const HotspotResourceCommentAudios = <MyModelStatic> sequelize.define('hotspot_resource_comment_audios', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResources, key: 'id' } },
   audio_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Audios, key: 'id' } },
@@ -99,7 +100,7 @@ export const HotspotResourceCommentAudios = <MyModelStaticGeneric<IMyModel>> seq
 
 
 
-export const HotspotResourceCommentReplies = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_comment_replies', {
+export const HotspotResourceCommentReplies = <MyModelStatic> sequelize.define('hotspot_resource_comment_replies', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   comment_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResourceComments, key: 'id' } },
@@ -109,7 +110,7 @@ export const HotspotResourceCommentReplies = <MyModelStaticGeneric<IMyModel>> se
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const HotspotResourceCommentReplyReactions = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_comment_reply_reactions', {
+export const HotspotResourceCommentReplyReactions = <MyModelStatic> sequelize.define('hotspot_resource_comment_reply_reactions', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   reply_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResourceCommentReplies, key: 'id' } },
@@ -119,7 +120,7 @@ export const HotspotResourceCommentReplyReactions = <MyModelStaticGeneric<IMyMod
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const HotspotResourceCommentReplyPhotos = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_comment_reply_photos', {
+export const HotspotResourceCommentReplyPhotos = <MyModelStatic> sequelize.define('hotspot_resource_comment_reply_photos', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   reply_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResources, key: 'id' } },
   photo_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Photos, key: 'id' } },
@@ -127,7 +128,7 @@ export const HotspotResourceCommentReplyPhotos = <MyModelStaticGeneric<IMyModel>
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const HotspotResourceCommentReplyVideos = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_comment_reply_videos', {
+export const HotspotResourceCommentReplyVideos = <MyModelStatic> sequelize.define('hotspot_resource_comment_reply_videos', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   reply_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResources, key: 'id' } },
   video_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Videos, key: 'id' } },
@@ -135,7 +136,7 @@ export const HotspotResourceCommentReplyVideos = <MyModelStaticGeneric<IMyModel>
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const HotspotResourceCommentReplyAudios = <MyModelStaticGeneric<IMyModel>> sequelize.define('hotspot_resource_comment_reply_audios', {
+export const HotspotResourceCommentReplyAudios = <MyModelStatic> sequelize.define('hotspot_resource_comment_reply_audios', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   reply_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: HotspotResources, key: 'id' } },
   audio_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Audios, key: 'id' } },

@@ -71,7 +71,7 @@ export class NoticesService {
     return createGenericServiceMethodSuccess(undefined, results);
   }
 
-  static async create_notice(opts: {
+  static async create_notice(options: {
     you_id: number,
     data: PlainObject | {
       parent_id: number,
@@ -86,7 +86,7 @@ export class NoticesService {
     photo_files: UploadedFile | undefined,
     filesInfo: PlainObject[],
   }): ServiceMethodAsyncResults {
-    const { you_id, data, photo_files, filesInfo } = opts;
+    const { you_id, data, photo_files, filesInfo } = options;
 
     // a notice can only reply to, quote, or share one other notice.
     // make sure only one of the following props have value: parent_id, quote_id, share_id

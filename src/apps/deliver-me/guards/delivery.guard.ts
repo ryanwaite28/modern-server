@@ -50,3 +50,60 @@ export async function IsNotDeliveryOwner(
   }
   return next();
 }
+
+export async function IsDeliveryCarrier(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const delivery_model = <IDelivery> response.locals.delivery_model;
+  const isCarrier: boolean = response.locals.you.id === delivery_model.carrier_id;
+  if (!isCarrier) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `Not delivery carrier`
+    });
+  }
+  return next();
+}
+
+export async function DeliveryNotCompleted(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const delivery_model = <IDelivery> response.locals.delivery_model;
+  if (delivery_model.completed) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `Delivery already completed`
+    });
+  }
+  return next();
+}
+
+export async function IsDeliveryCarrierLocationRequestCompleted(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const delivery_model = <IDelivery> response.locals.delivery_model;
+  if (!delivery_model.carrier_location_request_completed) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `Delivery carrier location request is not completed`
+    });
+  }
+  return next();
+}
+
+export async function IsNotDeliveryCarrierLocationRequestCompleted(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const delivery_model = <IDelivery> response.locals.delivery_model;
+  if (delivery_model.carrier_location_request_completed) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `Delivery carrier location request is already completed`
+    });
+  }
+  return next();
+}

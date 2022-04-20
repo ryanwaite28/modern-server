@@ -11,6 +11,7 @@ import {
   validateEmail,
   getUserFullName,
   user_attrs_slim,
+  stripeValidators,
 } from "../_common/common.chamber";
 import { IModelValidator, INotification, IUser } from "../_common/interfaces/common.interface";
 import { IMyModel } from "../_common/models/common.model-types";
@@ -48,6 +49,7 @@ const payout_min = 3;
 export const create_delivery_required_props: IModelValidator[] = [
   { field: 'title', name: 'Title', validator: genericTextValidator },
   { field: 'description', name: 'Description', validator: genericTextValidator },
+  { field: 'payment_method_id', name: 'Payment Method Id', validator: stripeValidators.paymentMethodId },
 
   { field: 'from_location', name: 'From Location', validator: genericTextValidator },
   { field: 'from_address', name: 'From Address', validator: genericTextValidator },
@@ -183,7 +185,7 @@ export const populate_deliverme_notification_obj = async (notification_model: IM
     }
     case DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_DROPPED_OFF: {
       const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} dropped off your delivery: ${delivery!.title}`;
+      message = `${full_name} dropped off your delivery: ${delivery!.title}. Please confirm and pay the carrier.`;
       mount_prop_key = 'delivery';
       mount_value = delivery!;
       break;
@@ -197,7 +199,7 @@ export const populate_deliverme_notification_obj = async (notification_model: IM
     }
     case DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED: {
       const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
-      message = `${full_name} completed the delivery: ${delivery!.title}`;
+      message = `${full_name} completed the delivery: ${delivery!.title}. Once confirmed, you will receive payment.`;
       mount_prop_key = 'delivery';
       mount_value = delivery!;
       break;
@@ -212,6 +214,49 @@ export const populate_deliverme_notification_obj = async (notification_model: IM
     case DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE: {
       const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
       message = `${full_name} added a message to the delivery: ${delivery!.title}`;
+      mount_prop_key = 'delivery';
+      mount_value = delivery!;
+      break;
+    }
+
+    case DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUESTED: {
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} requested to track your location for delivery: ${delivery!.title}`;
+      mount_prop_key = 'delivery';
+      mount_value = delivery!;
+      break;
+    }
+    case DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_CANCELED: {
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} canceled the request to track your location for delivery: ${delivery!.title}`;
+      mount_prop_key = 'delivery';
+      mount_value = delivery!;
+      break;
+    }
+    case DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_ACCEPTED: {
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} accepted the request to track their location for delivery: ${delivery!.title}`;
+      mount_prop_key = 'delivery';
+      mount_value = delivery!;
+      break;
+    }
+    case DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_DECLINED: {
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} declined the request to track their location for delivery: ${delivery!.title}`;
+      mount_prop_key = 'delivery';
+      mount_value = delivery!;
+      break;
+    }
+    case DELIVERME_EVENT_TYPES.CARRIER_LOCATION_SHARED: {
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} shared their location for delivery: ${delivery!.title}`;
+      mount_prop_key = 'delivery';
+      mount_value = delivery!;
+      break;
+    }
+    case DELIVERME_EVENT_TYPES.CARRIER_LOCATION_UNSHARED: {
+      const delivery: IDelivery | null = await get_delivery_by_id(notificationObj.target_id);
+      message = `${full_name} stopped sharing their location for delivery: ${delivery!.title}`;
       mount_prop_key = 'delivery';
       mount_value = delivery!;
       break;

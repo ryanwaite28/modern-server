@@ -96,11 +96,11 @@ export class ConversationsService {
     }
   }
 
-  static async get_user_conversations(opts: {
+  static async get_user_conversations(options: {
     you_id: number,
     conversation_timestamp: string,
   }) {
-    const { you_id, conversation_timestamp } = opts;
+    const { you_id, conversation_timestamp } = options;
 
     const whereClause: PlainObject = { user_id: you_id };
     if (conversation_timestamp) {
@@ -155,12 +155,12 @@ export class ConversationsService {
     return serviceMethodResults;
   }
 
-  static async create_conservation(opts: {
+  static async create_conservation(options: {
     you_id: number,
     title: string,
     icon_file: UploadedFile | undefined,
   }) {
-    let { title, you_id, icon_file } = opts;
+    let { title, you_id, icon_file } = options;
     title = (title || '').trim();
 
     if (!title) {
@@ -220,12 +220,12 @@ export class ConversationsService {
     return serviceMethodResults;
   }
 
-  static async update_conservation(opts: {
+  static async update_conservation(options: {
     conversation_id: number,
     title: string,
     icon_file?: UploadedFile
   }) {
-    let { title, conversation_id, icon_file } = opts;
+    let { title, conversation_id, icon_file } = options;
     title = (title || '').trim();
     if (!title) {
       const serviceMethodResults: ServiceMethodResults = {
