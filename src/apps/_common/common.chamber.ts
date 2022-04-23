@@ -876,6 +876,7 @@ export function AuthorizeJWT(
 
 export const dev_origins = [
   // dev origins
+  'http://localhost',
   'http://localhost:8080',
   'http://localhost:7600',
   'http://localhost:9500',

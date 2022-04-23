@@ -1,4 +1,4 @@
-import { ICommonModel, IUser } from "src/apps/_common/interfaces/common.interface";
+import { ICommonModel, IUser } from "../../_common/interfaces/common.interface";
 
 export interface ICreateDeliveryProps {
   owner_id: number;

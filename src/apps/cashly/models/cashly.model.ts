@@ -12,7 +12,7 @@ import {
 
 import { Users } from '../../_common/models/user.model';
 import { CASHLY_MEMBERSHIPS } from '../enums/cashly.enum';
-import { COMMON_STRIPE_PAYOUT_TYPES } from 'src/apps/_common/enums/common.enum';
+import { COMMON_STRIPE_PAYOUT_TYPES } from '../../_common/enums/common.enum';
 
 
 

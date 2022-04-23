@@ -14,8 +14,12 @@ import {
   FavorMessages,
 } from '../models/favor.model';
 import { getRandomModels } from '../../_common/repos/_common.repo';
-import { ICreateFavorUpdateProps, ICreateUpdateFavor, IFavor } from '../interfaces/myfavors.interface';
-import { Includeable, Op } from 'sequelize/types';
+import {
+  ICreateFavorUpdateProps,
+  ICreateUpdateFavor,
+  IFavor
+} from '../interfaces/myfavors.interface';
+import { Includeable, Op } from 'sequelize';
 
 
 

@@ -35,7 +35,7 @@ import {
 } from '../interfaces/deliverme.interface';
 import { DeliverMeUserProfileSettings } from '../models/deliverme.model';
 import { delivery_search_attrs } from '../deliverme.chamber';
-import { IMyModel } from 'src/apps/_common/models/common.model-types';
+import { IMyModel } from '../../_common/models/common.model-types';
 import Bluebird from 'bluebird';
 
 

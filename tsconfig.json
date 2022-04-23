@@ -14,7 +14,8 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "types": [
-      "node"
+      "node",
+      "sequelize"
     ],
     "typeRoots": [
       "node_modules/@types"
