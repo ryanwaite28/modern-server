@@ -20,7 +20,7 @@ export const DELIVERME_APP_FEE = 0.08;
 export class StripeService {
   static readonly stripe: Stripe = stripe;
 
-  static add_on_stripe_processing_fee(amount: number, isAmountAdjusted: boolean = false) {
+  static add_on_stripe_processing_fee(amount: number, is_active_member: boolean, isAmountAdjusted: boolean = false) {
     const stripePercentageFeeRate = 0.029;
     const stripeFixedFeeRate = 30; // 30 cents
 
@@ -28,13 +28,49 @@ export class StripeService {
     const stripe_processing_fee = Math.round(total * stripePercentageFeeRate) + stripeFixedFeeRate;
     let new_total = Math.round(total + stripe_processing_fee);
     const difference = new_total - total;
-    let app_fee = (parseInt((total * 0.1).toString(), 10));
+    let app_fee = is_active_member ? 0 : (parseInt((total * 0.1).toString(), 10));
     // app_fee = Math.round(difference + app_fee);
     const final_total = Math.round(new_total + app_fee);
     // new_total = new_total + app_fee;
     const data = { amount, final_total, app_fee, stripe_processing_fee, new_total, isAmountAdjusted, total, difference };
     console.log(data);
     return data;
+  }
+
+  static async is_subscription_active(subscription_id: string) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(subscription_id);
+      const isActive = !!subscription && subscription.status === `active`;
+      return isActive;
+    }
+    catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
+  static async create_subscription(customer_id: string, payment_method_id: string) {
+    /*
+      https://stripe.com/docs/billing/subscriptions/overview#integration-example
+      https://stripe.com/docs/api/subscriptions/update
+
+    */
+    try {
+      const subscription = await stripe.subscriptions.create({
+        customer: customer_id,
+        default_payment_method: payment_method_id,
+        collection_method: `charge_automatically`,
+        payment_behavior: `default_incomplete`,
+        items: [
+          { price: process.env.STRIPE_PLATFORM_MEMBERSHIP_PRICE_ID },
+        ],
+      });
+      return subscription;
+    }
+    catch (e) {
+      console.error(e);
+      return null;
+    }
   }
 
   static async account_is_complete(account_id: any) {

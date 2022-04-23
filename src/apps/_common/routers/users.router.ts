@@ -25,6 +25,8 @@ UsersRouter.get('/verify-sms-code/request_id/:request_id/code/:code', YouAuthori
 UsersRouter.get('/:you_id/unseen-counts', YouAuthorized, UsersRequestHandler.get_unseen_counts);
 UsersRouter.get('/:you_id/api-key', YouAuthorized, UsersRequestHandler.get_user_api_key);
 UsersRouter.get('/:you_id/customer-cards-payment-methods', YouAuthorized, UsersRequestHandler.get_user_customer_cards_payment_methods);
+UsersRouter.get('/:you_id/get-subscription', YouAuthorized, UsersRequestHandler.get_subscription);
+UsersRouter.get('/:you_id/is-subscription-active', YouAuthorized, UsersRequestHandler.is_subscription_active);
 
 UsersRouter.get('/:you_id/notifications/all', YouAuthorized, NotificationsRequestHandler.get_user_notifications_all);
 UsersRouter.get('/:you_id/notifications', YouAuthorized, NotificationsRequestHandler.get_user_notifications);
@@ -74,6 +76,7 @@ UsersRouter.post('/:you_id/send-message/:user_id', YouAuthorized, UserIdsAreDiff
 UsersRouter.post('/:you_id/conversations/:conversation_id/messages/:message_id/mark-as-seen', YouAuthorized, ConversationExists, ConversationMessagesRequestHandler.mark_message_as_seen);
 UsersRouter.post('/:you_id/conversations/:conversation_id/members/:user_id', YouAuthorized, UserIdsAreDifferent, ConversationExists, IsConversationOwner, ConversationMembersRequestHandler.add_conversation_member);
 UsersRouter.post('/:you_id/customer-cards-payment-methods/:payment_method_id', YouAuthorized, UsersRequestHandler.add_card_payment_method_to_user_customer);
+UsersRouter.post('/:you_id/create-subscription/:payment_method_id', YouAuthorized, UsersRequestHandler.create_subscription);
 
 // PUT
 UsersRouter.put('/', UsersRequestHandler.sign_in);

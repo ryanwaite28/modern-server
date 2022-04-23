@@ -34,6 +34,7 @@ export const Users = <MyModelStaticGeneric<IUserModel>> sequelize.define('common
   stripe_customer_account_id:          { type: Sequelize.STRING, allowNull: true },
   stripe_account_id:                   { type: Sequelize.STRING, allowNull: true },
   stripe_account_verified:             { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  platform_subscription_id:            { type: Sequelize.STRING, allowNull: true, defaultValue: null },
   phone:                               { type: Sequelize.STRING, allowNull: true },
   headline:                            { type: Sequelize.STRING(75), allowNull: false, defaultValue: '' },
   bio:                                 { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
@@ -146,6 +147,15 @@ export const UserRefunds = <MyModelStaticGeneric<IMyModel>> sequelize.define('co
   status:                              { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   date_created:                        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+export const UserPlatformSubscriptions = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_platform_suscriptions', {
+  id:                   { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:              { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  subscription_id:      { type: Sequelize.STRING, allowNull: true, defaultValue: null },
+  active:               { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  date_created:         { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                 { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
 export const UserPremiumSubscriptions = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_premium_suscriptions', {
@@ -305,3 +315,9 @@ export const SiteFeedbacks = <MyModelStaticGeneric<IMyModel>> sequelize.define('
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
 }, common_options);
+
+
+
+
+Users.hasMany(UserPlatformSubscriptions, { as: 'platform_subscriptions', foreignKey: 'user_id', sourceKey: 'id' });
+UserPlatformSubscriptions.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });

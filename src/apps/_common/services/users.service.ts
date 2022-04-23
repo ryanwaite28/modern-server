@@ -1864,4 +1864,79 @@ export class UsersService {
     };
     return serviceMethodResults;
   }
+
+  static async is_subscription_active(user: IUser): ServiceMethodAsyncResults {
+    const is_subscription_active = await StripeService.is_subscription_active(user.platform_subscription_id);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: is_subscription_active
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async get_subscription(user: IUser): ServiceMethodAsyncResults {
+    const subscription = await StripeService.stripe.subscriptions.retrieve(user.platform_subscription_id);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: subscription
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async create_subscription(
+    user: IUser,
+    payment_method_id: string
+  ): ServiceMethodAsyncResults {
+
+    if (user.platform_subscription_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `User already has subscription`
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const user_payment_methods = await UsersService.get_user_customer_cards_payment_methods(user.stripe_customer_account_id);
+    const payment_methods = user_payment_methods.info.data! as Stripe.PaymentMethod[];
+    let isValid = false;
+
+    for (const pm of payment_methods) {
+      if (pm.id === payment_method_id) {
+        isValid = true;
+        break;
+      }
+    }
+    if (!isValid) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Payment method does not belong to user's customer account`
+        }
+      };
+      return serviceMethodResults;
+    }
+    
+    const subscription = await StripeService.create_subscription(user.stripe_customer_account_id, payment_method_id);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: subscription
+      }
+    };
+    return serviceMethodResults;
+  }
 }

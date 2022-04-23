@@ -522,6 +522,7 @@ export const user_attrs_slim = [
   'stripe_customer_account_id',
   'stripe_account_id',
   'stripe_account_verified',
+  'platform_subscription_id',
   'can_converse',
   'email',
   'phone',
