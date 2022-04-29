@@ -157,7 +157,7 @@ export interface IMechanicServiceRequestMessage extends ICommonModel {
   service_request?: IMechanicServiceRequest,
 }
 
-export interface IMechanicServiceDispute extends ICommonModel {
+export interface IMechanicServiceRequestDispute extends ICommonModel {
   id: number,
   creator_id: number,
   service_request_id: number,
@@ -169,9 +169,10 @@ export interface IMechanicServiceDispute extends ICommonModel {
 
   creator?: IUser,
   service_request?: IMechanicServiceRequest,
+  mechanic_service_request_dispute_logs?: IMechanicServiceRequestDisputeLog[],
 }
 
-export interface IMechanicServiceDisputeLog extends ICommonModel {
+export interface IMechanicServiceRequestDisputeLog extends ICommonModel {
   id: number,
   creator_id: number,
   dispute_id: number,
@@ -182,5 +183,5 @@ export interface IMechanicServiceDisputeLog extends ICommonModel {
   uuid: string,
 
   creator?: IUser,
-  dispute?: IMechanicServiceDispute,
+  dispute?: IMechanicServiceRequestDispute,
 }

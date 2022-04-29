@@ -10,11 +10,7 @@ import {
   Order
 } from 'sequelize';
 import {
-  COMMON_STATUSES,
-  convertModel,
   convertModelCurry,
-  convertModels,
-  convertModelsCurry,
   create_model_crud_repo_from_model_class,
   URL_REGEX,
   user_attrs_slim
@@ -29,11 +25,14 @@ import {
   MechanicFields,
   MechanicRatings,
   Mechanics,
+  MechanicServiceRequestDisputeLogs,
+  MechanicServiceRequestDisputes,
+  MechanicServiceRequestMessages,
   MechanicServiceRequestOffers,
   MechanicServiceRequests,
   MechanicServices
 } from '../models/car-master.model';
-import { IMechanic, IMechanicField, IMechanicServiceRequest } from '../interfaces/car-master.interface';
+import { IMechanic, IMechanicExpertise, IMechanicField, IMechanicRating, IMechanicService, IMechanicServiceRequest, IMechanicServiceRequestDispute, IMechanicServiceRequestDisputeLog, IMechanicServiceRequestMessage, IMechanicServiceRequestOffer } from '../interfaces/car-master.interface';
 
 
 
@@ -101,29 +100,43 @@ export const mechanicServiceRequestMasterIncludes: Includeable[] = [
 ];
 
 
+// create crud fns
+
+const mechanics_crud = create_model_crud_repo_from_model_class<IMechanic>(Mechanics);
+const mechanic_fields_crud = create_model_crud_repo_from_model_class<IMechanicField>(MechanicFields);
+const mechanic_credentials_crud = create_model_crud_repo_from_model_class<IMechanicField>(MechanicCredentials);
+const mechanic_ratings_crud = create_model_crud_repo_from_model_class<IMechanicRating>(MechanicRatings);
+const mechanic_expertises_crud = create_model_crud_repo_from_model_class<IMechanicExpertise>(MechanicExpertises)
+const mechanic_services_crud = create_model_crud_repo_from_model_class<IMechanicService>(MechanicServices)
+const mechanic_service_requests_crud = create_model_crud_repo_from_model_class<IMechanicServiceRequest>(MechanicServiceRequests)
+const mechanic_service_request_offers_crud = create_model_crud_repo_from_model_class<IMechanicServiceRequestOffer>(MechanicServiceRequestOffers)
+const mechanic_service_request_messages_crud = create_model_crud_repo_from_model_class<IMechanicServiceRequestMessage>(MechanicServiceRequestMessages)
+const mechanic_service_request_disputes_crud = create_model_crud_repo_from_model_class<IMechanicServiceRequestDispute>(MechanicServiceRequestDisputes)
+const mechanic_service_request_dispute_logs_crud = create_model_crud_repo_from_model_class<IMechanicServiceRequestDisputeLog>(MechanicServiceRequestDisputeLogs)
 
 
 
 
+
+
+// mechanic 
 
 export function get_mechanic_by_id(id: number) {
-  return Mechanics.findOne({
+  return mechanics_crud.findOne({
     where: { id },
     include: mechanicMasterIncludes,
-  })
-  .then(convertModelCurry<IMechanic>());
+  });
 }
 
 export function get_mechanic_by_user_id(user_id: number) {
-  return Mechanics.findOne({
+  return mechanics_crud.findOne({
     where: { user_id },
     include: mechanicMasterIncludes,
-  })
-  .then(convertModelCurry<IMechanic>());
+  });
 }
 
 export function create_mechanic_from_user_id(user_id: number) {
-  return Mechanics.create({
+  return mechanics_crud.create({
     user_id,
     bio: ``,
     website: ``,
@@ -133,17 +146,31 @@ export function create_mechanic_from_user_id(user_id: number) {
     state: ``,
     zipcode: 0,
     country: ``,
-  })
-  .then((model) => {
-    const converted = convertModelCurry<IMechanic>()(model);
-    return converted!;
   });
+}
+
+export function update_mechanic(id: number, params: {
+  bio: string,
+  website: string,
+  phone: string,
+  email: string,
+  city: string,
+  state: string,
+  zipcode: number,
+  country: string,
+}) {
+  return mechanics_crud.updateOne(id, params);
 }
 
 
 
 // mechanic fields
-export const mechanic_fields_crud = create_model_crud_repo_from_model_class<IMechanicField>(MechanicFields);
+
+export function find_all_mechanic_fields(mechanic_id: number) {
+  return mechanic_fields_crud.findAll({
+    where: { mechanic_id }
+  });
+}
 
 export function create_mechanic_field(params: {
   mechanic_id: number,
@@ -159,6 +186,103 @@ export function create_mechanic_field(params: {
     is_link
   });
 }
+
+export function update_mechanic_field(id: number, params: {
+  fieldname: string,
+  fieldvalue: string,
+}) {
+  const fieldtype = typeof(params.fieldvalue);
+  const is_link = URL_REGEX.test(params.fieldvalue);
+
+  return mechanic_fields_crud.updateOne(id, {
+    ...params,
+    fieldtype,
+    is_link
+  });
+}
+
+export function delete_mechanic_field(id: number) {
+  return mechanic_fields_crud.deleteById(id);
+}
+
+
+
+// mechanic credentials
+
+export function find_all_mechanic_credentials(mechanic_id: number) {
+  return mechanic_fields_crud.findAll({
+    where: { mechanic_id }
+  });
+}
+
+export function create_mechanic_credential(params: {
+  mechanic_id: number,
+  title: string,
+  description: string,
+  image_link: string,
+  image_id: string,
+  website: string,
+}) {
+  return mechanic_credentials_crud.create(params);
+}
+
+export function update_mechanic_credential(id: number, params: {
+  title: string,
+  description: string,
+  image_link: string,
+  image_id: string,
+  website: string,
+}) {
+  return mechanic_credentials_crud.updateOne(id, params);
+}
+
+export function delete_mechanic_credential(id: number) {
+  return mechanic_credentials_crud.deleteById(id);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 export function get_service_request_by_id(id: number) {

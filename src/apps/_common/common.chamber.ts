@@ -27,6 +27,7 @@ import { ServiceMethodAsyncResults, ServiceMethodResults } from './types/common.
 import { IUploadFile, store_image } from '../../cloudinary-manager';
 import { UploadedFile } from 'express-fileupload';
 import { IMyModel, MyModelStatic, MyModelStaticGeneric } from './models/common.model-types';
+import { CreateOptions, DestroyOptions, FindOptions, UpdateOptions } from 'sequelize/types';
 
 
 export const specialCaracters = ['!', '@', '#', '$', '%', '&', '+', ')', ']', '}', ':', ';', '?'];
@@ -1159,14 +1160,14 @@ export const create_model_crud_repo_from_model_class = <T = any> (modelClass: My
     });
   };
 
-  const readOne = (findOptions: any) => {
+  const findOne = (findOptions: FindOptions) => {
     return modelClass.findOne(findOptions)
     .then((model) => {
       const converted = convertModelCurry<T>()(model);
-      return converted!
+      return converted;
     });
   };
-  const readAll = (findOptions: any) => {
+  const findAll = (findOptions: FindOptions) => {
     return modelClass.findAll(findOptions)
     .then((models) => {
       const converted = models.map(convertModelCurry<T>());
@@ -1174,23 +1175,37 @@ export const create_model_crud_repo_from_model_class = <T = any> (modelClass: My
     });
   };
 
-  const update = (updateObj: any, whereClause: any) => {
+  const updateMany = (updateObj: any, whereClause: UpdateOptions) => {
     return modelClass.update(updateObj, whereClause)
     .then((updates) => {
       const converted = convertModelCurry<T>()(updates[1] && updateObj[1][0]);
-      return converted!;
+      return updates;
     });
   };
 
-  const deleteFn = (whereClause: any) => {
-    return modelClass.destroy(whereClause)
+  const updateOne = (id: number, updateObj: any) => {
+    return modelClass.update(updateObj, { where: { id } })
+    .then((updates) => {
+      const converted = convertModelCurry<T>()(updates[1] && updateObj[1][0]);
+      return updates;
+    });
+  };
+
+  const deleteFn = (destroyOptions: DestroyOptions) => {
+    return modelClass.destroy(destroyOptions)
+  };
+
+  const deleteById = (id: number) => {
+    return modelClass.destroy({ where: { id } })
   };
 
   return {
     create,
-    readOne,
-    readAll,
-    update,
+    findOne,
+    findAll,
+    updateMany,
+    updateOne,
     delete: deleteFn,
+    deleteById,
   };
 }

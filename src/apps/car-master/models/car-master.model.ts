@@ -53,6 +53,17 @@ export const MechanicCredentials = <MyModelStatic> sequelize.define('carmaster_m
   uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
+export const MechanicCredentialReportings = <MyModelStatic> sequelize.define('carmaster_mechanic_credential_reportings', {
+  id:                 { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  credential_id:      { type: Sequelize.INTEGER, allowNull: true, references: { model: MechanicCredentials, key: 'id' } },
+
+  issue:              { type: Sequelize.TEXT, allowNull: false },
+  
+  date_created:       { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
 export const MechanicRatings = <MyModelStatic> sequelize.define('carmaster_mechanic_ratings', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   writer_id:           { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
