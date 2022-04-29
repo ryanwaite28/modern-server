@@ -77,6 +77,7 @@ UsersRouter.post('/:you_id/conversations/:conversation_id/messages/:message_id/m
 UsersRouter.post('/:you_id/conversations/:conversation_id/members/:user_id', YouAuthorized, UserIdsAreDifferent, ConversationExists, IsConversationOwner, ConversationMembersRequestHandler.add_conversation_member);
 UsersRouter.post('/:you_id/customer-cards-payment-methods/:payment_method_id', YouAuthorized, UsersRequestHandler.add_card_payment_method_to_user_customer);
 UsersRouter.post('/:you_id/create-subscription/:payment_method_id', YouAuthorized, UsersRequestHandler.create_subscription);
+UsersRouter.post('/:you_id/cancel-subscription', YouAuthorized, UsersRequestHandler.cancel_subscription);
 
 // PUT
 UsersRouter.put('/', UsersRequestHandler.sign_in);

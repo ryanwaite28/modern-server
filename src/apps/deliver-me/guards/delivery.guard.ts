@@ -80,6 +80,20 @@ export async function DeliveryNotCompleted(
   return next();
 }
 
+export async function DeliveryHasNoCarrierAssigned(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const delivery_model = <IDelivery> response.locals.delivery_model;
+  if (delivery_model.carrier_id) {
+    return response.status(HttpStatusCode.FORBIDDEN).json({
+      message: `Delivery has carrier assigned`
+    });
+  }
+  return next();
+}
+
 export async function IsDeliveryCarrierLocationRequestCompleted(
   request: Request,
   response: Response,

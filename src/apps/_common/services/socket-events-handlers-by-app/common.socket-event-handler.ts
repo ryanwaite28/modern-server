@@ -8,6 +8,8 @@ export class CommonSocketEventsHandler {
   private static userIdsBySocket: Map<string, number>;
   private static userSocketsRoomKeyByUserId: Map<number, string>;
 
+  private static userSocketsByUserId: Map<number, Set<string>> = new Map<number, Set<string>>();
+
   public static handleNewSocket(
     io: socket_io.Server,
     socket: socket_io.Socket,
@@ -161,6 +163,13 @@ export class CommonSocketEventsHandler {
       CommonSocketEventsHandler.userSocketsRoomKeyByUserId.set(data.user_id, roomKey);
     }
 
+    let socketsSet = CommonSocketEventsHandler.userSocketsByUserId.get(data.user_id);
+    if (!socketsSet) {
+      socketsSet = new Set();
+      socketsSet.add(socket.id);
+      CommonSocketEventsHandler.userSocketsByUserId.set(data.user_id, socketsSet);
+    }
+
     socket.join(roomKey, (err: any) => {
       console.log(`err`, err);
       console.log(`roomKey`, roomKey);
@@ -175,6 +184,10 @@ export class CommonSocketEventsHandler {
     console.log(
       `addUserSocket() - CommonSocketEventsHandler.userSocketsRoomKeyByUserId:`, 
       CommonSocketEventsHandler.userSocketsRoomKeyByUserId.entries()
+    );
+    console.log(
+      `addUserSocket() - CommonSocketEventsHandler.userSocketsByUserId:`, 
+      CommonSocketEventsHandler.userSocketsByUserId.entries()
     );
   }
 
@@ -232,6 +245,10 @@ export class CommonSocketEventsHandler {
       `removeSocketBySocketId() - CommonSocketEventsHandler.userSocketsRoomKeyByUserId:`, 
       CommonSocketEventsHandler.userSocketsRoomKeyByUserId.entries()
     );
+    console.log(
+      `removeSocketBySocketId() - CommonSocketEventsHandler.userSocketsByUserId:`, 
+      CommonSocketEventsHandler.userSocketsByUserId.entries()
+    );
   }
 
   static getUserRoomKey(user_id: number) {
@@ -243,15 +260,31 @@ export class CommonSocketEventsHandler {
     data: any;
     user_id: number;
   }) {
-    let roomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(params.user_id);
-    if (!roomKey) {
-      console.log(`CommonSocketEventsHandler.emitEventToUser - no roomKey by user Id`);
+    // console.log(`emitEventToUserSockets called`, { params });
+    // let roomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(params.user_id);
+    // if (!roomKey) {
+    //   console.log(`CommonSocketEventsHandler.emitEventToUserSockets - no roomKey by user Id`);
+    //   return;
+    // }
+
+    
+    let socketsSet = CommonSocketEventsHandler.userSocketsByUserId.get(params.user_id);
+    if (!socketsSet) {
+      console.log(`CommonSocketEventsHandler.emitEventToUserSockets - no roomKey by user Id`);
       return;
     }
+    
     if (!('event' in params.data)) {
       params.data.event = params.event;
     }
-    CommonSocketEventsHandler.io.to(roomKey).emit(params.event, params.data);
+    
+    console.log({ socketsSet });
+    for (const socket_id of socketsSet) {
+      console.log(`Emitting data to socket id ${socket_id}...`);
+      CommonSocketEventsHandler.io.to(socket_id).emit(params.event, params.data);
+    }
+
+    // CommonSocketEventsHandler.io.to(roomKey).emit(params.event, params.data);
     // CommonSocketEventsHandler.io.to(roomKey).emit(`FOR-USER:${params.user_id}`, params.data);
   }
 

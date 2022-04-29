@@ -37,10 +37,33 @@ export class StripeService {
     return data;
   }
 
-  static async is_subscription_active(subscription_id: string) {
+  static async get_subscription(subscription_id: string) {
     try {
-      const subscription = await stripe.subscriptions.retrieve(subscription_id);
-      const isActive = !!subscription && subscription.status === `active`;
+      if (!subscription_id) {
+        console.warn(`subscription id arg had no value`, { subscription_id });
+        return null;
+      }
+      return stripe.subscriptions.retrieve(subscription_id);
+    }
+    catch (e) {
+      console.error(e);
+      return null;
+    }
+  }
+
+  static async is_subscription_active(subscription_id: string): Promise<boolean> {
+    try {
+      if (!subscription_id) {
+        console.warn(`subscription id arg had no value`, { subscription_id });
+        return false;
+      }
+      const subscription = await stripe.subscriptions.retrieve(subscription_id, {
+        expand: ['latest_invoice', 'latest_invoice.payment_intent'],
+      });
+      const isActive = !!subscription && (
+        subscription.status === `active` ||
+        (subscription.status === `canceled` && (new Date(subscription.current_period_end * 1000) > new Date())) // https://www.delftstack.com/howto/javascript/javascript-convert-timestamp-to-date/
+      );
       return isActive;
     }
     catch (e) {
@@ -61,10 +84,38 @@ export class StripeService {
         default_payment_method: payment_method_id,
         collection_method: `charge_automatically`,
         payment_behavior: `default_incomplete`,
+        expand: ['latest_invoice.payment_intent'],
+        off_session: true,
         items: [
           { price: process.env.STRIPE_PLATFORM_MEMBERSHIP_PRICE_ID },
         ],
       });
+
+      const confirmation = await stripe.paymentIntents.confirm(
+        ((subscription.latest_invoice! as Stripe.Invoice).payment_intent! as Stripe.PaymentIntent).id,
+        {
+          off_session: true
+        }
+      );
+
+      console.log({ confirmation });
+
+      return stripe.subscriptions.retrieve(subscription.id);
+    }
+    catch (e) {
+      console.error(e);
+      return null;
+    }
+  }
+
+  static async cancel_subscription(subscription_id: string) {
+    /*
+      https://stripe.com/docs/billing/subscriptions/overview#integration-example
+      https://stripe.com/docs/api/subscriptions/update
+
+    */
+    try {
+      const subscription = await stripe.subscriptions.del(subscription_id);
       return subscription;
     }
     catch (e) {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { ApiIsDeliveryOwner } from '../guards/api.guard';
-import { DeliveryExists, IsDeliveryOwner } from '../guards/delivery.guard';
+import { DeliveryExists, DeliveryHasNoCarrierAssigned, DeliveryNotCompleted, IsDeliveryOwner } from '../guards/delivery.guard';
 import { DeliveriesRequestHandler } from '../handlers/deliveries.handler';
 import { DelivermeApiRequestHandler } from '../handlers/deliverme-api.handler';
 
@@ -26,6 +26,8 @@ DelivermeApiRouter.post('/deliveries/:delivery_id/create-payment-intent', Delive
 DelivermeApiRouter.post('/deliveries/:delivery_id/payment-success', DeliveryExists, ApiIsDeliveryOwner, DelivermeApiRequestHandler.payment_success);
 DelivermeApiRouter.post('/deliveries/:delivery_id/payment-cancel', DeliveryExists, ApiIsDeliveryOwner, DelivermeApiRequestHandler.payment_cancel);
 DelivermeApiRouter.post('/deliveries/mark-delivery-as-completed/:delivery_id', DeliveryExists, ApiIsDeliveryOwner, DelivermeApiRequestHandler.mark_delivery_as_completed);
+
+DelivermeApiRouter.put('/deliveries/:delivery_id', DeliveryExists, IsDeliveryOwner, DeliveryNotCompleted, DeliveryHasNoCarrierAssigned, DeliveriesRequestHandler.update_delivery);
 
 
 DelivermeApiRouter.delete('/deliveries/:delivery_id', DeliveryExists, ApiIsDeliveryOwner, DelivermeApiRequestHandler.delete_delivery);

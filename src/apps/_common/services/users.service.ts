@@ -60,10 +60,13 @@ export class UsersService {
     try {
       const auth = AuthorizeJWT(request, false);
       let jwt = null;
+      let is_subscription_active: boolean = false;
 
       if (auth.you) {
         const you_model = await UserRepo.get_user_by_id(auth.you.id);
         auth.you = you_model!;
+        jwt = TokensService.newUserJwtToken(auth.you);
+        is_subscription_active = (await UsersService.is_subscription_active(auth.you)).info.data as boolean;
 
         if (!auth.you.stripe_customer_account_id) {
           console.log(`Creating stripe customer account for user ${auth.you.id}...`);
@@ -100,6 +103,7 @@ export class UsersService {
           message: auth.message,
           data: {
             ...auth,
+            is_subscription_active,
             token: jwt,
           },
         }
@@ -1375,7 +1379,7 @@ export class UsersService {
       info: {
         message: `Info updated successfully`,
         data: {
-          user: newYou,
+          you: newYou,
           updates,
           token: jwt,
           email_changed,
@@ -1448,7 +1452,7 @@ export class UsersService {
           data: {
             sms_verify_results,
             updates,
-            user: newYou,
+            you: newYou,
             token: jwt,
           }
         }
@@ -1538,7 +1542,7 @@ export class UsersService {
           message: 'Password updated successfully',
           data: {
             updates,
-            user: you,
+            you,
             token: jwt,
           }
         }
@@ -1598,7 +1602,7 @@ export class UsersService {
           info: {
             message: 'Icon cleared successfully.',
             data: {
-              user,
+              you: user,
               updates,
               token: jwt,
             }
@@ -1631,7 +1635,7 @@ export class UsersService {
           message: 'Icon updated successfully.' ,
           data: {
             updates,
-            user,
+            you: user,
             token: jwt,
           }
         }
@@ -1691,7 +1695,7 @@ export class UsersService {
             message: 'Wallpaper cleared successfully.',
             data: {
               updates,
-              user,
+              you: user,
               token: jwt,
             }
           }
@@ -1724,7 +1728,7 @@ export class UsersService {
           message: 'Wallpaper updated successfully.',
           data: {
             updates,
-            user,
+            you: user,
             token: jwt,
           }
         }
@@ -1879,7 +1883,7 @@ export class UsersService {
   }
 
   static async get_subscription(user: IUser): ServiceMethodAsyncResults {
-    const subscription = await StripeService.stripe.subscriptions.retrieve(user.platform_subscription_id);
+    const subscription = await StripeService.get_subscription(user.platform_subscription_id);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -1892,11 +1896,11 @@ export class UsersService {
   }
 
   static async create_subscription(
-    user: IUser,
+    you: IUser,
     payment_method_id: string
   ): ServiceMethodAsyncResults {
 
-    if (user.platform_subscription_id) {
+    if (you.platform_subscription_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1907,7 +1911,7 @@ export class UsersService {
       return serviceMethodResults;
     }
 
-    const user_payment_methods = await UsersService.get_user_customer_cards_payment_methods(user.stripe_customer_account_id);
+    const user_payment_methods = await UsersService.get_user_customer_cards_payment_methods(you.stripe_customer_account_id);
     const payment_methods = user_payment_methods.info.data! as Stripe.PaymentMethod[];
     let isValid = false;
 
@@ -1928,7 +1932,55 @@ export class UsersService {
       return serviceMethodResults;
     }
     
-    const subscription = await StripeService.create_subscription(user.stripe_customer_account_id, payment_method_id);
+    const subscription = await StripeService.create_subscription(you.stripe_customer_account_id, payment_method_id);
+    if (!subscription) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Could not create subscription...`
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const updates = await UserRepo.update_user({ platform_subscription_id: subscription.id }, { id: you.id });
+  
+    const newUYou = { ...you, platform_subscription_id: subscription.id };
+    // console.log({ updates, results, user });
+    delete newUYou.password;
+    const jwt = TokensService.newUserJwtToken(newUYou);
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: {
+          token: jwt,
+          subscription,
+          you: newUYou
+        }
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async cancel_subscription(
+    user: IUser,
+  ): ServiceMethodAsyncResults {
+
+    if (!user.platform_subscription_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `User does not have subscription`
+        }
+      };
+      return serviceMethodResults;
+    }
+    
+    const subscription = await StripeService.cancel_subscription(user.platform_subscription_id);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,

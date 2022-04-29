@@ -771,10 +771,12 @@ export class DeliveriesService {
   }
 
   static async update_delivery(options: {
-    delivery_id: number,
-    data: any
+    you: IUser,
+    delivery: IDelivery,
+    data: any,
+    delivery_image?: UploadedFile,
   }) {
-    const { delivery_id, data } = options;
+    const { delivery, data, you, delivery_image } = options;
 
     const updateObj: PlainObject = {};
     const dataValidation = validateData({
@@ -786,7 +788,7 @@ export class DeliveriesService {
       return dataValidation;
     }
 
-    const updates = await update_delivery(delivery_id, updateObj);
+    const updates = await update_delivery(delivery.id, updateObj);
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -2021,7 +2023,7 @@ export class DeliveriesService {
         payment_method: delivery.payment_method_id,
         application_fee_amount: chargeFeeData.app_fee,
         transfer_data: {
-          destination: delivery.carrier?.stripe_account_id,
+          destination: delivery.carrier!.stripe_account_id,
         },
         
         off_session: true,

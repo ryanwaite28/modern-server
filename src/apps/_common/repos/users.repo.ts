@@ -188,6 +188,7 @@ export async function update_user(
     stripe_account_verified: boolean;
     stripe_account_id: string;
     stripe_customer_account_id: string;
+    platform_subscription_id: string,
   }>,
   whereClause: WhereOptions
 ) {

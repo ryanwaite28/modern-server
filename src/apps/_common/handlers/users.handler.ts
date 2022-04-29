@@ -273,4 +273,11 @@ export class UsersRequestHandler {
     const serviceMethodResults: ServiceMethodResults = await UsersService.create_subscription(you, payment_method_id);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
+
+  @CatchRequestHandlerError()
+  static async cancel_subscription(request: Request, response: Response): ExpressResponse {
+    const you: IUser = response.locals.you;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.cancel_subscription(you);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
 }

@@ -26,7 +26,7 @@ import {
 import { ServiceMethodAsyncResults, ServiceMethodResults } from './types/common.types';
 import { IUploadFile, store_image } from '../../cloudinary-manager';
 import { UploadedFile } from 'express-fileupload';
-import { IMyModel } from './models/common.model-types';
+import { IMyModel, MyModelStatic, MyModelStaticGeneric } from './models/common.model-types';
 
 
 export const specialCaracters = ['!', '@', '#', '$', '%', '&', '+', ')', ']', '}', ':', ';', '?'];
@@ -882,6 +882,8 @@ export const dev_origins = [
   'http://localhost:7600',
   'http://localhost:9500',
   'http://localhost:4200',
+  'http://localhost:5200',
+  'http://localhost:6200',
 ];
 
 export const prod_origins = [
@@ -1142,4 +1144,53 @@ export const convertModelCurry = <T> () => (model: IMyModel | null) => {
 
 export const convertModelsCurry = <T> () => (models: IMyModel[]) => {
   return models.map((model) => (<any> model.toJSON()) as T);
+}
+
+
+
+
+export const create_model_crud_repo_from_model_class = <T = any> (modelClass: MyModelStatic) => {
+
+  const create = (createObj: any) => {
+    return modelClass.create(createObj)
+    .then((model) => {
+      const converted = convertModelCurry<T>()(model);
+      return converted!;
+    });
+  };
+
+  const readOne = (findOptions: any) => {
+    return modelClass.findOne(findOptions)
+    .then((model) => {
+      const converted = convertModelCurry<T>()(model);
+      return converted!
+    });
+  };
+  const readAll = (findOptions: any) => {
+    return modelClass.findAll(findOptions)
+    .then((models) => {
+      const converted = models.map(convertModelCurry<T>());
+      return converted;
+    });
+  };
+
+  const update = (updateObj: any, whereClause: any) => {
+    return modelClass.update(updateObj, whereClause)
+    .then((updates) => {
+      const converted = convertModelCurry<T>()(updates[1] && updateObj[1][0]);
+      return converted!;
+    });
+  };
+
+  const deleteFn = (whereClause: any) => {
+    return modelClass.destroy(whereClause)
+  };
+
+  return {
+    create,
+    readOne,
+    readAll,
+    update,
+    delete: deleteFn,
+  };
 }

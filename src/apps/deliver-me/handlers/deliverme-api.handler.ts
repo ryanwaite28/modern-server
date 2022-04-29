@@ -136,9 +136,8 @@ export class DelivermeApiRequestHandler {
   }
 
   static async create_delivery(request: Request, response: Response): ExpressResponse {
-    const you = await get_user_by_id(response.locals.api_key_model.user_id);
     const options = {
-      you: you! as IUser,
+      you: response.locals.you as IUser,
       data: JSON.parse(request.body.payload) as any,
       delivery_image: request.files && (<UploadedFile> request.files.delivery_image)
     };
@@ -148,9 +147,10 @@ export class DelivermeApiRequestHandler {
 
   static async update_delivery(request: Request, response: Response): ExpressResponse {
     const options = {
-      you_id: response.locals.api_key_model.user_id as number,
+      you: response.locals.you as IUser,
       data: JSON.parse(request.body.payload) as any,
-      delivery_id: response.locals.delivery_model.id as number,
+      delivery: response.locals.delivery_model as IDelivery,
+      delivery_image: request.files && (<UploadedFile> request.files.delivery_image)
     };
     const serviceMethodResults: ServiceMethodResults = await DeliveriesService.update_delivery(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);

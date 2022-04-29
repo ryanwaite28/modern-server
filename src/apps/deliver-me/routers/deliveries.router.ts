@@ -12,6 +12,7 @@ import {
   DeliveryNotCompleted,
   IsDeliveryCarrierLocationRequestCompleted,
   IsNotDeliveryCarrierLocationRequestCompleted,
+  DeliveryHasNoCarrierAssigned,
 } from '../guards/delivery.guard';
 
 
@@ -53,7 +54,7 @@ DeliveriesRouter.post('/:delivery_id/carrier-update-location', YouAuthorizedSlim
 
 /** PUT */
 
-// DeliveriesRouter.put('/:delivery_id', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveriesRequestHandler.update_delivery);
+DeliveriesRouter.put('/:delivery_id', YouAuthorizedSlim, DeliveryExists, IsDeliveryOwner, DeliveryNotCompleted, DeliveryHasNoCarrierAssigned, DeliveriesRequestHandler.update_delivery);
 
 
 

@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { HttpStatusCode } from '../enums/http-codes.enum';
+import { IUser } from '../interfaces/common.interface';
 import { get_api_key, get_user_by_id } from '../repos/users.repo';
 
 
@@ -40,5 +41,9 @@ export async function ApiKeyAuthorized(
 
   response.locals.api_key = api_key;
   response.locals.api_key_model = api_key_model;
+
+  const you: IUser = (await get_user_by_id(api_key_model.user_id))!;
+  response.locals.you = you;
+
   return next();
 }
