@@ -385,10 +385,25 @@ export class NullService {
 
   }
 
+
+
+
+  static async method() {
+    
+  }
+
+  static async method(): Promise<ServiceMethodResults> {
+    
+  }
+
 }
 
 
 
+
+
+
+export const (.*) = (.*)
 
 
 
