@@ -4,11 +4,9 @@ import {
   common_options,
   sequelizeInst as sequelize
 } from '../../_common/models/_def.model';
-
 import {
   MyModelStatic,
 } from '../../_common/models/common.model-types';
-
 import { Users } from '../../_common/models/user.model';
 
 
@@ -57,9 +55,17 @@ export const MechanicCredentialReportings = <MyModelStatic> sequelize.define('ca
   id:                 { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   user_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   credential_id:      { type: Sequelize.INTEGER, allowNull: true, references: { model: MechanicCredentials, key: 'id' } },
-
   issue:              { type: Sequelize.TEXT, allowNull: false },
-  
+  date_created:       { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+export const MechanicCredentialReportingMessages = <MyModelStatic> sequelize.define('carmaster_mechanic_credential_reporting_messages', {
+  id:                 { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  reporting_id:       { type: Sequelize.INTEGER, allowNull: true, references: { model: MechanicCredentialReportings, key: 'id' } },
+  user_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  body:               { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
+  opened:             { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
   date_created:       { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
@@ -97,6 +103,7 @@ export const MechanicServices = <MyModelStatic> sequelize.define('carmaster_mech
   mechanic_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Mechanics, key: 'id' } },
   expertise_id:        { type: Sequelize.INTEGER, allowNull: true, references: { model: MechanicExpertises, key: 'id' } },
   service:             { type: Sequelize.STRING, allowNull: false },
+  actions:             { type: Sequelize.STRING, allowNull: false },
   description:         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   cost:                { type: Sequelize.INTEGER, allowNull: false },
   deposit:             { type: Sequelize.INTEGER, allowNull: false },
@@ -110,6 +117,7 @@ export const MechanicServiceRequests = <MyModelStatic> sequelize.define('carmast
   user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   mechanic_id:         { type: Sequelize.INTEGER, allowNull: true, references: { model: Mechanics, key: 'id' } },
   service_id:          { type: Sequelize.INTEGER, allowNull: true, references: { model: MechanicServices, key: 'id' } },
+  service_needed:      { type: Sequelize.STRING, allowNull: false },
   action_type:         { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   payment_method_id:   { type: Sequelize.STRING(500), allowNull: false, defaultValue: '' },
   
@@ -183,6 +191,16 @@ MechanicFields.belongsTo(Mechanics, { as: 'mechanic', foreignKey: 'mechanic_id',
 
 Mechanics.hasMany(MechanicCredentials, { as: 'mechanic_credentials', foreignKey: 'mechanic_id', sourceKey: 'id' });
 MechanicCredentials.belongsTo(Mechanics, { as: 'mechanic', foreignKey: 'mechanic_id', targetKey: 'id' });
+
+Users.hasMany(MechanicCredentialReportings, { as: 'carmaster_mechanic_credential_reportings', foreignKey: 'user_id', sourceKey: 'id' });
+MechanicCredentialReportings.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
+MechanicCredentials.hasMany(MechanicCredentialReportings, { as: 'mechanic_credential_reportings', foreignKey: 'credential_id', sourceKey: 'id' });
+MechanicCredentialReportings.belongsTo(MechanicCredentials, { as: 'credential', foreignKey: 'credential_id', targetKey: 'id' });
+
+Users.hasMany(MechanicCredentialReportingMessages, { as: 'carmaster_mechanic_credential_reporting_messages', foreignKey: 'user_id', sourceKey: 'id' });
+MechanicCredentialReportingMessages.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
+MechanicCredentialReportings.hasMany(MechanicCredentialReportingMessages, { as: 'mechanic_credential_reporting_messages', foreignKey: 'reporting_id', sourceKey: 'id' });
+MechanicCredentialReportingMessages.belongsTo(MechanicCredentialReportings, { as: 'reporting', foreignKey: 'reporting_id', targetKey: 'id' });
 
 Mechanics.hasMany(MechanicRatings, { as: 'mechanic_ratings', foreignKey: 'mechanic_id', sourceKey: 'id' });
 MechanicRatings.belongsTo(Mechanics, { as: 'mechanic', foreignKey: 'mechanic_id', targetKey: 'id' });

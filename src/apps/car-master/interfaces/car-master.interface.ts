@@ -3,7 +3,6 @@ import { ICommonModel, IUser } from "src/apps/_common/interfaces/common.interfac
 
 
 export interface IMechanic extends ICommonModel {
-  id: number,
   user_id: number,
   bio: string,
   website: string,
@@ -13,8 +12,6 @@ export interface IMechanic extends ICommonModel {
   state: string,
   zipcode: number,
   country: string,
-  date_created: string,
-  uuid: string,
 
   user?: IUser,
   mechanic_fields?: IMechanicField[],
@@ -27,51 +24,54 @@ export interface IMechanic extends ICommonModel {
 }
 
 export interface IMechanicField extends ICommonModel {
-  id: number,
   mechanic_id: number,
   fieldname: string,
   fieldtype: string,
   fieldvalue: string,
   is_link: boolean,
-  
-  date_created: string,
-  uuid: string,
 
   mechanic?: IMechanic,
 }
 
 export interface IMechanicCredential extends ICommonModel {
-  id: number,
   mechanic_id: number,
   title: string,
   description: string,
   image_link: string,
   image_id: string,
   website: string,
-  
-  date_created: string,
-  uuid: string,
 
   mechanic?: IMechanic,
+  mechanic_credential_reportings?: IMechanicCredentialReporting[],
+}
+
+export interface IMechanicCredentialReporting extends ICommonModel {
+  user_id: number,
+  credential_id: number,
+  issue: string,
+}
+
+export interface IMechanicCredentialReportingMessage extends ICommonModel {
+  reporting_id: number,
+  user_id: number,
+  body: string,
+  opened: boolean,
+
+  user?: IUser,
 }
 
 export interface IMechanicRating extends ICommonModel {
-  id: number,
   writer_id: number,
   mechanic_id: number,
   rating: number,
   title: string,
   summary: string,
-  
-  date_created: string,
-  uuid: string,
 
   writer?: IUser,
   mechanic?: IMechanic,
 }
 
 export interface IMechanicExpertise extends ICommonModel {
-  id: number,
   mechanic_id: number,
   credential_id: number,
   make: string,
@@ -81,36 +81,31 @@ export interface IMechanicExpertise extends ICommonModel {
   description: string,
   min_year: number,
   max_year: number,
-  
-  date_created: string,
-  uuid: string,
 
   credential?: IMechanicCredential,
   mechanic?: IMechanic,
 }
 
 export interface IMechanicService extends ICommonModel {
-  id: number,
   mechanic_id: number,
   expertise_id: number,
   service: string,
+  actions: string,
   description: string,
   cost: number,
   deposit: number,
-  
-  date_created: string,
-  uuid: string,
 
   mechanic?: IMechanic,
   expertise?: IMechanicExpertise,
 }
 
 export interface IMechanicServiceRequest extends ICommonModel {
-  id: number,
   user_id: number,
   mechanic_id: number,
   service_id: number,
   payment_method_id: string,
+  service_needed: string,
+  action_type: string,
   
   title: string,
   description: string,
@@ -124,9 +119,6 @@ export interface IMechanicServiceRequest extends ICommonModel {
   datetime_completed: string,
   status: string,
   
-  date_created: string,
-  uuid: string,
-
   user?: IUser,
   mechanic?: IMechanic,
   service?: IMechanicService,
@@ -134,38 +126,28 @@ export interface IMechanicServiceRequest extends ICommonModel {
 }
 
 export interface IMechanicServiceRequestOffer {
-  id: number,
   service_request_id: number,
   mechanic_id: number,
   notes: string,
   status: string,
-  
-  date_created: string,
-  uuid: string,
 }
 
 export interface IMechanicServiceRequestMessage extends ICommonModel {
-  id: number,
   service_request_id: number,
   user_id: number,
   body: string,
   opened: boolean,
-  date_created: string,
-  uuid: string,
 
   user?: IUser,
   service_request?: IMechanicServiceRequest,
 }
 
 export interface IMechanicServiceRequestDispute extends ICommonModel {
-  id: number,
   creator_id: number,
   service_request_id: number,
   title: string,
   description: string,
   status: string,
-  date_created: string,
-  uuid: string,
 
   creator?: IUser,
   service_request?: IMechanicServiceRequest,
@@ -173,14 +155,11 @@ export interface IMechanicServiceRequestDispute extends ICommonModel {
 }
 
 export interface IMechanicServiceRequestDisputeLog extends ICommonModel {
-  id: number,
   creator_id: number,
   dispute_id: number,
   body: string,
   image_link: string,
   image_id: string,
-  date_created: string,
-  uuid: string,
 
   creator?: IUser,
   dispute?: IMechanicServiceRequestDispute,

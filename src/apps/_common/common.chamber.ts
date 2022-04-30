@@ -1151,11 +1151,12 @@ export const convertModelsCurry = <T> () => (models: IMyModel[]) => {
 
 
 export const create_model_crud_repo_from_model_class = <T = any> (modelClass: MyModelStatic) => {
+  const convertTypeCurry = convertModelCurry<T>();
 
   const create = (createObj: any) => {
     return modelClass.create(createObj)
     .then((model) => {
-      const converted = convertModelCurry<T>()(model);
+      const converted = convertTypeCurry(model);
       return converted!;
     });
   };
@@ -1163,48 +1164,64 @@ export const create_model_crud_repo_from_model_class = <T = any> (modelClass: My
   const findOne = (findOptions: FindOptions) => {
     return modelClass.findOne(findOptions)
     .then((model) => {
-      const converted = convertModelCurry<T>()(model);
+      const converted = convertTypeCurry(model);
+      return converted;
+    });
+  };
+  const findById = (id: number, findOptions?: FindOptions) => {
+    const find = findOptions
+      ? modelClass.findOne({ ...findOptions, where: { id }, })
+      : modelClass.findOne({ where: { id } });
+
+    return find.then((model) => {
+      const converted = convertTypeCurry(model);
       return converted;
     });
   };
   const findAll = (findOptions: FindOptions) => {
     return modelClass.findAll(findOptions)
     .then((models) => {
-      const converted = models.map(convertModelCurry<T>());
+      const converted = models.map(convertTypeCurry);
       return converted;
     });
   };
 
-  const updateMany = (updateObj: any, whereClause: UpdateOptions) => {
+  const update = (updateObj: any, whereClause: UpdateOptions) => {
     return modelClass.update(updateObj, whereClause)
     .then((updates) => {
-      const converted = convertModelCurry<T>()(updates[1] && updateObj[1][0]);
-      return updates;
+      const converted = updates[1].map(convertTypeCurry); //(updates[1] && updateObj[1][0]);
+      // return updates;
+      const returnValue = [updates[0], converted] as [number, (T|null)[]];
+      return returnValue;
     });
   };
-
-  const updateOne = (id: number, updateObj: any) => {
+  const updateById = (id: number, updateObj: any) => {
     return modelClass.update(updateObj, { where: { id } })
     .then((updates) => {
-      const converted = convertModelCurry<T>()(updates[1] && updateObj[1][0]);
-      return updates;
+      const converted = convertTypeCurry(updates[1] && updates[1][0]);
+      // return updates;
+      const returnValue = [updates[0], converted] as [number, (T|null)];
+      return returnValue;
     });
   };
 
   const deleteFn = (destroyOptions: DestroyOptions) => {
-    return modelClass.destroy(destroyOptions)
+    return modelClass.destroy(destroyOptions);
   };
-
   const deleteById = (id: number) => {
-    return modelClass.destroy({ where: { id } })
+    return modelClass.destroy({ where: { id } });
   };
 
   return {
     create,
+  
     findOne,
     findAll,
-    updateMany,
-    updateOne,
+    findById,
+
+    update,
+    updateById,
+
     delete: deleteFn,
     deleteById,
   };

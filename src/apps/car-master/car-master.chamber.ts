@@ -202,3 +202,16 @@ export const all_services_map = {
   fleet_services,
   tire_services,
 };
+
+
+
+export const create_mechanic_required_props: IModelValidator[] = [
+  { field: 'user_id', name: 'User ID', validator: numberValidator },
+  { field: 'website', name: 'Website', validator: (arg: any) => arg === '' || genericTextValidator(arg) },
+  { field: 'phone', name: 'Phone', validator: (arg: any) => arg === '' || phoneValidator(arg) },
+  { field: 'email', name: 'Email', validator: (arg: any) => arg === '' || validateEmail(arg) },
+  { field: 'city', name: 'Bio', validator: (arg: any) => arg === '' || cities_map.has(arg) },
+  { field: 'state', name: 'Bio', validator: (arg: any) => arg === '' || states_map.has(arg) },
+  { field: 'zipcode', name: 'Bio', validator: (arg: any) => arg === 0 || zipcodes_map.has(arg) },
+  { field: 'country', name: 'Bio', validator: (arg: any) => arg === '' || countries_by_name_map.has(arg) },
+];

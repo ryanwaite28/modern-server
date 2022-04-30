@@ -1,9 +1,25 @@
 import { Request, Response, NextFunction } from "express";
 import { HttpStatusCode } from "src/apps/_common/enums/http-codes.enum";
-import { IMechanicServiceRequest } from "../interfaces/car-master.interface";
-import { get_service_request_by_id } from "../repos/car-master.repo";
+import { IMechanic, IMechanicServiceRequest } from "../interfaces/car-master.interface";
+import { get_mechanic_by_id, get_service_request_by_id } from "../repos/car-master.repo";
 
 
+
+export async function MechanicExists(
+  request: Request,
+  response: Response,
+  next: NextFunction
+) {
+  const mechanic_id = parseInt(request.params.mechanic_id, 10);
+  const mechanic_model: IMechanic | null = await get_mechanic_by_id(mechanic_id);
+  if (!mechanic_model) {
+    return response.status(HttpStatusCode.NOT_FOUND).json({
+      message: `Mechanic not found`
+    });
+  }
+  response.locals.mechanic_model = mechanic_model;
+  return next();
+}
 
 export async function ServiceRequestExists(
   request: Request,
