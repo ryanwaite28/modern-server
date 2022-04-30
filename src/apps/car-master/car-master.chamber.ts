@@ -12,8 +12,11 @@ import {
   required_booleanValidator,
   optional_booleanValidator,
   dateObjValidator,
+  getUserFullName,
 } from "../_common/common.chamber";
-import { IModelValidator, PlainObject} from "../_common/interfaces/common.interface";
+import { IModelValidator, INotification, IUser, PlainObject} from "../_common/interfaces/common.interface";
+import { IMyModel } from "../_common/models/common.model-types";
+import { get_user_by_id } from "../_common/repos/users.repo";
   
 
 
@@ -409,3 +412,26 @@ export const update_mechanic_service_request_dispute_log_required_props: IModelV
   { field: 'image_link', name: 'Image Link', validator: optional_textValidator },
   { field: 'image_id', name: 'Image ID', validator: optional_textValidator },
 ];
+
+
+
+
+
+export const populate_carmaster_notification_obj = async (notification_model: IMyModel) => {
+  const notificationObj = notification_model.toJSON() as INotification;
+  const user_model = await get_user_by_id(notificationObj.from_id)
+  const full_name = getUserFullName(<IUser> user_model!);
+  let message = '';
+  let mount_prop_key = '';
+  let mount_value = null;
+
+  switch (notificationObj.event) {
+
+  }
+
+  notificationObj.from = user_model!;
+  notificationObj.message = message;
+  notificationObj[mount_prop_key] = mount_value;
+
+  return notificationObj;
+};
