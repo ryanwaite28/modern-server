@@ -281,9 +281,9 @@ export function create_mechanic_credential(params: {
   mechanic_id: number,
   title: string,
   description: string,
-  image_link: string,
-  image_id: string,
-  website: string,
+  image_link?: string,
+  image_id?: string,
+  website?: string,
 }) {
   return mechanic_credentials_crud.create(params);
 }
@@ -388,8 +388,8 @@ export function create_mechanic_rating(params: {
   mechanic_id: number,
   writer_id: number,
   rating: number,
-  title: string,
-  summary: string,
+  title?: string,
+  summary?: string,
 }) {
   return mechanic_ratings_crud.create(params);
 }
@@ -474,7 +474,7 @@ export function create_mechanic_service(params: {
   actions: string,
   description?: string,
   cost: number,
-  deposit: number,
+  deposit?: number,
 }) {
   return mechanic_services_crud.create(params);
 }
@@ -525,7 +525,7 @@ export function find_all_user_service_requests(user_id: number) {
 export function create_mechanic_service_request(params: {
   user_id: number,
   mechanic_id?: number,
-  expertise_id?: number,
+  service_id?: number,
   service_needed: string,
   action_type: string,
   payment_method_id: string,
@@ -544,7 +544,7 @@ export function update_mechanic_service_request(
   service_request_id: number, 
   params: Partial<{
     mechanic_id: number,
-    expertise_id: number,
+    service_id: number,
     service_needed: string,
     action_type: string,
     payment_method_id: string,
@@ -690,8 +690,8 @@ export function create_mechanic_service_request_dispute_log(params: {
   dispute_id: number,
   creator_id: number,
   body: string,
-  image_link: string,
-  image_id: string,
+  image_link?: string,
+  image_id?: string,
 }) {
   return mechanic_service_request_dispute_logs_crud.create(params);
 }

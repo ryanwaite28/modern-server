@@ -111,6 +111,9 @@ export interface IMechanicServiceRequest extends ICommonModel {
   description: string,
   notes: string,
   deposit_paid: boolean,
+  deposit_refunded: boolean,
+  deposit_payment_intent_id: string,
+  deposit_refund_id: string,
 
   datetime_needed: string,
   datetime_canceled: string,

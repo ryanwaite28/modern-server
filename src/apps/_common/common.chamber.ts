@@ -731,12 +731,43 @@ export function validatePassword(password: string) {
   );
 }
 
+export const optionalValidatorCheck = (arg: any, fn: (arg: any) => boolean) => !arg || fn(arg);
+export const requiredValidatorCheck = (arg: any, fn: (arg: any) => boolean) => !!arg && fn(arg);
+
+
+
 export const genericTextValidator = (arg: any) => !!arg && typeof(arg) === 'string' && (/^[a-zA-Z0-9\s\'\-\_\.\@\$\#]{3,250}/).test(arg);
-export const phoneValidator = (arg: any) => !!arg && (/^[0-9]{10,15}$/).test(arg);
+export const phoneValidator = (arg: any) => (/^[0-9]{10,15}$/).test(arg);
 export const stringValidator = (arg: any) => typeof(arg) === 'string';
 export const numberValidator = (arg: any) => typeof(arg) === 'number';
 export const booleanValidator = (arg: any) => typeof(arg) === 'boolean';
+export const dateObjValidator = (arg: any) => typeof(arg) === 'object' && arg.constructor === Date;
 export const notNullValidator = (arg: any) => arg !== null;
+
+
+
+export const optional_textValidator = (arg: any) => optionalValidatorCheck(arg, genericTextValidator);
+export const required_textValidator = (arg: any) => requiredValidatorCheck(arg, genericTextValidator);
+
+export const optional_emailValidator = (arg: any) => optionalValidatorCheck(arg, validateEmail);
+export const required_emailValidator = (arg: any) => requiredValidatorCheck(arg, validateEmail);
+
+export const optional_phoneValidator = (arg: any) => optionalValidatorCheck(arg, phoneValidator);
+export const required_phoneValidator = (arg: any) => requiredValidatorCheck(arg, phoneValidator);
+
+export const optional_stringValidator = (arg: any) => optionalValidatorCheck(arg, stringValidator);
+export const required_stringValidator = (arg: any) => requiredValidatorCheck(arg, stringValidator);
+
+export const optional_numberValidator = (arg: any) => optionalValidatorCheck(arg, numberValidator);
+export const required_numberValidator = (arg: any) => requiredValidatorCheck(arg, numberValidator);
+
+export const optional_booleanValidator = (arg: any) => optionalValidatorCheck(arg, booleanValidator);
+export const required_booleanValidator = (arg: any) => requiredValidatorCheck(arg, booleanValidator);
+
+export const optional_notNullValidator = (arg: any) => optionalValidatorCheck(arg, notNullValidator);
+export const required_notNullValidator = (arg: any) => requiredValidatorCheck(arg, notNullValidator);
+
+
 
 export const stripeValidators = Object.freeze({
   customerId: (arg: any) => !!arg && typeof(arg) === 'string' && (/^cus_[a-zA-Z0-9]{19,35}/).test(arg),

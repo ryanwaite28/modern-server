@@ -106,7 +106,7 @@ export const MechanicServices = <MyModelStatic> sequelize.define('carmaster_mech
   actions:             { type: Sequelize.STRING, allowNull: false },
   description:         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   cost:                { type: Sequelize.INTEGER, allowNull: false },
-  deposit:             { type: Sequelize.INTEGER, allowNull: false },
+  deposit:             { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
   
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
@@ -126,6 +126,9 @@ export const MechanicServiceRequests = <MyModelStatic> sequelize.define('carmast
   notes:               { type: Sequelize.TEXT, allowNull: false },
   payout:              { type: Sequelize.INTEGER, allowNull: true },
   deposit_paid:        { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  deposit_refunded:    { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  deposit_payment_intent_id:        { type: Sequelize.STRING, allowNull: true },
+  deposit_refund_id:                { type: Sequelize.STRING, allowNull: true },
 
   datetime_needed:     { type: Sequelize.DATE, allowNull: true, },
   datetime_canceled:   { type: Sequelize.DATE, allowNull: true, },
