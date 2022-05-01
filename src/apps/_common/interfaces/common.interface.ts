@@ -31,6 +31,13 @@ export interface ISocketEventsHandler {
   handleNewSocket(io: socket_io.Server, socket: socket_io.Socket): void;
 }
 
+export interface IUserSubscriptionInfo {
+  status: string,
+  active: boolean,
+  current_period_start: number,
+  current_period_end: number,
+}
+
 export interface ICommonModel {
   id:                      number,
   date_created:            string,

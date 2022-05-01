@@ -23,6 +23,14 @@ export interface IMechanic extends ICommonModel {
   mechanic_offers?: IMechanicServiceRequestOffer[],
 }
 
+export interface IMechanicFavorite extends ICommonModel {
+  user_id: number,
+  mechanic_id: number,
+  
+  user?: IUser,
+  mechanic?: IMechanic,
+}
+
 export interface IMechanicField extends ICommonModel {
   mechanic_id: number,
   fieldname: string,

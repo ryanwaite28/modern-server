@@ -267,6 +267,13 @@ export class UsersRequestHandler {
   }
 
   @CatchRequestHandlerError()
+  static async get_subscription_info(request: Request, response: Response): ExpressResponse {
+    const user: IUser = response.locals.user;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.get_subscription_info(user);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
   static async create_subscription(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
     const payment_method_id: string = request.params.payment_method_id as string;

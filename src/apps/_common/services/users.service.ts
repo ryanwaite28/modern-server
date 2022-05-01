@@ -7,7 +7,8 @@ import {
 import {
   PlainObject,
   IUser,
-  IRequest
+  IRequest,
+  IUserSubscriptionInfo
 } from '../interfaces/common.interface';
 import {
   fn,
@@ -1890,6 +1891,25 @@ export class UsersService {
       error: false,
       info: {
         data: subscription
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async get_subscription_info(user: IUser): ServiceMethodAsyncResults {
+    const subscription = await StripeService.get_subscription(user.platform_subscription_id);
+    const data: IUserSubscriptionInfo | null = subscription && {
+      status: subscription.status,
+      active: (await UsersService.is_subscription_active(user)).info.data as boolean,
+      current_period_start: subscription.current_period_start,
+      current_period_end: subscription.current_period_end,
+    }
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data,
       }
     };
     return serviceMethodResults;

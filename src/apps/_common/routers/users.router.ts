@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { ConversationExists, IsConversationOwner, IsNotConversationOwner } from '../guards/conversation.guard';
-import { YouAuthorized, YouAuthorizedSlim, UserIdsAreDifferent } from '../guards/user.guard';
+import { YouAuthorized, YouAuthorizedSlim, UserIdsAreDifferent, UserExists } from '../guards/user.guard';
 import { ConversationMembersRequestHandler } from '../handlers/conversation-members.handler';
 import { ConversationMessagesRequestHandler } from '../handlers/conversation-messages.handler';
 import { ConversationsRequestHandler } from '../handlers/conversations.handler';
@@ -52,17 +52,19 @@ UsersRouter.get('/:you_id/conversations/:conversation_id/messages/:message_id', 
 UsersRouter.get('/:you_id/conversations/:conversation_id/search-users', YouAuthorized, ConversationExists, IsConversationOwner, ConversationMembersRequestHandler.search_members);
 
 // Public GET
-UsersRouter.get('/:user_id/followers-count', FollowsRequestHandler.get_user_followers_count);
-UsersRouter.get('/:user_id/followings-count', FollowsRequestHandler.get_user_followings_count);
-UsersRouter.get('/:you_id/follows/:user_id', UserIdsAreDifferent, FollowsRequestHandler.check_user_follows);
+UsersRouter.get('/:user_id/followers-count', UserExists, FollowsRequestHandler.get_user_followers_count);
+UsersRouter.get('/:user_id/followings-count', UserExists, FollowsRequestHandler.get_user_followings_count);
+UsersRouter.get('/:you_id/follows/:user_id', UserExists, UserIdsAreDifferent, FollowsRequestHandler.check_user_follows);
 
-UsersRouter.get('/:user_id/get-followers/all', FollowsRequestHandler.get_user_followers_all);
-UsersRouter.get('/:user_id/get-followers', FollowsRequestHandler.get_user_followers);
-UsersRouter.get('/:user_id/get-followers/:follow_id', FollowsRequestHandler.get_user_followers);
+UsersRouter.get('/:user_id/get-subscription-info', UserExists, UsersRequestHandler.get_subscription_info);
 
-UsersRouter.get('/:user_id/get-followings/all', FollowsRequestHandler.get_user_followings_all);
-UsersRouter.get('/:user_id/get-followings', FollowsRequestHandler.get_user_followings);
-UsersRouter.get('/:user_id/get-followings/:follow_id', FollowsRequestHandler.get_user_followings);
+UsersRouter.get('/:user_id/get-followers/all', UserExists, FollowsRequestHandler.get_user_followers_all);
+UsersRouter.get('/:user_id/get-followers', UserExists, FollowsRequestHandler.get_user_followers);
+UsersRouter.get('/:user_id/get-followers/:follow_id', UserExists, FollowsRequestHandler.get_user_followers);
+
+UsersRouter.get('/:user_id/get-followings/all', UserExists, FollowsRequestHandler.get_user_followings_all);
+UsersRouter.get('/:user_id/get-followings', UserExists, FollowsRequestHandler.get_user_followings);
+UsersRouter.get('/:user_id/get-followings/:follow_id', UserExists, FollowsRequestHandler.get_user_followings);
 
 // POST
 UsersRouter.post('/', UsersRequestHandler.sign_up);

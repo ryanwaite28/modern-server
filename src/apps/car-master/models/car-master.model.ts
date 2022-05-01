@@ -26,6 +26,15 @@ export const Mechanics = <MyModelStatic> sequelize.define('carmaster_mechanics',
   uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
+export const MechanicFavorites = <MyModelStatic> sequelize.define('carmaster_mechanic_favorites', {
+  id:                 { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  mechanic_id:        { type: Sequelize.INTEGER, allowNull: false, references: { model: Mechanics, key: 'id' } },
+  
+  date_created:       { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
 export const MechanicFields = <MyModelStatic> sequelize.define('carmaster_mechanic_fields', {
   id:                   { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   mechanic_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Mechanics, key: 'id' } },
@@ -188,6 +197,11 @@ export const MechanicServiceRequestDisputeLogs = <MyModelStatic> sequelize.defin
 
 Users.hasOne(Mechanics, { as: 'carmaster_mechanic', foreignKey: 'user_id', sourceKey: 'id' });
 Mechanics.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
+
+Users.hasMany(MechanicFavorites, { as: 'carmaster_mechanic_favorites', foreignKey: 'user_id', sourceKey: 'id' });
+MechanicFavorites.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
+Mechanics.hasMany(MechanicFavorites, { as: 'mechanic_favorites', foreignKey: 'mechanic_id', sourceKey: 'id' });
+MechanicFavorites.belongsTo(Mechanics, { as: 'mechanic', foreignKey: 'mechanic_id', targetKey: 'id' });
 
 Mechanics.hasMany(MechanicFields, { as: 'mechanic_fields', foreignKey: 'mechanic_id', sourceKey: 'id' });
 MechanicFields.belongsTo(Mechanics, { as: 'mechanic', foreignKey: 'mechanic_id', targetKey: 'id' });
