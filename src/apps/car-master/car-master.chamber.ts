@@ -194,6 +194,28 @@ export const all_services = [
   ...tire_services,
 ];
 
+export const service_categories = [
+  { display: 'Standard Services', key: 'standard_services' },
+  { display: 'Engine Services', key: 'engine_services' },
+  { display: 'Exhaust services', key: 'exhaust_services' },
+  { display: 'Heating AC Services', key: 'heating_ac_services' },
+  { display: 'Auto Electrical Services', key: 'auto_electrical_services' },
+  { display: 'Transmission Services', key: 'transmission_services' },
+  { display: 'Fleet Services', key: 'fleet_services' },
+  { display: 'Tire Services', key: 'tire_services' },
+];
+
+export const service_types_by_service_category = Object.freeze({
+  standard_services,
+  engine_services,
+  exhaust_services,
+  heating_ac_services,
+  auto_electrical_services,
+  transmission_services,
+  fleet_services,
+  tire_services,
+});
+
 export const all_services_map = all_services.reduce((obj, service: string) => {
   obj[service] = true;
   return obj;

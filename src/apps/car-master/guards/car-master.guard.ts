@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { HttpStatusCode } from "src/apps/_common/enums/http-codes.enum";
+import { HttpStatusCode } from "../../_common/enums/http-codes.enum";
+import { createModelRawRouteGuards } from "../../_common/helpers/create-model-guards.helper";
 import { IMechanic, IMechanicServiceRequest } from "../interfaces/car-master.interface";
-import { get_mechanic_by_id, get_service_request_by_id } from "../repos/car-master.repo";
+import { get_mechanic_by_id, get_mechanic_favorite_by_id, get_service_request_by_id } from "../repos/car-master.repo";
 
 
 
@@ -36,3 +37,12 @@ export async function ServiceRequestExists(
   response.locals.service_request_model = service_request_model;
   return next();
 }
+
+
+
+const MechanicFavoritesRouteGuards = createModelRawRouteGuards({
+  get_model_fn: get_mechanic_favorite_by_id,
+  model_name: 'favorite',
+  model_owner_field: 'user_id',
+  request_param_id_name: 'favorite_id',
+});

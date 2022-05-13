@@ -20,6 +20,7 @@ import {
   MechanicCredentialReportings,
   MechanicCredentials,
   MechanicExpertises,
+  MechanicFavorites,
   MechanicFields,
   MechanicRatings,
   Mechanics,
@@ -36,6 +37,7 @@ import {
   IMechanicCredentialReporting, 
   IMechanicCredentialReportingMessage, 
   IMechanicExpertise, 
+  IMechanicFavorite, 
   IMechanicField, 
   IMechanicRating, 
   IMechanicService, 
@@ -85,7 +87,7 @@ export const mechanicMasterIncludes: Includeable[] = [
   {
     model: MechanicCredentials,
     as: 'mechanic_credentials',
-    include: mechanicCredentialsInclude,
+    // include: mechanicCredentialsInclude,
   },
   {
     model: MechanicRatings,
@@ -153,6 +155,7 @@ export const mechanicServiceRequestMasterIncludes: Includeable[] = [
 // create crud fns
 
 const mechanics_crud = create_model_crud_repo_from_model_class<IMechanic>(Mechanics);
+const mechanic_favorites_crud = create_model_crud_repo_from_model_class<IMechanicFavorite>(MechanicFavorites);
 const mechanic_fields_crud = create_model_crud_repo_from_model_class<IMechanicField>(MechanicFields);
 const mechanic_credentials_crud = create_model_crud_repo_from_model_class<IMechanicCredential>(MechanicCredentials);
 const mechanic_credential_reportings_crud = create_model_crud_repo_from_model_class<IMechanicCredentialReporting>(MechanicCredentialReportings);
@@ -173,11 +176,8 @@ const mechanic_service_request_dispute_logs_crud = create_model_crud_repo_from_m
 
 // mechanic 
 
-export function get_mechanic_by_id(mechanic_id: number) {
-  return mechanics_crud.findOne({
-    where: { id: mechanic_id },
-    include: mechanicMasterIncludes,
-  });
+export function get_mechanic_by_id(id: number) {
+  return mechanics_crud.findById(id, { include: mechanicMasterIncludes });
 }
 
 export function get_mechanic_by_user_id(user_id: number) {
@@ -221,7 +221,31 @@ export function update_mechanic(
 
 
 
+// mechanic favorites
+
+export function get_mechanic_favorite_by_id(id: number) {
+  return mechanic_favorites_crud.findById(id, { include: [{ model: Mechanics, as: 'mechanic' }] });
+}
+
+export function create_mechanic_favorite(params: {
+  user_id: number,
+  mechanic_id: number,
+}) {
+  return mechanic_favorites_crud.create(params);
+}
+
+export function delete_mechanic_favorite(favorite_id: number) {
+  return mechanic_favorites_crud.deleteById(favorite_id);
+}
+
+
+
+
 // mechanic fields
+
+export function get_mechanic_field_by_id(id: number) {
+  return mechanic_fields_crud.findById(id);
+}
 
 export function find_all_mechanic_fields(mechanic_id: number) {
   return mechanic_fields_crud.findAll({
@@ -271,6 +295,10 @@ export function delete_mechanic_field(field_id: number) {
 
 // mechanic credentials
 
+export function get_mechanic_credential_by_id(id: number) {
+  return mechanic_credentials_crud.findById(id);
+}
+
 export function find_all_mechanic_credentials(mechanic_id: number) {
   return mechanic_credentials_crud.findAll({
     where: { mechanic_id }
@@ -311,6 +339,10 @@ export function delete_mechanic_credential(credential_id: number) {
 
 // mechanic credential reportings
 
+export function get_mechanic_credential_reporting_by_id(id: number) {
+  return mechanic_credential_reportings_crud.findById(id);
+}
+
 export function find_all_mechanic_credential_reportings(credential_id: number) {
   return mechanic_credential_reportings_crud.findAll({
     where: { credential_id }
@@ -343,6 +375,10 @@ export function delete_mechanic_credential_reporting(reporting_id: number) {
 
 
 // mechanic credential reporting messages
+
+export function get_mechanic_credential_reporting_message_by_id(id: number) {
+  return mechanic_credential_reporting_messages_crud.findById(id);
+}
 
 export function find_all_mechanic_credential_reporting_messages(reporting_id: number) {
   return mechanic_credential_reporting_messages_crud.findAll({
@@ -377,6 +413,10 @@ export function delete_mechanic_credential_reporting_message(message_id: number)
 
 
 // mechanic ratings
+
+export function get_mechanic_rating_by_id(id: number) {
+  return mechanic_ratings_crud.findById(id);
+}
 
 export function find_all_mechanic_ratings(mechanic_id: number) {
   return mechanic_ratings_crud.findAll({
@@ -414,6 +454,10 @@ export function delete_mechanic_rating(rating_id: number) {
 
 
 // mechanic expertises
+
+export function get_mechanic_expertise_by_id(id: number) {
+  return mechanic_expertises_crud.findById(id);
+}
 
 export function find_all_mechanic_expertises(mechanic_id: number) {
   return mechanic_expertises_crud.findAll({
@@ -461,6 +505,10 @@ export function delete_mechanic_expertise(expertise_id: number) {
 
 // mechanic services
 
+export function get_mechanic_service_by_id(id: number) {
+  return mechanic_services_crud.findById(id);
+}
+
 export function find_all_mechanic_services(mechanic_id: number) {
   return mechanic_services_crud.findAll({
     where: { mechanic_id }
@@ -504,10 +552,7 @@ export function delete_mechanic_service(service_id: number) {
 // mechanic service requests
 
 export function get_service_request_by_id(id: number) {
-  return mechanic_service_requests_crud.findOne({
-    where: { id },
-    include: mechanicServiceRequestMasterIncludes,
-  });
+  return mechanic_service_requests_crud.findById(id, { include: mechanicServiceRequestMasterIncludes });
 }
 
 export function find_all_mechanic_service_requests(mechanic_id: number) {
@@ -574,6 +619,10 @@ export function delete_mechanic_service_request(service_request_id: number) {
 
 // mechanic service request offers
 
+export function get_service_request_offer_by_id(id: number) {
+  return mechanic_service_request_offers_crud.findById(id);
+}
+
 export function find_all_mechanic_service_request_offers(mechanic_id: number) {
   return mechanic_service_request_offers_crud.findAll({
     where: { mechanic_id }
@@ -609,6 +658,10 @@ export function delete_mechanic_service_request_offer(service_request_offer_id: 
 
 // mechanic service request messages
 
+export function get_service_request_message_by_id(id: number) {
+  return mechanic_service_request_messages_crud.findById(id);
+}
+
 export function find_all_mechanic_service_request_messages(mechanic_id: number) {
   return mechanic_service_request_messages_crud.findAll({
     where: { mechanic_id }
@@ -642,6 +695,10 @@ export function delete_mechanic_service_request_message(service_request_message_
 
 
 // mechanic service request disputes
+
+export function get_service_request_dispute_by_id(id: number) {
+  return mechanic_service_request_disputes_crud.findById(id);
+}
 
 export function find_all_mechanic_service_request_disputes(mechanic_id: number) {
   return mechanic_service_request_disputes_crud.findAll({
@@ -679,6 +736,10 @@ export function delete_mechanic_service_request_dispute(service_request_dispute_
 
 
 // mechanic service request dispute_logs
+
+export function get_service_request_dispute_log_by_id(id: number) {
+  return mechanic_service_request_dispute_logs_crud.findById(id);
+}
 
 export function find_all_mechanic_service_request_dispute_logs(mechanic_id: number) {
   return mechanic_service_request_dispute_logs_crud.findAll({

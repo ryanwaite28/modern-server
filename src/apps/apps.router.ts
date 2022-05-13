@@ -11,6 +11,7 @@ import { WorldNewsRouter } from './world-news/worldnews.app';
 import { DeliverMeRouter } from './deliver-me/deliverme.app';
 import { ContenderRouter } from './contender/contender.app';
 import { CashlyRouter } from './cashly/cashly.app';
+import { CarMasterRouter } from './car-master/car-master.app';
 
 import { StripeService } from './_common/services/stripe.service';
 import { StripeWebhookEventsRequestHandler } from './_common/handlers/stripe-webhook-events.handler';
@@ -25,8 +26,9 @@ export const AppsRouter: Router = Router({ mergeParams: true });
 
 AppsRouter.use('/common', CommonRouter);
 AppsRouter.use('/deliverme', DeliverMeRouter);
+AppsRouter.use('/carmaster', CarMasterRouter);
 AppsRouter.use('/travellrs', TravellrsRouter);
-AppsRouter.use('/cashly', CashlyRouter);
+// AppsRouter.use('/cashly', CashlyRouter);
 
 
 

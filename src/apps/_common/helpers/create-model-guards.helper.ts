@@ -12,6 +12,12 @@ export interface ICreateModelGuardParams {
   model_owner_field: string;
   request_param_id_name: string;
 }
+export interface ICreateModelRawGuardParams<T = any> {
+  get_model_fn: (id: number) => Promise<T | null>;
+  model_name: string;
+  model_owner_field: string;
+  request_param_id_name: string;
+}
 
 export interface IModelGuards {
   existsGuard: ExpressMiddlewareFn,
@@ -60,6 +66,62 @@ export function createModelRouteGuards <T = IMyModel> (
   ) => {
     const model_model = <IMyModel> response.locals[params.model_name + '_model'];
     const isOwner: boolean = response.locals.you.id === model_model.get(params.model_owner_field);
+    if (isOwner) {
+      return response.status(HttpStatusCode.FORBIDDEN).json({
+        message: `Is ${params.model_name} owner`
+      });
+    }
+    return next();
+  }
+
+  return {
+    existsGuard: ModelExists,
+    isOwnerGuard: IsModelOwner,
+    isNotOwnerGuard: IsNotModelOwner,
+  };
+}
+
+export function createModelRawRouteGuards (
+  params: ICreateModelRawGuardParams
+): IModelGuards {
+  const ModelExists = async(
+    request: Request,
+    response: Response,
+    next: NextFunction
+  ) => {
+    const model_id = parseInt(request.params[params.request_param_id_name], 10);
+    const model_model = await params.get_model_fn(model_id);
+    if (!model_model) {
+      return response.status(HttpStatusCode.NOT_FOUND).json({
+        message: `${params.model_name} not found`
+      });
+    }
+    response.locals[params.model_name + '_model'] = model_model;
+    return next();
+  }
+
+  const IsModelOwner = async(
+    request: Request,
+    response: Response,
+    next: NextFunction
+  ) => {
+    const model_model = <IMyModel> response.locals[params.model_name + '_model'];
+    const isOwner: boolean = response.locals.you.id === model_model[params.model_owner_field];
+    if (!isOwner) {
+      return response.status(HttpStatusCode.FORBIDDEN).json({
+        message: `Not ${params.model_name} owner`
+      });
+    }
+    return next();
+  }
+
+  const IsNotModelOwner = async(
+    request: Request,
+    response: Response,
+    next: NextFunction
+  ) => {
+    const model_model = <IMyModel> response.locals[params.model_name + '_model'];
+    const isOwner: boolean = response.locals.you.id === model_model[params.model_owner_field];
     if (isOwner) {
       return response.status(HttpStatusCode.FORBIDDEN).json({
         message: `Is ${params.model_name} owner`

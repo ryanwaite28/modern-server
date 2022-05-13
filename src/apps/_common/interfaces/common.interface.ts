@@ -38,7 +38,7 @@ export interface IUserSubscriptionInfo {
   current_period_end: number,
 }
 
-export interface ICommonModel {
+export interface ICommonModel extends PlainObject {
   id:                      number,
   date_created:            string,
   uuid:                    string,

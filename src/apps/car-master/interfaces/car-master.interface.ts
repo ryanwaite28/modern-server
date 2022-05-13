@@ -44,12 +44,13 @@ export interface IMechanicField extends ICommonModel {
 export interface IMechanicCredential extends ICommonModel {
   mechanic_id: number,
   title: string,
+  website: string,
   description: string,
   image_link: string,
   image_id: string,
-  website: string,
 
   mechanic?: IMechanic,
+  credential_expertises?: IMechanicExpertise[],
   mechanic_credential_reportings?: IMechanicCredentialReporting[],
 }
 
@@ -82,11 +83,11 @@ export interface IMechanicRating extends ICommonModel {
 export interface IMechanicExpertise extends ICommonModel {
   mechanic_id: number,
   credential_id: number,
+  description: string,
   make: string,
   model: string,
   type: string,
   trim: string,
-  description: string,
   min_year: number,
   max_year: number,
 
@@ -96,9 +97,10 @@ export interface IMechanicExpertise extends ICommonModel {
 
 export interface IMechanicService extends ICommonModel {
   mechanic_id: number,
-  expertise_id: number,
-  service: string,
-  actions: string,
+  expertise_id: number | null,
+  service_category: string,
+  service_type: string,
+  service_action: string,
   description: string,
   cost: number,
   deposit: number,
@@ -109,8 +111,8 @@ export interface IMechanicService extends ICommonModel {
 
 export interface IMechanicServiceRequest extends ICommonModel {
   user_id: number,
-  mechanic_id: number,
-  service_id: number,
+  mechanic_id: number | null,
+  service_id: number | null,
   payment_method_id: string,
   service_needed: string,
   action_type: string,

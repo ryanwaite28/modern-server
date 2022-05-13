@@ -1185,62 +1185,70 @@ export const create_model_crud_repo_from_model_class = <T = any> (modelClass: My
   const convertTypeCurry = convertModelCurry<T>();
 
   const create = (createObj: any) => {
-    return modelClass.create(createObj)
+    const results = modelClass.create(createObj)
     .then((model) => {
       const converted = convertTypeCurry(model);
       return converted!;
     });
+    return (results as any) as Promise<T>;
   };
 
   const findOne = (findOptions: FindOptions) => {
-    return modelClass.findOne(findOptions)
+    const results = modelClass.findOne(findOptions)
     .then((model) => {
       const converted = convertTypeCurry(model);
       return converted;
     });
+    return (results as any) as Promise<T | null>;
   };
   const findById = (id: number, findOptions?: FindOptions) => {
     const find = findOptions
       ? modelClass.findOne({ ...findOptions, where: { id }, })
       : modelClass.findOne({ where: { id } });
 
-    return find.then((model) => {
+    const results = find.then((model) => {
       const converted = convertTypeCurry(model);
       return converted;
     });
+    return (results as any) as Promise<T | null>;
   };
   const findAll = (findOptions: FindOptions) => {
-    return modelClass.findAll(findOptions)
+    const results = modelClass.findAll(findOptions)
     .then((models) => {
       const converted = models.map(convertTypeCurry);
       return converted;
     });
+    return (results as any) as Promise<(T | null)[]>;
   };
 
   const update = (updateObj: any, whereClause: UpdateOptions) => {
-    return modelClass.update(updateObj, whereClause)
+    const results = modelClass.update(updateObj, whereClause)
     .then((updates) => {
       const converted = updates[1].map(convertTypeCurry); //(updates[1] && updateObj[1][0]);
       // return updates;
       const returnValue = [updates[0], converted] as [number, (T|null)[]];
       return returnValue;
     });
+    return (results as any) as Promise<[number, (T | null)[]]>;
   };
   const updateById = (id: number, updateObj: any) => {
-    return modelClass.update(updateObj, { where: { id } })
+    const results = modelClass.update(updateObj, { where: { id } })
     .then((updates) => {
       const converted = convertTypeCurry(updates[1] && updates[1][0]);
       // return updates;
       const returnValue = [updates[0], converted] as [number, (T|null)];
       return returnValue;
     });
+    return (results as any) as Promise<[number, T | null]>;
   };
 
   const deleteFn = (destroyOptions: DestroyOptions) => {
-    return modelClass.destroy(destroyOptions);
+    const results = modelClass.destroy(destroyOptions);
+    return results;
   };
   const deleteById = (id: number) => {
-    return modelClass.destroy({ where: { id } });
+    const results = modelClass.destroy({ where: { id } });
+    return results;
   };
 
   return {
@@ -1256,4 +1264,4 @@ export const create_model_crud_repo_from_model_class = <T = any> (modelClass: My
     delete: deleteFn,
     deleteById,
   };
-}
+};
