@@ -22,6 +22,7 @@ import {
   MechanicExpertises,
   MechanicFavorites,
   MechanicFields,
+  MechanicRatingEdits,
   MechanicRatings,
   Mechanics,
   MechanicServiceRequestDisputeLogs,
@@ -40,6 +41,7 @@ import {
   IMechanicFavorite, 
   IMechanicField, 
   IMechanicRating, 
+  IMechanicRatingEdit, 
   IMechanicService, 
   IMechanicServiceRequest, 
   IMechanicServiceRequestDispute, 
@@ -98,6 +100,10 @@ export const mechanicMasterIncludes: Includeable[] = [
         as: 'writer',
         attributes: user_attrs_slim
       },
+      {
+        model: MechanicRatingEdits,
+        as: `mechanic_rating_edits`
+      }
     ]
   },
   {
@@ -161,6 +167,7 @@ const mechanic_credentials_crud = create_model_crud_repo_from_model_class<IMecha
 const mechanic_credential_reportings_crud = create_model_crud_repo_from_model_class<IMechanicCredentialReporting>(MechanicCredentialReportings);
 const mechanic_credential_reporting_messages_crud = create_model_crud_repo_from_model_class<IMechanicCredentialReportingMessage>(MechanicCredentialReportingMessages);
 const mechanic_ratings_crud = create_model_crud_repo_from_model_class<IMechanicRating>(MechanicRatings);
+const mechanic_rating_edits_crud = create_model_crud_repo_from_model_class<IMechanicRatingEdit>(MechanicRatingEdits);
 const mechanic_expertises_crud = create_model_crud_repo_from_model_class<IMechanicExpertise>(MechanicExpertises);
 const mechanic_services_crud = create_model_crud_repo_from_model_class<IMechanicService>(MechanicServices);
 const mechanic_service_requests_crud = create_model_crud_repo_from_model_class<IMechanicServiceRequest>(MechanicServiceRequests);
@@ -201,7 +208,7 @@ export function create_mechanic_from_user_id(user_id: number) {
   });
 }
 
-export function update_mechanic(
+export function update_mechanic_profile(
   mechanic_id: number,
   params: Partial<{
     bio: string,
@@ -214,7 +221,12 @@ export function update_mechanic(
     country: string,
   }>
 ) {
-  return mechanics_crud.updateById(mechanic_id, params);
+  console.log({ mechanic_id, params });
+  return mechanics_crud.updateById(mechanic_id, params)
+    .then(async (results: [number, (IMechanic|null)]) => {
+      const mechanic = await get_mechanic_by_id(mechanic_id);
+      return [results[0], mechanic] as [number, IMechanic | null];
+    });
 }
 
 
@@ -258,31 +270,39 @@ export function create_mechanic_field(params: {
   fieldname: string,
   fieldvalue: string,
 }) {
-  const fieldtype = typeof(params.fieldvalue);
-  const is_link = URL_REGEX.test(params.fieldvalue);
+  const fieldtype: string = typeof(params.fieldvalue);
+  const is_link: boolean = URL_REGEX.test(params.fieldvalue);
 
-  return mechanic_fields_crud.create({
+  const createObj = {
     ...params,
     fieldtype,
     is_link
-  });
+  };
+
+  console.log(params, createObj);
+
+  return mechanic_fields_crud.create(createObj);
 }
 
 export function update_mechanic_field(
-  field_id: number, 
+  field_id: number,
   params: {
     fieldname: string,
     fieldvalue: string,
   }
 ) {
-  const fieldtype = typeof(params.fieldvalue);
-  const is_link = URL_REGEX.test(params.fieldvalue);
+  const fieldtype: string = typeof(params.fieldvalue);
+  const is_link: boolean = URL_REGEX.test(params.fieldvalue);
 
-  return mechanic_fields_crud.updateById(field_id, {
+  const updatesObj: any = {
     ...params,
     fieldtype,
     is_link
-  });
+  };
+
+  console.log(params, updatesObj);
+
+  return mechanic_fields_crud.updateById(field_id, updatesObj);
 }
 
 export function delete_mechanic_field(field_id: number) {
@@ -431,7 +451,22 @@ export function create_mechanic_rating(params: {
   title?: string,
   summary?: string,
 }) {
-  return mechanic_ratings_crud.create(params);
+  return mechanic_ratings_crud.create(params).then((rating: IMechanicRating) => {
+    return mechanic_ratings_crud.findOne({
+      where: { id: rating.id },
+      include: [
+        {
+          model: Users,
+          as: 'writer',
+          attributes: user_attrs_slim
+        },
+        {
+          model: MechanicRatingEdits,
+          as: `mechanic_rating_edits`
+        }
+      ]
+    })
+  });
 }
 
 export function update_mechanic_rating(
@@ -447,6 +482,18 @@ export function update_mechanic_rating(
 
 export function delete_mechanic_rating(rating_id: number) {
   return mechanic_ratings_crud.deleteById(rating_id);
+}
+
+
+
+
+// mechanic rating edit
+
+export function create_mechanic_rating_edit(params: {
+  rating_id: number,
+  summary: string,
+}) {
+  return mechanic_rating_edits_crud.create(params);
 }
 
 
@@ -518,8 +565,9 @@ export function find_all_mechanic_services(mechanic_id: number) {
 export function create_mechanic_service(params: {
   mechanic_id: number,
   expertise_id?: number,
-  service: string,
-  actions: string,
+  service_category: string,
+  service_type: string,
+  service_action: string,
   description?: string,
   cost: number,
   deposit?: number,
@@ -531,8 +579,9 @@ export function update_mechanic_service(
   service_id: number, 
   params: Partial<{
     expertise_id: number,
-    service: string,
-    actions: string,
+    service_category: string,
+    service_type: string,
+    service_action: string,
     description: string,
     cost: number,
     deposit: number,

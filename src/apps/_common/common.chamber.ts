@@ -736,7 +736,7 @@ export const requiredValidatorCheck = (arg: any, fn: (arg: any) => boolean) => !
 
 
 
-export const genericTextValidator = (arg: any) => !!arg && typeof(arg) === 'string' && (/^[a-zA-Z0-9\s\'\-\_\.\@\$\#]{3,250}/).test(arg);
+export const genericTextValidator = (arg: any) => !!arg && typeof(arg) === 'string' && (/^[a-zA-Z0-9\s\'\-\_\.\@\$\#]{1,250}/).test(arg);
 export const phoneValidator = (arg: any) => (/^[0-9]{10,15}$/).test(arg);
 export const stringValidator = (arg: any) => typeof(arg) === 'string';
 export const numberValidator = (arg: any) => typeof(arg) === 'number';
@@ -746,7 +746,10 @@ export const notNullValidator = (arg: any) => arg !== null;
 
 
 
-export const optional_textValidator = (arg: any) => optionalValidatorCheck(arg, genericTextValidator);
+export const optional_textValidator = (arg: any) => {
+  console.log({ arg });
+  return optionalValidatorCheck(arg, genericTextValidator);
+};
 export const required_textValidator = (arg: any) => requiredValidatorCheck(arg, genericTextValidator);
 
 export const optional_emailValidator = (arg: any) => optionalValidatorCheck(arg, validateEmail);
@@ -1221,8 +1224,8 @@ export const create_model_crud_repo_from_model_class = <T = any> (modelClass: My
     return (results as any) as Promise<(T | null)[]>;
   };
 
-  const update = (updateObj: any, whereClause: UpdateOptions) => {
-    const results = modelClass.update(updateObj, whereClause)
+  const update = (updateObj: any, options: UpdateOptions) => {
+    const results = modelClass.update(updateObj, options)
     .then((updates) => {
       const converted = updates[1].map(convertTypeCurry); //(updates[1] && updateObj[1][0]);
       // return updates;
@@ -1232,11 +1235,12 @@ export const create_model_crud_repo_from_model_class = <T = any> (modelClass: My
     return (results as any) as Promise<[number, (T | null)[]]>;
   };
   const updateById = (id: number, updateObj: any) => {
-    const results = modelClass.update(updateObj, { where: { id } })
-    .then((updates) => {
-      const converted = convertTypeCurry(updates[1] && updates[1][0]);
+    const results = modelClass.update(updateObj, { where: { id }, returning: true })
+    .then(async (updates) => {
+      console.log(updates);
+      const fresh = await findById(id);
       // return updates;
-      const returnValue = [updates[0], converted] as [number, (T|null)];
+      const returnValue = [updates[0], fresh] as [number, (T|null)];
       return returnValue;
     });
     return (results as any) as Promise<[number, T | null]>;

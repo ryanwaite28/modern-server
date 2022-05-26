@@ -39,8 +39,8 @@ export const MechanicFields = <MyModelStatic> sequelize.define('carmaster_mechan
   id:                   { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   mechanic_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: Mechanics, key: 'id' } },
   fieldname:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
-  fieldtype:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   fieldvalue:           { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  fieldtype:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
   is_link:              { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
   
   date_created:         { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
@@ -87,6 +87,14 @@ export const MechanicRatings = <MyModelStatic> sequelize.define('carmaster_mecha
   title:               { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
   summary:             { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   
+  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
+}, common_options);
+
+export const MechanicRatingEdits = <MyModelStatic> sequelize.define('carmaster_mechanic_rating_edits', {
+  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  rating_id:           { type: Sequelize.INTEGER, allowNull: false, references: { model: MechanicRatings, key: 'id' } },
+  summary:             { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
 }, common_options);
@@ -224,6 +232,9 @@ Mechanics.hasMany(MechanicRatings, { as: 'mechanic_ratings', foreignKey: 'mechan
 MechanicRatings.belongsTo(Mechanics, { as: 'mechanic', foreignKey: 'mechanic_id', targetKey: 'id' });
 Users.hasMany(MechanicRatings, { as: 'mechanic_ratings_given', foreignKey: 'writer_id', sourceKey: 'id' });
 MechanicRatings.belongsTo(Users, { as: 'writer', foreignKey: 'writer_id', targetKey: 'id' });
+
+MechanicRatings.hasMany(MechanicRatingEdits, { as: 'mechanic_rating_edits', foreignKey: 'rating_id', sourceKey: 'id' });
+MechanicRatingEdits.belongsTo(MechanicRatings, { as: 'rating', foreignKey: 'rating_id', targetKey: 'id' });
 
 Mechanics.hasMany(MechanicExpertises, { as: 'mechanic_expertises', foreignKey: 'mechanic_id', sourceKey: 'id' });
 MechanicExpertises.belongsTo(Mechanics, { as: 'mechanic', foreignKey: 'mechanic_id', targetKey: 'id' });

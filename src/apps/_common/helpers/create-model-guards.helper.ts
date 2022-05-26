@@ -11,12 +11,14 @@ export interface ICreateModelGuardParams {
   model_name: string;
   model_owner_field: string;
   request_param_id_name: string;
+  response_locals_model_owner?: string,
 }
 export interface ICreateModelRawGuardParams<T = any> {
   get_model_fn: (id: number) => Promise<T | null>;
   model_name: string;
-  model_owner_field: string;
   request_param_id_name: string;
+  model_owner_field: string;
+  response_locals_model_owner?: string,
 }
 
 export interface IModelGuards {
@@ -28,6 +30,8 @@ export interface IModelGuards {
 export function createModelRouteGuards <T = IMyModel> (
   params: ICreateModelGuardParams
 ): IModelGuards {
+  const useLocalsModelOwner = params.response_locals_model_owner || 'you'; // default to you
+
   const ModelExists = async(
     request: Request,
     response: Response,
@@ -50,7 +54,7 @@ export function createModelRouteGuards <T = IMyModel> (
     next: NextFunction
   ) => {
     const model_model = <IMyModel> response.locals[params.model_name + '_model'];
-    const isOwner: boolean = response.locals.you.id === model_model.get(params.model_owner_field);
+    const isOwner: boolean = response.locals[useLocalsModelOwner].id === model_model.get(params.model_owner_field);
     if (!isOwner) {
       return response.status(HttpStatusCode.FORBIDDEN).json({
         message: `Not ${params.model_name} owner`
@@ -65,7 +69,7 @@ export function createModelRouteGuards <T = IMyModel> (
     next: NextFunction
   ) => {
     const model_model = <IMyModel> response.locals[params.model_name + '_model'];
-    const isOwner: boolean = response.locals.you.id === model_model.get(params.model_owner_field);
+    const isOwner: boolean = response.locals[useLocalsModelOwner].id === model_model.get(params.model_owner_field);
     if (isOwner) {
       return response.status(HttpStatusCode.FORBIDDEN).json({
         message: `Is ${params.model_name} owner`
@@ -84,6 +88,8 @@ export function createModelRouteGuards <T = IMyModel> (
 export function createModelRawRouteGuards (
   params: ICreateModelRawGuardParams
 ): IModelGuards {
+  const useLocalsModelOwner = params.response_locals_model_owner || 'you'; // default to you
+
   const ModelExists = async(
     request: Request,
     response: Response,
@@ -106,7 +112,7 @@ export function createModelRawRouteGuards (
     next: NextFunction
   ) => {
     const model_model = <IMyModel> response.locals[params.model_name + '_model'];
-    const isOwner: boolean = response.locals.you.id === model_model[params.model_owner_field];
+    const isOwner: boolean = response.locals[useLocalsModelOwner].id === model_model[params.model_owner_field];
     if (!isOwner) {
       return response.status(HttpStatusCode.FORBIDDEN).json({
         message: `Not ${params.model_name} owner`
@@ -121,7 +127,7 @@ export function createModelRawRouteGuards (
     next: NextFunction
   ) => {
     const model_model = <IMyModel> response.locals[params.model_name + '_model'];
-    const isOwner: boolean = response.locals.you.id === model_model[params.model_owner_field];
+    const isOwner: boolean = response.locals[useLocalsModelOwner].id === model_model[params.model_owner_field];
     if (isOwner) {
       return response.status(HttpStatusCode.FORBIDDEN).json({
         message: `Is ${params.model_name} owner`

@@ -205,6 +205,11 @@ export const service_categories = [
   { display: 'Tire Services', key: 'tire_services' },
 ];
 
+export const service_categories_display_by_key = service_categories.reduce((obj, service) => {
+  obj[service.key] = service.display;
+  return obj;
+}, {} as PlainObject);
+
 export const service_types_by_service_category = Object.freeze({
   standard_services,
   engine_services,
@@ -216,14 +221,32 @@ export const service_types_by_service_category = Object.freeze({
   tire_services,
 });
 
-export const all_services_map = all_services.reduce((obj, service: string) => {
+export const all_service_categories_map = service_categories.reduce((obj, service) => {
+  obj[service.key] = true;
+  return obj;
+}, {} as PlainObject);
+
+export const all_service_types_map = all_services.reduce((obj, service: string) => {
   obj[service] = true;
   return obj;
 }, {} as PlainObject);
 
 export const mechanic_service_actions_validator = (arg: any) => !!arg && typeof(arg) === 'string' && arg.split(',').every(i => (i in AUTO_SERVICE_ACTION_TYPES));
+export const ratingOptions = Array(5).fill(0).map((k, i) => i + 1);
 
 
+
+
+export const update_mechanic_fields = [
+  'bio',
+  'website',
+  'phone',
+  'email',
+  'city',
+  'state',
+  'zipcode',
+  'country',
+];
 
 
 
@@ -249,7 +272,7 @@ export const update_mechanic_required_props: IModelValidator[] = [
 
 
 export const create_mechanic_field_required_props: IModelValidator[] = [
-  { field: 'mechanic_id', name: 'User ID', validator: required_numberValidator },
+  // { field: 'mechanic_id', name: 'Mechanic ID', validator: required_numberValidator },
   { field: 'fieldname', name: 'Field Name', validator: required_textValidator },
   { field: 'fieldvalue', name: 'Field Value', validator: required_textValidator },
 ];
@@ -260,25 +283,25 @@ export const update_mechanic_field_required_props: IModelValidator[] = [
 
 
 export const create_mechanic_credential_required_props: IModelValidator[] = [
-  { field: 'mechanic_id', name: 'User ID', validator: required_numberValidator },
+  // { field: 'mechanic_id', name: 'User ID', validator: required_numberValidator },
   { field: 'title', name: 'Title', validator: required_textValidator },
   { field: 'description', name: 'Description', validator: required_textValidator },
-  { field: 'image_link', name: 'Image Link', validator: optional_textValidator },
-  { field: 'image_id', name: 'Image ID', validator: optional_textValidator },
+  // { field: 'image_link', name: 'Image Link', validator: optional_textValidator, defaultValue: '' },
+  // { field: 'image_id', name: 'Image ID', validator: optional_textValidator, defaultValue: '' },
   { field: 'website', name: 'Website', validator: optional_textValidator },
 ];
 export const update_mechanic_credential_required_props: IModelValidator[] = [
-  { field: 'mechanic_id', name: 'User ID', validator: required_numberValidator },
+  // { field: 'mechanic_id', name: 'User ID', validator: required_numberValidator },
   { field: 'title', name: 'Title', validator: required_textValidator },
   { field: 'description', name: 'Description', validator: required_textValidator },
-  { field: 'image_link', name: 'Image Link', validator: optional_textValidator },
-  { field: 'image_id', name: 'Image ID', validator: optional_textValidator },
+  // { field: 'image_link', name: 'Image Link', validator: optional_textValidator, defaultValue: '' },
+  // { field: 'image_id', name: 'Image ID', validator: optional_textValidator, defaultValue: '' },
   { field: 'website', name: 'Website', validator: optional_textValidator },
 ];
 
 export const create_mechanic_credential_reporting_required_props: IModelValidator[] = [
-  { field: 'user_id', name: 'User ID', validator: required_numberValidator },
-  { field: 'credential_id', name: 'Credential ID', validator: required_numberValidator },
+  // { field: 'user_id', name: 'User ID', validator: required_numberValidator },
+  // { field: 'credential_id', name: 'Credential ID', validator: required_numberValidator },
   { field: 'issue', name: 'Issue', validator: required_textValidator },
 ];
 export const update_mechanic_credential_reporting_required_props: IModelValidator[] = [
@@ -286,8 +309,8 @@ export const update_mechanic_credential_reporting_required_props: IModelValidato
 ];
 
 export const create_mechanic_credential_reporting_message_required_props: IModelValidator[] = [
-  { field: 'user_id', name: 'User ID', validator: required_numberValidator },
-  { field: 'reporting_id', name: 'Reporting ID', validator: required_numberValidator },
+  // { field: 'user_id', name: 'User ID', validator: required_numberValidator },
+  // { field: 'reporting_id', name: 'Reporting ID', validator: required_numberValidator },
   { field: 'body', name: 'Body', validator: required_textValidator },
 ];
 export const update_mechanic_credential_reporting_message_required_props: IModelValidator[] = [
@@ -296,9 +319,9 @@ export const update_mechanic_credential_reporting_message_required_props: IModel
 ];
 
 export const create_mechanic_rating_required_props: IModelValidator[] = [
-  { field: 'mechanic_id', name: 'Mechanic ID', validator: required_numberValidator },
+  // { field: 'mechanic_id', name: 'Mechanic ID', validator: required_numberValidator },
   { field: 'writer_id', name: 'Writer ID', validator: required_numberValidator },
-  { field: 'rating', name: 'Rating', validator: required_numberValidator },
+  { field: 'rating', name: 'Rating', validator: (arg: any) => ratingOptions.includes(arg) },
   { field: 'title', name: 'Title', validator: optional_textValidator },
   { field: 'summary', name: 'Summary', validator: optional_textValidator },
 ];
@@ -307,20 +330,27 @@ export const update_mechanic_rating_required_props: IModelValidator[] = [
   { field: 'title', name: 'Title', validator: optional_textValidator },
   { field: 'summary', name: 'Summary', validator: optional_textValidator },
 ];
+export const create_mechanic_rating_edit_required_props: IModelValidator[] = [
+  // { field: 'mechanic_id', name: 'Mechanic ID', validator: required_numberValidator },
+  // { field: 'rating_id', name: 'Rating ID', validator: required_numberValidator },
+  // { field: 'rating', name: 'Rating', validator: required_numberValidator },
+  // { field: 'title', name: 'Title', validator: optional_textValidator },
+  { field: 'summary', name: 'Summary', validator: required_textValidator },
+];
 
 export const create_mechanic_expertise_required_props: IModelValidator[] = [
-  { field: 'mechanic_id', name: 'Mechanic ID', validator: required_numberValidator },
-  { field: 'credential_id', name: 'Credential ID', validator: optional_numberValidator },
+  // { field: 'mechanic_id', name: 'Mechanic ID', validator: required_numberValidator },
+  // { field: 'credential_id', name: 'Credential ID', validator: optional_numberValidator },
   { field: 'make', name: 'Make', validator: required_textValidator },
   { field: 'model', name: 'Model', validator: required_textValidator },
-  { field: 'type', name: 'Title', validator: optional_textValidator },
+  { field: 'type', name: 'Type', validator: optional_textValidator },
   { field: 'trim', name: 'Trim', validator: optional_textValidator },
   { field: 'description', name: 'Description', validator: optional_textValidator },
   { field: 'min_year', name: 'Min Year', validator: required_numberValidator },
   { field: 'max_year', name: 'Max Year', validator: required_numberValidator },
 ];
 export const update_mechanic_expertise_required_props: IModelValidator[] = [
-  { field: 'credential_id', name: 'Credential ID', validator: optional_numberValidator },
+  // { field: 'credential_id', name: 'Credential ID', validator: optional_numberValidator },
   { field: 'make', name: 'Make', validator: required_textValidator },
   { field: 'model', name: 'Model', validator: required_textValidator },
   { field: 'type', name: 'Title', validator: optional_textValidator },
@@ -331,18 +361,20 @@ export const update_mechanic_expertise_required_props: IModelValidator[] = [
 ];
 
 export const create_mechanic_service_required_props: IModelValidator[] = [
-  { field: 'mechanic_id', name: 'Mechanic ID', validator: required_numberValidator },
-  { field: 'expertise_id', name: 'Expertise ID', validator: optional_numberValidator },
-  { field: 'service', name: 'Service', validator: (arg: any) => (arg in all_services_map) },
-  { field: 'actions', name: 'Actions', validator: mechanic_service_actions_validator },
+  // { field: 'mechanic_id', name: 'Mechanic ID', validator: required_numberValidator },
+  // { field: 'expertise_id', name: 'Expertise ID', validator: optional_numberValidator },
+  { field: 'service_category', name: 'Service Category', validator: (arg: any) => (arg in all_service_categories_map) },
+  { field: 'service_type', name: 'Service Type', validator: (arg: any) => (arg in all_service_types_map) },
+  { field: 'service_action', name: 'Service Action', validator: mechanic_service_actions_validator },
   { field: 'description', name: 'Description', validator: optional_textValidator },
   { field: 'cost', name: 'Cost', validator: required_numberValidator },
   { field: 'deposit', name: 'Deposit', validator: optional_numberValidator },
 ];
 export const update_mechanic_service_required_props: IModelValidator[] = [
-  { field: 'expertise_id', name: 'Expertise ID', validator: optional_numberValidator },
-  { field: 'service', name: 'Service', validator: (arg: any) => (arg in all_services_map) },
-  { field: 'actions', name: 'Actions', validator: mechanic_service_actions_validator },
+  // { field: 'expertise_id', name: 'Expertise ID', validator: optional_numberValidator },
+  { field: 'service_category', name: 'Service Category', validator: (arg: any) => (arg in all_service_categories_map) },
+  { field: 'service_type', name: 'Service Type', validator: (arg: any) => (arg in all_service_types_map) },
+  { field: 'service_action', name: 'Service Action', validator: mechanic_service_actions_validator },
   { field: 'description', name: 'Description', validator: optional_textValidator },
   { field: 'cost', name: 'Cost', validator: required_numberValidator },
   { field: 'deposit', name: 'Deposit', validator: optional_numberValidator },
@@ -352,7 +384,7 @@ export const create_mechanic_service_request_required_props: IModelValidator[] =
   { field: 'user_id', name: 'User ID', validator: required_numberValidator },
   { field: 'mechanic_id', name: 'Mechanic ID', validator: optional_numberValidator },
   { field: 'service_id', name: 'Service ID', validator: optional_numberValidator },
-  { field: 'service_needed', name: 'Service Needed', validator: (arg: any) => (arg in all_services_map) },
+  { field: 'service_needed', name: 'Service Needed', validator: (arg: any) => (arg in all_service_types_map) },
   { field: 'action_type', name: 'Action Type', validator: (arg: any) => (arg in AUTO_SERVICE_ACTION_TYPES) },
   { field: 'payment_method_id', name: 'Payment Method ID', validator: required_textValidator },
   { field: 'title', name: 'Title', validator: optional_textValidator },
@@ -369,7 +401,7 @@ export const create_mechanic_service_request_required_props: IModelValidator[] =
 export const update_mechanic_service_request_required_props: IModelValidator[] = [
   { field: 'mechanic_id', name: 'Mechanic ID', validator: optional_numberValidator },
   { field: 'service_id', name: 'Service ID', validator: optional_numberValidator },
-  { field: 'service_needed', name: 'Service Needed', validator: (arg: any) => (arg in all_services_map) },
+  { field: 'service_needed', name: 'Service Needed', validator: (arg: any) => (arg in all_service_types_map) },
   { field: 'action_type', name: 'Action Type', validator: (arg: any) => (arg in AUTO_SERVICE_ACTION_TYPES) },
   { field: 'payment_method_id', name: 'Payment Method ID', validator: required_textValidator },
   { field: 'title', name: 'Title', validator: optional_textValidator },

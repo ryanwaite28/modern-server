@@ -1,4 +1,7 @@
-import { ICommonModel, IUser } from "src/apps/_common/interfaces/common.interface";
+import {
+  ICommonModel,
+  IUser
+} from "src/apps/_common/interfaces/common.interface";
 
 
 
@@ -78,6 +81,14 @@ export interface IMechanicRating extends ICommonModel {
 
   writer?: IUser,
   mechanic?: IMechanic,
+  mechanic_rating_edits?: IMechanicRatingEdit[],
+}
+
+export interface IMechanicRatingEdit extends ICommonModel {
+  rating_id: number,
+  summary: string,
+
+  rating?: IMechanicRating,
 }
 
 export interface IMechanicExpertise extends ICommonModel {

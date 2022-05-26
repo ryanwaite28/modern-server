@@ -410,6 +410,8 @@ export interface IApiKeyRequest extends ICommonModel {
 export interface IModelValidator {
   field: string,
   name: string,
+  required?: boolean,
+  defaultValue?: any,
   validator: (arg: any) => boolean,
   errorMessage?: string,
 }
