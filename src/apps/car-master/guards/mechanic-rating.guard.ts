@@ -7,5 +7,5 @@ export const MechanicRatingRouteGuards = createModelRawRouteGuards({
   model_name: 'mechanic_rating',
   request_param_id_name: 'rating_id',
   model_owner_field: 'writer_id',
-  response_locals_model_owner: `mechanic_model`,
+  response_locals_model_owner: `you`,
 });
