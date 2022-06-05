@@ -1186,6 +1186,7 @@ export const convertModelsCurry = <T> () => (models: IMyModel[]) => {
 
 export const create_model_crud_repo_from_model_class = <T = any> (modelClass: MyModelStatic) => {
   const convertTypeCurry = convertModelCurry<T>();
+  const convertTypeListCurry = convertModelsCurry<T>();
 
   const create = (createObj: any) => {
     const results = modelClass.create(createObj)
@@ -1218,10 +1219,10 @@ export const create_model_crud_repo_from_model_class = <T = any> (modelClass: My
   const findAll = (findOptions: FindOptions) => {
     const results = modelClass.findAll(findOptions)
     .then((models) => {
-      const converted = models.map(convertTypeCurry);
+      const converted = convertTypeListCurry(models);
       return converted;
     });
-    return (results as any) as Promise<(T | null)[]>;
+    return (results as any) as Promise<(T)[]>;
   };
 
   const update = (updateObj: any, options: UpdateOptions) => {

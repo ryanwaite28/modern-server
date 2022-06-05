@@ -7,7 +7,8 @@ import {
   Model,
   FindAttributeOptions,
   GroupOption,
-  Order
+  Order,
+  literal
 } from 'sequelize';
 import {
   create_model_crud_repo_from_model_class,
@@ -229,6 +230,134 @@ export function update_mechanic_profile(
     });
 }
 
+export async function search_mechanics(params: {
+  // expertise
+  make: string,
+  model: string,
+  max_year: number | null,
+  min_year: number | null,
+  trim: string,
+  type: string,
+
+  // service
+  service_category: string,
+  service_type: string,
+  service_action: string,
+  cost?: number,
+  deposit?: number,
+
+  // location
+  city?: string,
+  state?: string,
+  country?: string,
+
+  lat?: number,
+  lng?: number,
+  radius: number,
+}) {
+  const experise_where = {
+    make: { [Op.like]: `%${params.make}%` },
+    model: { [Op.like]: `%${params.model}%` },
+    type: { [Op.like]: `%${params.type}%` },
+    trim: { [Op.like]: `%${params.trim}%` },
+    min_year: { [Op.gte]: params.min_year || 0 },
+    max_year: { [Op.lte]: params.max_year || (new Date().getFullYear()) },
+  };
+  const service_where: any = {
+    service_category: { [Op.like]: `%${params.service_category}%` },
+    service_type: { [Op.like]: `%${params.service_type}%` },
+    service_action: { [Op.like]: `%${params.service_action}%` },
+  };
+  if (params.cost) {
+    service_where.cost = { [Op.lte]: params.cost };
+  }
+  if (params.deposit) {
+    service_where.deposit = { [Op.lte]: params.deposit };
+  }
+
+  // let mechanic_location_include: any = [];
+  // if (params.lat && params.lng && params.radius) {
+  //   mechanic_location_include = [literal("3958 * acos(cos(radians("+params.lat+")) * cos(radians(lat)) * cos(radians("+params.lng+") - radians(lng)) + sin(radians("+params.lat+")) * sin(radians(lat)))"), 'distance']
+  // }
+  const mechanic_where: any = {};
+  if (params.city) {
+    mechanic_where.city = { [Op.like]: `%${params.city}%` };
+  }
+  if (params.state) {
+    mechanic_where.state = { [Op.like]: `%${params.state}%` };
+  }
+  if (params.country) {
+    mechanic_where.country = { [Op.like]: `%${params.country}%` };
+  }
+
+  console.log({ params, experise_where, service_where, mechanic_where });
+
+  const results = await mechanics_crud.findAll({
+    where: mechanic_where,
+    attributes: {
+      include: [
+        // mechanic_location_include
+      ]
+    },
+    include: [
+      {
+        model: Users,
+        as: 'user',
+        attributes: user_attrs_slim
+      },
+      {
+        model: MechanicFields,
+        as: 'mechanic_fields',
+      },
+      {
+        model: MechanicCredentials,
+        as: 'mechanic_credentials',
+        // include: mechanicCredentialsInclude,
+      },
+      {
+        model: MechanicRatings,
+        as: 'mechanic_ratings',
+        include: [
+          {
+            model: Users,
+            as: 'writer',
+            attributes: user_attrs_slim
+          },
+          {
+            model: MechanicRatingEdits,
+            as: `mechanic_rating_edits`
+          }
+        ]
+      },
+      {
+        model: MechanicExpertises,
+        as: 'mechanic_expertises',
+        where: experise_where,
+      },
+      {
+        model: MechanicServices,
+        as: 'mechanic_services',
+        where: service_where,
+      },
+      {
+        model: MechanicServiceRequests,
+        as: 'mechanic_service_requests',
+        include: [
+          {
+            model: MechanicServiceRequestOffers,
+            as: 'mechanic_service_request_offers',
+          }
+        ]
+      },
+      {
+        model: MechanicServiceRequestOffers,
+        as: 'mechanic_offers',
+      },
+    ]
+  });
+
+  return results;
+}
 
 
 
@@ -572,7 +701,11 @@ export function create_mechanic_service(params: {
   cost: number,
   deposit?: number,
 }) {
-  return mechanic_services_crud.create(params);
+  return mechanic_services_crud.create({
+    ...params,
+    cost: params.cost || 0,
+    deposit: params.deposit || 0,
+  });
 }
 
 export function update_mechanic_service(

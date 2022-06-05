@@ -244,6 +244,8 @@ export const update_mechanic_fields = [
   'email',
   'city',
   'state',
+  'lat',
+  'lng',
   'zipcode',
   'country',
 ];

@@ -1,4 +1,6 @@
 import { UploadedFile } from "express-fileupload";
+import { StripeService } from "../../_common/services/stripe.service";
+import { UsersService } from "../../_common/services/users.service";
 import {
   validateData,
   validateAndUploadImageFile,
@@ -37,6 +39,7 @@ import {
   get_mechanic_by_id,
   get_mechanic_by_user_id,
   get_service_request_by_id,
+  search_mechanics,
   update_mechanic_credential,
   update_mechanic_expertise,
   update_mechanic_field,
@@ -125,6 +128,28 @@ export class CarMasterService {
     return serviceMethodResults;
   }
   
+  static async search_mechanics(data: any): Promise<ServiceMethodResults> {
+    const results = await search_mechanics(data);
+    // console.log(`search_mechanics`, { results });
+
+    // filter those who are active
+    const filtered = [];
+    for (const mechanic of results) {
+      const is_subscription_active = await StripeService.is_subscription_active(mechanic.user!.platform_subscription_id);
+      if (is_subscription_active) {
+        filtered.push(mechanic);
+      }
+    }
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: filtered,
+      },
+    };
+    return serviceMethodResults;
+  }
   
   
   // mechanic field

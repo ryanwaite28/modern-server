@@ -36,6 +36,12 @@ export class CarMasterRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
+  @CatchRequestHandlerError()
+  static async search_mechanics(request: Request, response: Response): ExpressResponse {
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.search_mechanics(request.body);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
 
   
   // mechanic field

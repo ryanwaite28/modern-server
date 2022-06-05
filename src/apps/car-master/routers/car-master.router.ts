@@ -54,6 +54,8 @@ CarMasterAppRouter.get('/mechanics/by-user-id/:user_id', CarMasterRequestHandler
 
 // POST
 
+CarMasterAppRouter.post('/mechanics/search', CarMasterRequestHandler.search_mechanics);
+
 CarMasterAppRouter.post('/mechanics/:you_id/profile', YouAuthorized, CarMasterRequestHandler.create_mechanic_profile);
 
 CarMasterAppRouter.post('/mechanics/:mechanic_id/field', ...mechanic_auths, CarMasterRequestHandler.create_mechanic_field);

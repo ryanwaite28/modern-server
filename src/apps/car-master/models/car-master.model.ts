@@ -79,6 +79,8 @@ export const Mechanics = <MyModelStatic> sequelize.define('carmaster_mechanics',
   state:              { type: Sequelize.STRING(500), allowNull: false },
   zipcode:            { type: Sequelize.INTEGER, allowNull: false },
   country:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  lat:                { type: Sequelize.FLOAT, allowNull: true, defaultValue: null },
+  lng:                { type: Sequelize.FLOAT, allowNull: true, defaultValue: null },
   
   date_created:       { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
@@ -181,7 +183,7 @@ export const MechanicServices = <MyModelStatic> sequelize.define('carmaster_mech
   service_type:        { type: Sequelize.STRING, allowNull: false },
   service_action:      { type: Sequelize.STRING, allowNull: false },
   description:         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
-  cost:                { type: Sequelize.INTEGER, allowNull: false },
+  cost:                { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
   deposit:             { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
   
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },

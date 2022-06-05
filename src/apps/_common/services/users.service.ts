@@ -1921,14 +1921,18 @@ export class UsersService {
   ): ServiceMethodAsyncResults {
 
     if (you.platform_subscription_id) {
-      const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.BAD_REQUEST,
-        error: true,
-        info: {
-          message: `User already has subscription`
-        }
-      };
-      return serviceMethodResults;
+      const is_subscription_active = (await UsersService.is_subscription_active(you)).info.data as boolean;
+      if (is_subscription_active) {
+        const serviceMethodResults: ServiceMethodResults = {
+          status: HttpStatusCode.BAD_REQUEST,
+          error: true,
+          info: {
+            message: `User already has active subscription`
+          }
+        };
+        return serviceMethodResults;
+      }
+
     }
 
     const user_payment_methods = await UsersService.get_user_customer_cards_payment_methods(you.stripe_customer_account_id);
@@ -1952,8 +1956,8 @@ export class UsersService {
       return serviceMethodResults;
     }
     
-    const subscription = await StripeService.create_subscription(you.stripe_customer_account_id, payment_method_id);
-    if (!subscription) {
+    const new_subscription = await StripeService.create_subscription(you.stripe_customer_account_id, payment_method_id);
+    if (!new_subscription) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1964,9 +1968,9 @@ export class UsersService {
       return serviceMethodResults;
     }
 
-    const updates = await UserRepo.update_user({ platform_subscription_id: subscription.id }, { id: you.id });
+    const updates = await UserRepo.update_user({ platform_subscription_id: new_subscription.id }, { id: you.id });
   
-    const newUYou = { ...you, platform_subscription_id: subscription.id };
+    const newUYou = { ...you, platform_subscription_id: new_subscription.id };
     // console.log({ updates, results, user });
     delete newUYou.password;
     const jwt = TokensService.newUserJwtToken(newUYou);
@@ -1977,7 +1981,7 @@ export class UsersService {
       info: {
         data: {
           token: jwt,
-          subscription,
+          subscription: new_subscription,
           you: newUYou
         }
       }
