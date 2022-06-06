@@ -1765,8 +1765,8 @@ export class UsersService {
     const you = you_model!;
 
     const useHost = host.endsWith('/') ? host.substr(0, host.length - 1) : host;
-    const refresh_url = `${useHost}/modern/users/${you.id}/settings`;
-    const return_url = `${useHost}/modern/users/${you.id}/verify-stripe-account`;
+    const refresh_url = `${useHost}/users/${you.id}/settings`;
+    const return_url = `${useHost}/users/${you.id}/verify-stripe-account`;
 
     let account, updates;
 

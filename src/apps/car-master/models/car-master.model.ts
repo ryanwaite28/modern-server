@@ -14,6 +14,19 @@ import { Videos } from '../../_common/models/video.model';
 
 
 
+export const CarmasterUserProfileSettings = <MyModelStatic> sequelize.define('carmaster_user_profile_settings', {
+  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  phone:               { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  email:               { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  cashapp_tag:         { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  venmo_id:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  paypal_me:           { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  google_pay:          { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
 export const CarmasterMessagings = <MyModelStatic> sequelize.define('carmaster_messagings', {
   id:                 { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   user_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
