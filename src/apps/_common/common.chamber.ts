@@ -931,6 +931,12 @@ export const prod_origins = [
   
   'http://rmw-deliverme-client.herokuapp.com',
   'https://rmw-deliverme-client.herokuapp.com',
+
+  'http://rmw-carmaster-client.herokuapp.com',
+  'https://rmw-carmaster-client.herokuapp.com',
+
+  'http://rmw-modern-apps.herokuapp.com',
+  'https://rmw-modern-apps.herokuapp.com',
 ];
 
 export const whitelist_domains = isProd
