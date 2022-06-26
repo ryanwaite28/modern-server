@@ -15,16 +15,17 @@ import { Videos } from '../../_common/models/video.model';
 
 
 export const CarmasterUserProfileSettings = <MyModelStatic> sequelize.define('carmaster_user_profile_settings', {
-  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-  user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
-  phone:               { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
-  email:               { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
-  cashapp_tag:         { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
-  venmo_id:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
-  paypal_me:           { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
-  google_pay:          { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
-  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
-  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+  id:                               { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:                          { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  phone:                            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  email:                            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  cashapp_tag:                      { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  venmo_id:                         { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  paypal_me:                        { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  google_pay:                       { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  date_created:                     { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  notifications_last_opened:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                             { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
 export const CarmasterMessagings = <MyModelStatic> sequelize.define('carmaster_messagings', {
@@ -74,6 +75,20 @@ export const CarmasterMessageAudios = <MyModelStatic> sequelize.define('carmaste
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   message_id:          { type: Sequelize.INTEGER, allowNull: false, references: { model: CarmasterMessages, key: 'id' } },
   audio_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Audios, key: 'id' } },
+  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+export const CarmasterNotifications = <MyModelStatic> sequelize.define('carmaster_notifications', {
+  id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  from_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  to_id:               { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  event:               { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  target_type:         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  target_id:           { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
+  read:                { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  image_link:          { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
+  image_id:            { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);

@@ -923,11 +923,14 @@ export const dev_origins = [
 
 export const prod_origins = [
   // prod origins
-  'http://rmw-modern-client.herokuapp.com',
-  'https://rmw-modern-client.herokuapp.com',
-  
   'http://modern-apps.us',
   'https://modern-apps.us',
+
+  'http://rmw-modern-apps.herokuapp.com',
+  'https://rmw-modern-apps.herokuapp.com',
+  
+  'http://rmw-modern-client.herokuapp.com',
+  'https://rmw-modern-client.herokuapp.com',
   
   'http://rmw-deliverme-client.herokuapp.com',
   'https://rmw-deliverme-client.herokuapp.com',
@@ -935,8 +938,23 @@ export const prod_origins = [
   'http://rmw-carmaster-client.herokuapp.com',
   'https://rmw-carmaster-client.herokuapp.com',
 
-  'http://rmw-modern-apps.herokuapp.com',
-  'https://rmw-modern-apps.herokuapp.com',
+
+  // cloudfront original origins
+  `https://d21wms91ke8cf7.cloudfront.net`,
+  `https://d1gkh7995y4cri.cloudfront.net`,
+  `https://duauo4c3sv632.cloudfront.net`,
+
+
+
+  // cloudfront aliases
+  `http://modern-apps-modern.s3.us-east-1.amazonaws.com`,
+  `https://modern-apps-modern.s3.us-east-1.amazonaws.com`,
+
+  `http://modern-apps-deliverme.s3.us-east-1.amazonaws.com`,
+  `https://modern-apps-deliverme.s3.us-east-1.amazonaws.com`,
+
+  `http://modern-apps-carmaster.s3.us-east-1.amazonaws.com`,
+  `https://modern-apps-carmaster.s3.us-east-1.amazonaws.com`,
 ];
 
 export const whitelist_domains = isProd

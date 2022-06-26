@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  UserIdsAreDifferent,
   YouAuthorized, YouAuthorizedSlim,
 } from '../../_common/guards/user.guard';
 import { MechanicCredentialRouteGuards } from '../guards/mechanic-credential.guard';
@@ -9,6 +10,9 @@ import { MechanicRatingRouteGuards } from '../guards/mechanic-rating.guard';
 import { MechanicServiceRouteGuards } from '../guards/mechanic-service.guard';
 import { MechanicExistsStrong, MechanicRouteGuards } from '../guards/mechanic.guard';
 import { CarMasterRequestHandler } from '../handlers/car-master.handler';
+import { MessagesRequestHandler } from '../handlers/messages.handler';
+import { MessagingsRequestHandler } from '../handlers/messagings.handler';
+import { NotificationsRequestHandler } from '../handlers/notifications.handler';
 
 
 
@@ -85,3 +89,45 @@ CarMasterAppRouter.delete('/mechanics/:mechanic_id/credential/:credential_id', .
 CarMasterAppRouter.delete('/mechanics/:mechanic_id/expertise/:expertise_id', ...expertise_owner_auths, CarMasterRequestHandler.delete_mechanic_expertise);
 CarMasterAppRouter.delete('/mechanics/:mechanic_id/service/:service_id', ...service_owner_auths, CarMasterRequestHandler.delete_mechanic_service);
 // CarMasterAppRouter.delete('/mechanics/:mechanic_id/rating/:rating_id', ...mechanic_auths, MechanicRouteGuards.isNotOwnerGuard, MechanicRatingRouteGuards.isOwnerGuard, CarMasterRequestHandler.delete_mechanic_rating);
+
+
+
+
+
+
+
+
+
+
+
+
+/** Users */
+
+// GET
+
+CarMasterAppRouter.get('/users/:you_id/messagings/all', YouAuthorized, MessagingsRequestHandler.get_user_messagings_all);
+CarMasterAppRouter.get('/users/:you_id/messagings', YouAuthorized, MessagingsRequestHandler.get_user_messagings);
+CarMasterAppRouter.get('/:you_id/messagings/:messagings_timestamp', YouAuthorized, MessagingsRequestHandler.get_user_messagings);
+
+CarMasterAppRouter.get('/users/:you_id/messages/:user_id', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.get_user_messages);
+CarMasterAppRouter.get('/users/:you_id/messages/:user_id/:min_id', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.get_user_messages);
+
+
+CarMasterAppRouter.get('/:you_id/notifications/all', YouAuthorized, NotificationsRequestHandler.get_user_notifications_all);
+CarMasterAppRouter.get('/:you_id/notifications', YouAuthorized, NotificationsRequestHandler.get_user_notifications);
+CarMasterAppRouter.get('/:you_id/notifications/:notification_id', YouAuthorized, NotificationsRequestHandler.get_user_notifications);
+
+
+// POST
+
+CarMasterAppRouter.post('/users/:you_id/send-message/:user_id', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.send_user_message);
+CarMasterAppRouter.post('/:you_id/notifications/update-last-opened', YouAuthorized, NotificationsRequestHandler.update_user_last_opened);
+
+
+// PUT
+
+
+
+// DELETE
+
+
