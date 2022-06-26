@@ -940,6 +940,10 @@ export const prod_origins = [
 
 
   // cloudfront original origins
+  `http://d21wms91ke8cf7.cloudfront.net`,
+  `http://d1gkh7995y4cri.cloudfront.net`,
+  `http://duauo4c3sv632.cloudfront.net`,
+
   `https://d21wms91ke8cf7.cloudfront.net`,
   `https://d1gkh7995y4cri.cloudfront.net`,
   `https://duauo4c3sv632.cloudfront.net`,
