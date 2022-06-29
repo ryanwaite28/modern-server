@@ -38,7 +38,8 @@ export class CarMasterRequestHandler {
 
   @CatchRequestHandlerError()
   static async search_mechanics(request: Request, response: Response): ExpressResponse {
-    const serviceMethodResults: ServiceMethodResults = await CarMasterService.search_mechanics(request.body);
+    const you = response.locals.you as IUser;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.search_mechanics(request.body, you?.id);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

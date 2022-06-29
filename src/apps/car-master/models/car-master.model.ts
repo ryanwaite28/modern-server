@@ -295,6 +295,20 @@ export const MechanicServiceRequestDisputeLogs = <MyModelStatic> sequelize.defin
 Users.hasOne(Mechanics, { as: 'carmaster_mechanic', foreignKey: 'user_id', sourceKey: 'id' });
 Mechanics.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
 
+
+
+Users.hasMany(CarmasterMessagings, { as: 'carmaster_message_sendings', foreignKey: 'sender_id', sourceKey: 'id' });
+CarmasterMessagings.belongsTo(Users, { as: 'sender', foreignKey: 'sender_id', targetKey: 'id' });
+Users.hasMany(CarmasterMessagings, { as: 'carmaster_message_receivings', foreignKey: 'user_id', sourceKey: 'id' });
+CarmasterMessagings.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
+
+Users.hasMany(CarmasterMessages, { as: 'carmaster_messages_sent', foreignKey: 'from_id', sourceKey: 'id' });
+CarmasterMessages.belongsTo(Users, { as: 'from', foreignKey: 'from_id', targetKey: 'id' });
+Users.hasMany(CarmasterMessages, { as: 'carmaster_messages_received', foreignKey: 'to_id', sourceKey: 'id' });
+CarmasterMessages.belongsTo(Users, { as: 'to', foreignKey: 'to_id', targetKey: 'id' });
+
+
+
 Users.hasMany(MechanicFavorites, { as: 'carmaster_mechanic_favorites', foreignKey: 'user_id', sourceKey: 'id' });
 MechanicFavorites.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
 Mechanics.hasMany(MechanicFavorites, { as: 'mechanic_favorites', foreignKey: 'mechanic_id', sourceKey: 'id' });

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { MessagesService } from '../services/messages.service';
 import { CatchRequestHandlerError } from '../../_common/decorators/common.decorator';
 import { ExpressResponse, ServiceMethodResults } from '../../_common/types/common.types';
+import { IUser, PlainObject } from '../../_common/interfaces/common.interface';
 
 export class MessagesRequestHandler {
   @CatchRequestHandlerError()
@@ -17,10 +18,10 @@ export class MessagesRequestHandler {
   
   @CatchRequestHandlerError()
   static async send_user_message(request: Request, response: Response): ExpressResponse {
-    const you_id: number = parseInt(request.params.you_id, 10);
+    const you = response.locals.you as IUser;
     const user_id: number = parseInt(request.params.user_id, 10);
-    const body: string = request.body.body;
-    const options = { you_id, user_id, body };
+    const data: PlainObject = request.body;
+    const options = { you, user_id, data };
 
     const serviceMethodResults: ServiceMethodResults = await MessagesService.send_user_message(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);

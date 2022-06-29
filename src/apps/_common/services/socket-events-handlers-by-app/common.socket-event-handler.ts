@@ -261,12 +261,12 @@ export class CommonSocketEventsHandler {
     user_id: number;
   }) {
     // console.log(`emitEventToUserSockets called`, { params });
-    // let roomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(params.user_id);
-    // if (!roomKey) {
-    //   console.log(`CommonSocketEventsHandler.emitEventToUserSockets - no roomKey by user Id`);
-    //   return;
-    // }
-
+    let roomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(params.user_id);
+    if (!roomKey) {
+      console.log(`CommonSocketEventsHandler.emitEventToUserSockets - no roomKey by user Id`);
+      return;
+    }
+    console.log({ user_id: params.user_id, roomKey });
     
     let socketsSet = CommonSocketEventsHandler.userSocketsByUserId.get(params.user_id);
     if (!socketsSet) {
@@ -279,12 +279,13 @@ export class CommonSocketEventsHandler {
     }
     
     console.log({ socketsSet });
-    for (const socket_id of socketsSet) {
-      console.log(`Emitting data to socket id ${socket_id}...`);
-      CommonSocketEventsHandler.io.to(socket_id).emit(params.event, params.data);
-    }
+    // for (const socket_id of socketsSet) {
+    //   console.log(`Emitting data to socket id ${socket_id}...`);
+    //   CommonSocketEventsHandler.io.to(socket_id).emit(params.event, params.data);
+    // }
 
-    // CommonSocketEventsHandler.io.to(roomKey).emit(params.event, params.data);
+    console.log(`Emitting data to room ${roomKey}...`);
+    CommonSocketEventsHandler.io.to(roomKey).emit(params.event, params.data);
     // CommonSocketEventsHandler.io.to(roomKey).emit(`FOR-USER:${params.user_id}`, params.data);
   }
 

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   UserIdsAreDifferent,
-  YouAuthorized, YouAuthorizedSlim,
+  YouAuthorized, YouAuthorizedSlim, YouAuthorizedSlimWeak,
 } from '../../_common/guards/user.guard';
 import { MechanicCredentialRouteGuards } from '../guards/mechanic-credential.guard';
 import { MechanicExpertiseRouteGuards } from '../guards/mechanic-expertise.guard';
@@ -58,7 +58,7 @@ CarMasterAppRouter.get('/mechanics/by-user-id/:user_id', CarMasterRequestHandler
 
 // POST
 
-CarMasterAppRouter.post('/mechanics/search', CarMasterRequestHandler.search_mechanics);
+CarMasterAppRouter.post('/mechanics/search', YouAuthorizedSlimWeak, CarMasterRequestHandler.search_mechanics);
 
 CarMasterAppRouter.post('/mechanics/:you_id/profile', YouAuthorized, CarMasterRequestHandler.create_mechanic_profile);
 

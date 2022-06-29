@@ -254,7 +254,7 @@ export async function search_mechanics(params: {
   lat?: number,
   lng?: number,
   radius: number,
-}) {
+}, you_id?: number) {
   const experise_where = {
     make: { [Op.like]: `%${params.make}%` },
     model: { [Op.like]: `%${params.model}%` },
@@ -289,8 +289,11 @@ export async function search_mechanics(params: {
   if (params.country) {
     mechanic_where.country = { [Op.like]: `%${params.country}%` };
   }
+  if (you_id) {
+    mechanic_where.user_id = { [Op.ne]: you_id };
+  }
 
-  console.log({ params, experise_where, service_where, mechanic_where });
+  console.log({ params, experise_where, service_where, mechanic_where, you_id });
 
   const results = await mechanics_crud.findAll({
     where: mechanic_where,

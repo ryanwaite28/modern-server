@@ -3,14 +3,16 @@ import {
   Op,
 } from 'sequelize';
 import { CarmasterMessagings, CarmasterMessages } from '../models/car-master.model';
-import { user_attrs_slim } from '../../_common/common.chamber';
+import { getUserFullName, user_attrs_slim, validatePhone } from '../../_common/common.chamber';
 import { HttpStatusCode } from '../../_common/enums/http-codes.enum';
-import { PlainObject } from '../../_common/interfaces/common.interface';
+import { IUser, PlainObject } from '../../_common/interfaces/common.interface';
 import { Users } from '../../_common/models/user.model';
 import { CommonSocketEventsHandler } from '../../_common/services/socket-events-handlers-by-app/common.socket-event-handler';
 import { SocketsService } from '../../_common/services/sockets.service';
 import { ServiceMethodAsyncResults, ServiceMethodResults } from '../../_common/types/common.types';
 import { CARMASTER_EVENT_TYPES } from '../enums/car-master.enum';
+import { send_sms } from '../../../sms-client';
+import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 
 
 export class MessagesService {
@@ -100,11 +102,11 @@ export class MessagesService {
   }
 
   static async send_user_message(options: {
-    you_id: number,
+    you: IUser,
     user_id: number,
-    body: string,
+    data: PlainObject,
   }): ServiceMethodAsyncResults {
-    let { you_id, user_id, body } = options;
+    let { you, user_id, data } = options;
 
     if (!user_id) {
       const serviceMethodResults: ServiceMethodResults = {
@@ -116,7 +118,7 @@ export class MessagesService {
       };
       return serviceMethodResults;
     }
-    if (user_id === you_id) {
+    if (user_id === you.id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -127,7 +129,7 @@ export class MessagesService {
       return serviceMethodResults;
     }
     
-    if (!body || !body.trim()) {
+    if (!data.body || !data.body.trim()) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -142,8 +144,8 @@ export class MessagesService {
     let messaging_model = await CarmasterMessagings.findOne({
       where: {
         [Op.or]: [
-          { user_id: you_id, sender_id: user_id },
-          { user_id: user_id, sender_id: you_id },
+          { user_id: you.id, sender_id: user_id },
+          { user_id: user_id, sender_id: you.id },
         ]
       }
     });
@@ -152,14 +154,14 @@ export class MessagesService {
       // keep track that there was messaging between the two users
       messaging_model = await CarmasterMessagings.create({
         user_id: user_id,
-        sender_id: you_id
+        sender_id: you.id
       });
     }
 
     // create the new message
     const new_message_model = await CarmasterMessages.create({
-      body,
-      from_id: you_id,
+      body: data.body.trim(),
+      from_id: you.id,
       to_id: user_id,
     });
 
@@ -197,7 +199,7 @@ export class MessagesService {
       event: CARMASTER_EVENT_TYPES.NEW_CARMASTER_MESSAGE,
       data: new_message!.toJSON() as any,
       messaging: get_messaging_model!.toJSON() as any,
-      from_user_id: you_id,
+      from_user_id: you.id,
       to_user_id: user_id,
     }
     const TO_ROOM = `${CARMASTER_EVENT_TYPES.TO_CARMASTER_MESSAGING_ROOM}:${eventData.messaging.id}`;
@@ -209,6 +211,16 @@ export class MessagesService {
       event: CARMASTER_EVENT_TYPES.NEW_CARMASTER_MESSAGE,
       data: eventData,
     });
+
+    if (data.mechanic && data.mechanic.user_id === user_id) {
+      const to_phone_number = data.mechanic.phone || data.mechanic.user?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        const youName = getUserFullName(you);
+        const message = `ModernApps ${MODERN_APP_NAMES.CARMASTER} - ${youName} snet you a message: ${data.body.trim()}`;
+        console.log(`Sending text to ${to_phone_number} with message: ${message}`);
+        send_sms({ to_phone_number,  message });
+      }
+    }
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
