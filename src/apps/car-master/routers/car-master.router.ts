@@ -107,25 +107,26 @@ CarMasterAppRouter.delete('/mechanics/:mechanic_id/service/:service_id', ...serv
 
 CarMasterAppRouter.get('/users/:you_id/messagings/all', YouAuthorized, MessagingsRequestHandler.get_user_messagings_all);
 CarMasterAppRouter.get('/users/:you_id/messagings', YouAuthorized, MessagingsRequestHandler.get_user_messagings);
-CarMasterAppRouter.get('/:you_id/messagings/:messagings_timestamp', YouAuthorized, MessagingsRequestHandler.get_user_messagings);
+CarMasterAppRouter.get('/users/:you_id/messagings/:messagings_timestamp', YouAuthorized, MessagingsRequestHandler.get_user_messagings);
 
 CarMasterAppRouter.get('/users/:you_id/messages/:user_id', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.get_user_messages);
 CarMasterAppRouter.get('/users/:you_id/messages/:user_id/:min_id', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.get_user_messages);
 
 
-CarMasterAppRouter.get('/:you_id/notifications/all', YouAuthorized, NotificationsRequestHandler.get_user_notifications_all);
-CarMasterAppRouter.get('/:you_id/notifications', YouAuthorized, NotificationsRequestHandler.get_user_notifications);
-CarMasterAppRouter.get('/:you_id/notifications/:notification_id', YouAuthorized, NotificationsRequestHandler.get_user_notifications);
+CarMasterAppRouter.get('/users/:you_id/notifications/all', YouAuthorized, NotificationsRequestHandler.get_user_notifications_all);
+CarMasterAppRouter.get('/users/:you_id/notifications', YouAuthorized, NotificationsRequestHandler.get_user_notifications);
+CarMasterAppRouter.get('/users/:you_id/notifications/:notification_id', YouAuthorized, NotificationsRequestHandler.get_user_notifications);
 
 
 // POST
 
 CarMasterAppRouter.post('/users/:you_id/send-message/:user_id', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.send_user_message);
-CarMasterAppRouter.post('/:you_id/notifications/update-last-opened', YouAuthorized, NotificationsRequestHandler.update_user_last_opened);
+CarMasterAppRouter.post('/users/:you_id/notifications/update-last-opened', YouAuthorized, NotificationsRequestHandler.update_user_last_opened);
 
 
 // PUT
 
+CarMasterAppRouter.put('/users/:you_id/message/:message_id/mark-as-read', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.mark_message_as_read);
 
 
 // DELETE

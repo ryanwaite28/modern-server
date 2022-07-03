@@ -41,6 +41,7 @@ export class MessagesService {
           message: `user_id is invalid: cannot be same as you_id`
         }
       };
+      return serviceMethodResults;
     }
 
     const whereClause: PlainObject = {
@@ -202,9 +203,6 @@ export class MessagesService {
       from_user_id: you.id,
       to_user_id: user_id,
     }
-    const TO_ROOM = `${CARMASTER_EVENT_TYPES.TO_CARMASTER_MESSAGING_ROOM}:${eventData.messaging.id}`;
-    console.log({ TO_ROOM, eventData });
-    SocketsService.get_io().to(TO_ROOM).emit(TO_ROOM, eventData);
     
     CommonSocketEventsHandler.emitEventToUserSockets({
       user_id: user_id,
@@ -216,7 +214,7 @@ export class MessagesService {
       const to_phone_number = data.mechanic.phone || data.mechanic.user?.phone;
       if (!!to_phone_number && validatePhone(to_phone_number)) {
         const youName = getUserFullName(you);
-        const message = `ModernApps ${MODERN_APP_NAMES.CARMASTER} - ${youName} snet you a message: ${data.body.trim()}`;
+        const message = `ModernApps ${MODERN_APP_NAMES.CARMASTER} - ${youName} sent you a message: ${data.body.trim()}`;
         console.log(`Sending text to ${to_phone_number} with message: ${message}`);
         send_sms({ to_phone_number,  message });
       }
@@ -240,6 +238,8 @@ export class MessagesService {
     const updates = await CarmasterMessages.update({ opened: true }, {
       where: { id: message_id, to_id: you_id }
     });
+
+    console.log(`marked message as read:`, { you_id, message_id, updates });
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
