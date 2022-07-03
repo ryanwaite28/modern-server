@@ -910,60 +910,10 @@ export function AuthorizeJWT(
   }
 }
 
-export const dev_origins = [
-  // dev origins
-  'http://localhost',
-  'http://localhost:8080',
-  'http://localhost:7600',
-  'http://localhost:9500',
-  'http://localhost:4200',
-  'http://localhost:5200',
-  'http://localhost:6200',
-];
-
-export const prod_origins = [
-  // prod origins
-  'http://modern-apps.us',
-  'https://modern-apps.us',
-
-  'http://rmw-modern-apps.herokuapp.com',
-  'https://rmw-modern-apps.herokuapp.com',
-  
-  'http://rmw-modern-client.herokuapp.com',
-  'https://rmw-modern-client.herokuapp.com',
-  
-  'http://rmw-deliverme-client.herokuapp.com',
-  'https://rmw-deliverme-client.herokuapp.com',
-
-  'http://rmw-carmaster-client.herokuapp.com',
-  'https://rmw-carmaster-client.herokuapp.com',
 
 
-  // cloudfront original origins
-  `http://d21wms91ke8cf7.cloudfront.net`,
-  `http://d1gkh7995y4cri.cloudfront.net`,
-  `http://duauo4c3sv632.cloudfront.net`,
-
-  `https://d21wms91ke8cf7.cloudfront.net`,
-  `https://d1gkh7995y4cri.cloudfront.net`,
-  `https://duauo4c3sv632.cloudfront.net`,
-
-
-
-  // cloudfront aliases
-  `http://modern-apps-modern.s3.us-east-1.amazonaws.com`,
-  `https://modern-apps-modern.s3.us-east-1.amazonaws.com`,
-
-  `http://modern-apps-deliverme.s3.us-east-1.amazonaws.com`,
-  `https://modern-apps-deliverme.s3.us-east-1.amazonaws.com`,
-
-  `http://modern-apps-carmaster.s3.us-east-1.amazonaws.com`,
-  `https://modern-apps-carmaster.s3.us-east-1.amazonaws.com`,
-];
-
-export const whitelist_domains = isProd
-  ? prod_origins
-  : dev_origins;
+export const whitelist_domains = process.env[`CORS_WHITELIST_ORIGINS`] ? process.env[`CORS_WHITELIST_ORIGINS`].split(',') : [];
+console.log({ whitelist_domains });
 
 export const corsOptions: CorsOptions = {
   // https://expressjs.com/en/resources/middleware/cors.html

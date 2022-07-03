@@ -8,3 +8,4 @@ dist/
 ./*.jpeg
 ./*.gif
 database.sqlite
+deploy-cloudfront.json
