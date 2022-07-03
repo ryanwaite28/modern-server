@@ -10,14 +10,7 @@ import { HotspotSocketEventsHandler } from './socket-events-handlers-by-app/hots
 
 
 export class SocketsService {
-  /** Main state for app speific handlers */
   private static io: socket_io.Server;
-
-  private static socketsByUserIdMap = new Map<number, Set<string>>();
-  private static userIdsBySocket = new Map<string, number>();
-  private static userSocketsRoomKeyByUserId = new Map<number, string>(); // all sockets belonging to a user via room key
-  // private static socketsBySocketIdMap = new Map<string, socket_io.Socket>();
-  // private static userSocketIDsByUserId = new Map<number, Map<string, boolean>>(); // all sockets belonging to a user via socket ids map
 
   public static set_io(io: socket_io.Server) {
     SocketsService.io = io;
@@ -27,31 +20,7 @@ export class SocketsService {
     return SocketsService.io;
   }
 
-  public static emitEventForUser(user_id: number, data: { event_type: string; [key:string]: any; }) {
-    const forUserSocketsRoomKey = SocketsService.userSocketsRoomKeyByUserId.get(user_id);
-    if (forUserSocketsRoomKey) {
-      SocketsService.io.to(forUserSocketsRoomKey).emit(`FOR-USER:${user_id}`, data);
-    }
-  }
-  
 
-  /* Template method for socekt event handler
-
-  private static func(
-    io: socket_io.Server,
-    socket: socket_io.Socket,
-    data: any,
-    socketsByUserIdMap: Map<number, Map<string, socket_io.Socket>>,
-    userSocketsRoomKeyByUserId: Map<number, string>,
-  ) {
-
-  }
-
-  */
-
-
-
-  /** Handle io.on('connect') event */
 
   public static handle_io_connections(io: socket_io.Server) {
     if (SocketsService.io) {
@@ -74,9 +43,9 @@ export class SocketsService {
       
       /** Pass io, socket and state to each handler for app specific events */
 
-      CommonSocketEventsHandler.handleNewSocket(io, socket, SocketsService.userIdsBySocket, SocketsService.userSocketsRoomKeyByUserId);
-      HotspotSocketEventsHandler.handleNewSocket(io, socket, SocketsService.userIdsBySocket, SocketsService.userSocketsRoomKeyByUserId);
-      CarMasterSocketEventsHandler.handleNewSocket(io, socket, SocketsService.userIdsBySocket, SocketsService.userSocketsRoomKeyByUserId);
+      CommonSocketEventsHandler.handleNewSocket(io, socket);
+      // HotspotSocketEventsHandler.handleNewSocket(io, socket, SocketsService.userIdsBySocket, SocketsService.userSocketsRoomKeyByUserId);
+      // CarMasterSocketEventsHandler.handleNewSocket(io, socket, SocketsService.userIdsBySocket, SocketsService.userSocketsRoomKeyByUserId);
     
       /** end */
     });

@@ -22,6 +22,7 @@ import { SocketsService } from '../../_common/services/sockets.service';
 import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
 import { IMyModel } from '../../_common/models/common.model-types';
+import { CommonSocketEventsHandler } from 'src/apps/_common/services/socket-events-handlers-by-app/common.socket-event-handler';
 
 
 export class CliqueInterestsService {
@@ -151,8 +152,9 @@ export class CliqueInterestsService {
       target_id: clique_id
     }).then(async (notification_model) => {
       const notification = await populate_common_notification_obj(notification_model);
-      SocketsService.emitEventForUser(clique_model.get('creator_id'), {
-        event_type: HOTSPOT_EVENT_TYPES.NEW_CLIQUE_INTEREST,
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: clique_model.get('creator_id'),
+        event: HOTSPOT_EVENT_TYPES.NEW_CLIQUE_INTEREST,
         data: { user: you, notification }
       });
     });

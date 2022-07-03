@@ -33,6 +33,7 @@ import { SocketsService } from '../../_common/services/sockets.service';
 import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 import { ServiceMethodAsyncResults } from '../../_common/types/common.types';
 import { IMyModel } from '../../_common/models/common.model-types';
+import { CommonSocketEventsHandler } from 'src/apps/_common/services/socket-events-handlers-by-app/common.socket-event-handler';
 
 
 
@@ -193,15 +194,16 @@ export class CliqueMembersService {
       
     // });
 
-    SocketsService.get_io().to(`clique-${clique_id}`).emit(HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ADDED, {
+    SocketsService.get_io().in(`clique-${clique_id}`).emit(HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ADDED, {
       event_type: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ADDED,
       data: {
         clique: clique_model.toJSON(),
         member: new_clique_member_model.toJSON()
       },
     });
-    SocketsService.emitEventForUser(user_id, {
-      event_type: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ADDED,
+    CommonSocketEventsHandler.emitEventToUserSockets({
+      user_id,
+      event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ADDED,
       data: {
         clique: {
           ...clique_model!.toJSON(),
@@ -236,8 +238,9 @@ export class CliqueMembersService {
       event_type: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_REMOVED,
       data: { clique_id, user_id, member: memberObj },
     });
-    SocketsService.emitEventForUser(user_id, {
-      event_type: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_REMOVED,
+    CommonSocketEventsHandler.emitEventToUserSockets({
+      user_id,
+      event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_REMOVED,
       data: { clique_id, user_id, member: memberObj },
     });
 
@@ -269,8 +272,9 @@ export class CliqueMembersService {
       target_id: clique_id
     }).then(async (notification_model) => {
       const notification = await populate_hotspot_notification_obj(notification_model);
-      SocketsService.emitEventForUser(clique_model.get('creator_id'), {
-        event_type: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_LEFT,
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: clique_model.get('creator_id'),
+        event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_LEFT,
         data: { clique_id, user_id: you.id, clique: clique_model.toJSON(), notification },
       });
     });
@@ -376,8 +380,9 @@ export class CliqueMembersService {
       target_id: clique_id
     }).then(async (notification_model) => {
       const notification = await populate_hotspot_notification_obj(notification_model);
-      SocketsService.emitEventForUser(user_id, {
-        event_type: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_REQUEST,
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id,
+        event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_REQUEST,
         data: {
           clique_id,
           user_id,
@@ -418,8 +423,9 @@ export class CliqueMembersService {
       target_id: clique_id
     }).then(async (notification_model) => {
       const notification = await populate_hotspot_notification_obj(notification_model);
-      SocketsService.emitEventForUser(member_request.user_id, {
-        event_type: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_CANCEL,
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: member_request.user_id,
+        event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_CANCEL,
         data: { notification, member_request, clique: clique_model!.toJSON() },
       });
     });
@@ -487,8 +493,9 @@ export class CliqueMembersService {
       target_id: clique_id
     }).then(async (notification_model) => {
       const notification = await populate_hotspot_notification_obj(notification_model);
-      SocketsService.emitEventForUser(member_request.sender_id, {
-        event_type: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ACCEPT,
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: member_request.sender_id,
+        event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ACCEPT,
         data: { notification, member: new_member!.toJSON(), clique: clique_model!.toJSON() },
       });
     });
@@ -527,8 +534,11 @@ export class CliqueMembersService {
       target_id: clique_id
     }).then(async (notification_model) => {
       const notification = await populate_hotspot_notification_obj(notification_model);
-      SocketsService.emitEventForUser(member_request.sender_id, {
-        event_type: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_DECLINE,
+      
+      
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: member_request.sender_id,
+        event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_DECLINE,
         data: { notification, clique: clique_model!.toJSON() },
       });
     });

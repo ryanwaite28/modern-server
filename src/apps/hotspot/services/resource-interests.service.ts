@@ -21,6 +21,7 @@ import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 import { ServiceMethodAsyncResults, ServiceMethodResults } from '../../_common/types/common.types';
 import { IMyModel } from '../../_common/models/common.model-types';
 import { get_resource_by_id } from '../repos/resources.repo';
+import { CommonSocketEventsHandler } from 'src/apps/_common/services/socket-events-handlers-by-app/common.socket-event-handler';
 
 
 
@@ -154,8 +155,9 @@ export class ResourceInterestsService {
       target_id: resource_id
     }).then(async (notification_model) => {
       const notification = await populate_hotspot_notification_obj(notification_model);
-      SocketsService.emitEventForUser(checkModelResults.info.data!.get('owner_id'), {
-        event_type: HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST,
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: checkModelResults.info.data!.get('owner_id'),
+        event: HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST,
         data: { user: you, notification }
       });
     });
