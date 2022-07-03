@@ -2,6 +2,7 @@ import socket_io from 'socket.io';
 import { whitelist_domains } from '../common.chamber';
 import { HttpStatusCode } from '../enums/http-codes.enum';
 import { PlainObject } from '../interfaces/common.interface';
+import { CarMasterSocketEventsHandler } from './socket-events-handlers-by-app/carmaster.socket-event-handler';
 
 import { CommonSocketEventsHandler } from './socket-events-handlers-by-app/common.socket-event-handler';
 import { HotspotSocketEventsHandler } from './socket-events-handlers-by-app/hotspot.socket-event-handler';
@@ -75,6 +76,7 @@ export class SocketsService {
 
       CommonSocketEventsHandler.handleNewSocket(io, socket, SocketsService.userIdsBySocket, SocketsService.userSocketsRoomKeyByUserId);
       HotspotSocketEventsHandler.handleNewSocket(io, socket, SocketsService.userIdsBySocket, SocketsService.userSocketsRoomKeyByUserId);
+      CarMasterSocketEventsHandler.handleNewSocket(io, socket, SocketsService.userIdsBySocket, SocketsService.userSocketsRoomKeyByUserId);
     
       /** end */
     });

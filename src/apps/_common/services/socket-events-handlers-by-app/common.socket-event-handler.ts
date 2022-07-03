@@ -113,6 +113,8 @@ export class CommonSocketEventsHandler {
     socket: socket_io.Socket,
     data: any,
   ) {
+    console.log(`CommonSocketEventsHandler - SOCKET_JOIN_ROOM event | socket id ${socket.id}`, data);
+
     const validEventData = (
       data.hasOwnProperty('room') &&
       typeof(data.room) === 'string'
@@ -126,6 +128,10 @@ export class CommonSocketEventsHandler {
     }
 
     socket.join(data.room);
+
+    CommonSocketEventsHandler.io.in(data.room).allSockets().then((sockets) => {
+      console.log(`SOCKET_JOIN_ROOM - sockets in room ${data.room}:`, sockets);
+    });
   }
 
   private static SOCKET_LEAVE_ROOM(
@@ -133,6 +139,8 @@ export class CommonSocketEventsHandler {
     socket: socket_io.Socket,
     data: any,
   ) {
+    console.log(`CommonSocketEventsHandler - SOCKET_LEAVE_ROOM event | socket id ${socket.id}`, data);
+
     const validEventData = (
       data.hasOwnProperty('room') &&
       typeof(data.room) === 'string'
@@ -146,6 +154,10 @@ export class CommonSocketEventsHandler {
     }
 
     socket.leave(data.room);
+    
+    CommonSocketEventsHandler.io.in(data.room).allSockets().then((sockets) => {
+      console.log(`SOCKET_LEAVE_ROOM - sockets in room ${data.room}:`, sockets);
+    });
   }
 
   private static addUserSocket(
@@ -261,10 +273,10 @@ export class CommonSocketEventsHandler {
 
     const usersSocketsRoom = `FOR_USER:${params.user_id}`;
     CommonSocketEventsHandler.io.in(usersSocketsRoom).fetchSockets().then((usersSockets) => {
-      console.log(`emitEventToUserSockets - Emitting to room ${usersSocketsRoom}...`);
+      console.log(`emitEventToUserSockets - Emitting to room ${usersSocketsRoom}...`, usersSockets);
       
       CommonSocketEventsHandler.io.in(usersSocketsRoom).emit(params.event, params.data);
-    })
+    });
   }
 
   static emitEventToRoom(params: {
@@ -540,6 +552,8 @@ export class CommonSocketEventsHandler {
     socket: socket_io.Socket,
     data: any
   ) {
+    console.log(`CommonSocketEventsHandler - EMIT_TO_ROOM event | socket id ${socket.id}`, data);
+
     const validEventData = 
     (
       data.hasOwnProperty('to_room') &&
@@ -548,13 +562,21 @@ export class CommonSocketEventsHandler {
     (
       data.hasOwnProperty('event_name') &&
       typeof(data.event_name) === 'string'
+    ) &&
+    (
+      data.hasOwnProperty('data') &&
+      typeof(data.data) === 'object'
     );
     if (!validEventData) {
-      io.to(socket.id).emit(`EMIT_TO_ROOM-error`, { message: `to_room (string) is required; event_name (string) is required` });
+      io.to(socket.id).emit(`EMIT_TO_ROOM-error`, { message: `to_room (string) is required; event_name (string) is required; data (object) is required` });
       return;
     }
 
-    io.to(data.to_room).emit(data.event_name, data);
+    CommonSocketEventsHandler.io.in(data.to_room).allSockets().then((sockets) => {
+      console.log(`EMIT_TO_ROOM - sockets in room ${data.to_room}:`, sockets);
+    });
+
+    socket.to(data.to_room).emit(data.event_name, data.data);
   }
 
   private static EMIT_TO_USER(
@@ -562,6 +584,8 @@ export class CommonSocketEventsHandler {
     socket: socket_io.Socket,
     data: any
   ) {
+    console.log(`CommonSocketEventsHandler - EMIT_TO_USER event | socket id ${socket.id}`, data);
+
     const validEventData = 
     (
       data.hasOwnProperty('user_id') &&
@@ -584,8 +608,8 @@ export class CommonSocketEventsHandler {
 
     CommonSocketEventsHandler.emitEventToUserSockets({
       user_id: data.user_id,
-      data: data.data,
       event: data.event_name,
+      data: data.data,
     });
   }
 
