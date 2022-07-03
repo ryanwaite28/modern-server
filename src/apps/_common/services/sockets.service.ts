@@ -11,7 +11,6 @@ import { HotspotSocketEventsHandler } from './socket-events-handlers-by-app/hots
 export class SocketsService {
   /** Main state for app speific handlers */
   private static io: socket_io.Server;
-  private static io_namespace: socket_io.Namespace;
 
   private static socketsByUserIdMap = new Map<number, Set<string>>();
   private static userIdsBySocket = new Map<string, number>();
@@ -61,13 +60,13 @@ export class SocketsService {
 
     SocketsService.io = io;
 
-    SocketsService.io_namespace = io.on('connection', (socket: socket_io.Socket) => {
-      const originIsAllowed = whitelist_domains.includes(socket.handshake.headers.origin);
-      if (!originIsAllowed) {
-        console.log(`origin "${socket.handshake.headers.origin}" is not allowed`);
-        return;
-      }
-      console.log(`socket origin (${socket.handshake.headers.origin}) is valid; listening to socket events...`);
+    const connection = io.on('connection', (socket: socket_io.Socket) => {
+      // const originIsAllowed = whitelist_domains.includes(socket.handshake.headers.origin || '');
+      // if (!originIsAllowed) {
+      //   console.log(`origin "${socket.handshake.headers.origin}" is not allowed`);
+      //   return;
+      // }
+      // console.log(`socket origin (${socket.handshake.headers.origin}) is valid; listening to socket events...`);
 
       console.log('new socket:', socket.id, '\n');
       // io.to(socket_id).emit(`socket_id`, socket_id);

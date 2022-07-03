@@ -293,7 +293,7 @@ export async function search_mechanics(params: {
     mechanic_where.user_id = { [Op.ne]: you_id };
   }
 
-  console.log({ params, experise_where, service_where, mechanic_where, you_id });
+  // console.log({ params, experise_where, service_where, mechanic_where, you_id });
 
   const results = await mechanics_crud.findAll({
     where: mechanic_where,

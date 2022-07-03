@@ -4,7 +4,7 @@ dotenv.config();
 
 import express from 'express';
 import * as path from 'path';
-import socket_io from 'socket.io';
+import { Server } from "socket.io";
 import { ExpressPeerServer } from 'peer';
 import * as http from 'http';
 
@@ -20,7 +20,7 @@ import { IRequest } from './apps/_common/interfaces/common.interface';
 import { db_init } from './apps/_common/models/_init.model';
 import { SocketsService } from './apps/_common/services/sockets.service';
 import { AppsRouter } from './apps/apps.router';
-import { uniqueValue } from './apps/_common/common.chamber';
+import { corsMiddleware, uniqueValue, whitelist_domains } from './apps/_common/common.chamber';
 
 /** Setup */
 
@@ -34,9 +34,29 @@ app.use(express_device.capture());
 app.use(cookie_parser.default());
 app.use(body_parser.urlencoded({ extended: false }));
 
-const server: http.Server = http.createServer(app);
-const io: socket_io.Server = socket_io(server);
-io.engine.generateId = (req) => {
+const appServer: http.Server = http.createServer(app);
+
+// const peerServer = ExpressPeerServer(appServer, {
+//   // debug: true,
+//   path: '/modern-peer'
+// });
+// app.use('/peerjs', peerServer);
+
+
+const io: Server = new Server(appServer, {
+  cors: {
+    origin: whitelist_domains,
+  },
+
+  allowRequest: (req, callback) => {
+    console.log(`socket req origin: ${req.headers.origin}`);
+    const useOrigin = (req.headers.origin || '');
+    const originIsAllowed = whitelist_domains.includes(useOrigin);
+    console.log({ originIsAllowed });
+    callback(null, originIsAllowed);
+  }
+});
+io.engine.generateId = (req: any) => {
   return uniqueValue(); // must be unique across all Socket.IO servers
 };
 
@@ -53,17 +73,15 @@ app.use((
   next();
 });
 
-const peerServer = ExpressPeerServer(server, {
-  // debug: true,
-  path: '/modern-peer'
-});
-app.use('/peerjs', peerServer);
+
+
 
 
 
 /** Mount Sub-Routers to Master Application Instance */
 
-app.use('/apps', AppsRouter);
+app.options(`*`, corsMiddleware);
+app.use('/apps', corsMiddleware, AppsRouter);
 
 /** Static file declaration */
 
@@ -79,7 +97,7 @@ try {
     console.log(`app db ready; starting app.`);
   
     /** Start Server */
-    server.listen(PORT);
+    appServer.listen(PORT);
     console.log(`Listening on port ${PORT}...\n\n`);
   });  
 } catch (error) {

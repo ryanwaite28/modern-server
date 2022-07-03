@@ -84,7 +84,7 @@
     "postcss-loader": "^3.0.0",
     "reflect-metadata": "^0.1.13",
     "sequelize": "^5.22.5",
-    "socket.io": "^2.3.0",
+    "socket.io": "^4.5.1",
     "sqlite3": "^4.2.0",
     "stripe": "^8.176.0",
     "ts-loader": "^6.2.0",

@@ -1,5 +1,7 @@
 import socket_io from 'socket.io';
+import { decodeJWT } from '../../common.chamber';
 import { COMMON_EVENT_TYPES } from '../../enums/common.enum';
+import { IUser } from '../../interfaces/common.interface';
 
 
 
@@ -123,10 +125,7 @@ export class CommonSocketEventsHandler {
       return;
     }
 
-    socket.join(data.room, (err: any) => {
-      console.log(`socket ${socket.id} joined room ${data.room}. error:`, err);
-      socket.to(socket.id).emit(COMMON_EVENT_TYPES.SOCKET_JOIN_ROOM, { err, room: data.room });
-    });
+    socket.join(data.room);
   }
 
   private static SOCKET_LEAVE_ROOM(
@@ -146,10 +145,7 @@ export class CommonSocketEventsHandler {
       return;
     }
 
-    socket.leave(data.room, (err: any) => {
-      console.log(`socket ${socket.id} left room ${data.room}. error:`, err);
-      socket.to(socket.id).emit(COMMON_EVENT_TYPES.SOCKET_LEAVE_ROOM, { err, room: data.room });
-    });
+    socket.leave(data.room);
   }
 
   private static addUserSocket(
@@ -157,38 +153,13 @@ export class CommonSocketEventsHandler {
     socket: socket_io.Socket,
     data: any,
   ) {
-    let roomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(data.user_id);
-    if (!roomKey) {
-      roomKey = Date.now().toString();
-      CommonSocketEventsHandler.userSocketsRoomKeyByUserId.set(data.user_id, roomKey);
-    }
+    const usersSocketsRoom = `FOR_USER:${data.user_id}`;
 
-    let socketsSet = CommonSocketEventsHandler.userSocketsByUserId.get(data.user_id);
-    if (!socketsSet) {
-      socketsSet = new Set();
-      socketsSet.add(socket.id);
-      CommonSocketEventsHandler.userSocketsByUserId.set(data.user_id, socketsSet);
-    }
+    socket.join(usersSocketsRoom);
 
-    socket.join(roomKey, (err: any) => {
-      console.log(`err`, err);
-      console.log(`roomKey`, roomKey);
+    io.in(usersSocketsRoom).allSockets().then((sockets) => {
+      console.log(`addUserSocket - User ${data.user_id} added socket id ${socket.id} to room ${usersSocketsRoom} | sockets in room:`, sockets);
     });
-
-    CommonSocketEventsHandler.userIdsBySocket.set(socket.id, data.user_id);
-
-    console.log(
-      `addUserSocket() - CommonSocketEventsHandler.userIdsBySocket:`, 
-      CommonSocketEventsHandler.userIdsBySocket.entries()
-    );
-    console.log(
-      `addUserSocket() - CommonSocketEventsHandler.userSocketsRoomKeyByUserId:`, 
-      CommonSocketEventsHandler.userSocketsRoomKeyByUserId.entries()
-    );
-    console.log(
-      `addUserSocket() - CommonSocketEventsHandler.userSocketsByUserId:`, 
-      CommonSocketEventsHandler.userSocketsByUserId.entries()
-    );
   }
 
   public static removeSocketBySocketId(
@@ -196,7 +167,6 @@ export class CommonSocketEventsHandler {
     socket: socket_io.Socket,
     data: any,
   ) {
-    socket.leaveAll();
     // for (const keyVal of userSocketsRoomKeyByUserId.entries()) {
     //   const userId = keyVal[0], roomKey = keyVal[1];
 
@@ -212,43 +182,43 @@ export class CommonSocketEventsHandler {
     //   }
     // }
 
-    if (CommonSocketEventsHandler.userIdsBySocket.has(socket.id)) {
-      const user_id: number = CommonSocketEventsHandler.userIdsBySocket.get(socket.id)!;
-      const roomKey: string | undefined = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(user_id);
+    // if (CommonSocketEventsHandler.userIdsBySocket.has(socket.id)) {
+    //   const user_id: number = CommonSocketEventsHandler.userIdsBySocket.get(socket.id)!;
+    //   const roomKey: string | undefined = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(user_id);
 
-      if (roomKey) {
-        socket.leave(roomKey);
+    //   if (roomKey) {
+    //     socket.leave(roomKey);
 
-        const sockets_id_map = io.in(roomKey).sockets;
-        const socket_ids = Object.keys(sockets_id_map);
+    //     const sockets_id_map = io.in(roomKey).sockets;
+    //     const socket_ids = Object.keys(sockets_id_map);
 
-        console.log({
-          socket_ids,
-          user_id,
-          roomKey
-        });
+    //     console.log({
+    //       socket_ids,
+    //       user_id,
+    //       roomKey
+    //     });
   
-        if (socket_ids.length === 0) {
-          console.log(`user has no more sockets in room "${roomKey}"; deleting room...`);
-          CommonSocketEventsHandler.userSocketsRoomKeyByUserId.delete(user_id);
-        }
-      }
+    //     if (socket_ids.length === 0) {
+    //       console.log(`user has no more sockets in room "${roomKey}"; deleting room...`);
+    //       CommonSocketEventsHandler.userSocketsRoomKeyByUserId.delete(user_id);
+    //     }
+    //   }
 
-      CommonSocketEventsHandler.userIdsBySocket.delete(socket.id);
-    }
+    //   CommonSocketEventsHandler.userIdsBySocket.delete(socket.id);
+    // }
 
-    console.log(
-      `removeSocketBySocketId() - CommonSocketEventsHandler.userIdsBySocket:`, 
-      CommonSocketEventsHandler.userIdsBySocket.entries()
-    );
-    console.log(
-      `removeSocketBySocketId() - CommonSocketEventsHandler.userSocketsRoomKeyByUserId:`, 
-      CommonSocketEventsHandler.userSocketsRoomKeyByUserId.entries()
-    );
-    console.log(
-      `removeSocketBySocketId() - CommonSocketEventsHandler.userSocketsByUserId:`, 
-      CommonSocketEventsHandler.userSocketsByUserId.entries()
-    );
+    // console.log(
+    //   `removeSocketBySocketId() - CommonSocketEventsHandler.userIdsBySocket:`, 
+    //   CommonSocketEventsHandler.userIdsBySocket.entries()
+    // );
+    // console.log(
+    //   `removeSocketBySocketId() - CommonSocketEventsHandler.userSocketsRoomKeyByUserId:`, 
+    //   CommonSocketEventsHandler.userSocketsRoomKeyByUserId.entries()
+    // );
+    // console.log(
+    //   `removeSocketBySocketId() - CommonSocketEventsHandler.userSocketsByUserId:`, 
+    //   CommonSocketEventsHandler.userSocketsByUserId.entries()
+    // );
   }
 
   static getUserRoomKey(user_id: number) {
@@ -260,33 +230,41 @@ export class CommonSocketEventsHandler {
     data: any;
     user_id: number;
   }) {
-    // console.log(`emitEventToUserSockets called`, { params });
-    let roomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(params.user_id);
-    if (!roomKey) {
-      console.log(`CommonSocketEventsHandler.emitEventToUserSockets - no roomKey by user Id`);
-      return;
-    }
-    console.log({ user_id: params.user_id, roomKey });
-    
-    let socketsSet = CommonSocketEventsHandler.userSocketsByUserId.get(params.user_id);
-    if (!socketsSet) {
-      console.log(`CommonSocketEventsHandler.emitEventToUserSockets - no roomKey by user Id`);
-      return;
-    }
-    
-    if (!('event' in params.data)) {
-      params.data.event = params.event;
-    }
-    
-    console.log({ socketsSet });
-    // for (const socket_id of socketsSet) {
-    //   console.log(`Emitting data to socket id ${socket_id}...`);
-    //   CommonSocketEventsHandler.io.to(socket_id).emit(params.event, params.data);
+    // // console.log(`emitEventToUserSockets called`, { params });
+    // let roomKey = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(params.user_id);
+    // if (!roomKey) {
+    //   console.log(`CommonSocketEventsHandler.emitEventToUserSockets - no roomKey by user Id`);
+    //   return;
     // }
+    // console.log({ user_id: params.user_id, roomKey });
+    
+    // let socketsSet = CommonSocketEventsHandler.userSocketsByUserId.get(params.user_id);
+    // if (!socketsSet) {
+    //   console.log(`CommonSocketEventsHandler.emitEventToUserSockets - no roomKey by user Id`);
+    //   return;
+    // }
+    
+    // if (!('event' in params.data)) {
+    //   params.data.event = params.event;
+    // }
+    
+    // console.log({ socketsSet });
+    // // for (const socket_id of socketsSet) {
+    // //   console.log(`Emitting data to socket id ${socket_id}...`);
+    // //   CommonSocketEventsHandler.io.to(socket_id).emit(params.event, params.data);
+    // // }
 
-    console.log(`Emitting data to room ${roomKey}...`);
-    CommonSocketEventsHandler.io.to(roomKey).emit(params.event, params.data);
-    // CommonSocketEventsHandler.io.to(roomKey).emit(`FOR-USER:${params.user_id}`, params.data);
+    // console.log(`Emitting data to room ${roomKey}...`);
+    // CommonSocketEventsHandler.io.to(roomKey).emit(params.event, params.data);
+    // // CommonSocketEventsHandler.io.to(roomKey).emit(`FOR-USER:${params.user_id}`, params.data);
+
+
+    const usersSocketsRoom = `FOR_USER:${params.user_id}`;
+    CommonSocketEventsHandler.io.in(usersSocketsRoom).fetchSockets().then((usersSockets) => {
+      console.log(`emitEventToUserSockets - Emitting to room ${usersSocketsRoom}...`);
+      
+      CommonSocketEventsHandler.io.in(usersSocketsRoom).emit(params.event, params.data);
+    })
   }
 
   static emitEventToRoom(params: {
@@ -353,12 +331,9 @@ export class CommonSocketEventsHandler {
 
     data.event = COMMON_EVENT_TYPES.JOIN_TO_MESSAGING_ROOM;
     const TO_ROOM = `${COMMON_EVENT_TYPES.TO_MESSAGING_ROOM}:${data.messaging_id}`;
-    socket.join(TO_ROOM, (err: any) => {
-      console.log(err);
-    });
+    socket.join(TO_ROOM);
 
     console.log(`--- socket ${socket.id} joined messaging room ${data.messaging_id}`);
-    console.log({ TO_ROOM, data, sockets: Object.keys(io.in(TO_ROOM).sockets) });
     io.to(TO_ROOM).emit(COMMON_EVENT_TYPES.JOIN_TO_MESSAGING_ROOM, data);
   }
 
@@ -381,12 +356,9 @@ export class CommonSocketEventsHandler {
 
     data.event = COMMON_EVENT_TYPES.LEAVE_TO_MESSAGING_ROOM;
     const TO_ROOM = `${COMMON_EVENT_TYPES.TO_MESSAGING_ROOM}:${data.messaging_id}`;
-    socket.leave(TO_ROOM, (err: any) => {
-      console.log(err);
-    });
+    socket.leave(TO_ROOM);
 
     console.log(`--- socket ${socket.id} left messaging room ${data.messaging_id}`);
-    console.log({ TO_ROOM, data, sockets: Object.keys(io.in(TO_ROOM).sockets) });
     io.to(TO_ROOM).emit(COMMON_EVENT_TYPES.LEAVE_TO_MESSAGING_ROOM, data);
   }
 
@@ -413,7 +385,6 @@ export class CommonSocketEventsHandler {
     }
     
     const TO_ROOM = `${COMMON_EVENT_TYPES.TO_MESSAGING_ROOM}:${data.messaging_id}`;
-    console.log({ TO_ROOM, data, sockets: Object.keys(io.in(TO_ROOM).sockets) });
     io.to(TO_ROOM).emit(TO_ROOM, data);
   }
 
@@ -468,13 +439,12 @@ export class CommonSocketEventsHandler {
     }
 
     const roomKey = `conversation-${data.conversation_id}`;
-    const sockets_id_map = io.in(roomKey).sockets;
-    const notInRoom = !(socket.id in sockets_id_map);
-    if (notInRoom) {
-      socket.join(roomKey, (err: any) => {
-        console.log(err);
-      });
-    }
+    io.in(roomKey).allSockets().then((sockets) => {
+      const notInRoom = !(socket.id in sockets);
+      if (notInRoom) {
+        socket.join(roomKey);
+      }
+    });
   }
 
   private static CONVERSATION_EVENTS_UNSUBSCRIBED(
@@ -492,9 +462,7 @@ export class CommonSocketEventsHandler {
     }
 
     const roomKey = `conversation-${data.conversation_id}`;
-    socket.leave(roomKey, (err: any) => {
-      console.log(err);
-    });
+    socket.leave(roomKey);
   }
 
   private static CONVERSATION_MESSAGE_TYPING(
@@ -531,21 +499,40 @@ export class CommonSocketEventsHandler {
     io.to(`conversation-${data.conversation_id}`).emit(COMMON_EVENT_TYPES.CONVERSATION_MESSAGE_TYPING_STOPPED, data);
   }
 
-  private static SOCKET_TRACK(
+  private static async SOCKET_TRACK(
     io: socket_io.Server,
     socket: socket_io.Socket,
     data: any
   ) {
-    const validEventData = (
-      data.hasOwnProperty('user_id') &&
-      typeof(data.user_id) === 'number'
+    const validJwtInData = (
+      data.hasOwnProperty('jwt') &&
+      typeof(data.jwt) === 'string'
     );
-    if (!validEventData) {
-      io.to(socket.id).emit(`${COMMON_EVENT_TYPES.SOCKET_TRACK}-error`, { message: `user_id is required.` });
+    if (!validJwtInData) {
+      io.to(socket.id).emit(`${COMMON_EVENT_TYPES.SOCKET_TRACK}-error`, { message: `jwt is required.` });
       return;
     }
 
-    CommonSocketEventsHandler.addUserSocket(io, socket, data);
+    console.log(`CommonSocketEventsHandler - SOCKET_TRACK event`);
+
+    /* Check token validity */
+    const token = data.jwt;
+    let you: IUser;
+    try {
+      you = (decodeJWT(token) || null) as IUser;
+    } 
+    catch (e) {
+      console.log(e);
+      io.to(socket.id).emit(`${COMMON_EVENT_TYPES.SOCKET_TRACK}-error`, { message: `jwt is invalid.`, e });
+      return;
+    }
+
+    if (!you) {
+      io.to(socket.id).emit(`${COMMON_EVENT_TYPES.SOCKET_TRACK}-error`, { message: `jwt is invalid.` });
+      return;
+    }
+
+    CommonSocketEventsHandler.addUserSocket(io, socket, { user_id: you.id });
   }
 
   private static EMIT_TO_ROOM(
@@ -568,8 +555,6 @@ export class CommonSocketEventsHandler {
     }
 
     io.to(data.to_room).emit(data.event_name, data);
-
-    CommonSocketEventsHandler.addUserSocket(io, socket, data);
   }
 
   private static EMIT_TO_USER(
@@ -609,34 +594,34 @@ export class CommonSocketEventsHandler {
     socket: socket_io.Socket,
     data: any
   ) {
-    const validEventData = (
-      data.hasOwnProperty('previous_socket_id') &&
-      typeof(data.previous_socket_id) === 'string'
-    );
-    if (!validEventData) {
-      io.to(socket.id).emit(`${COMMON_EVENT_TYPES.SOCKET_TRACK}-error`, { message: `previous_socket_id is required.` });
-      return;
-    }
+    // const validEventData = (
+    //   data.hasOwnProperty('previous_socket_id') &&
+    //   typeof(data.previous_socket_id) === 'string'
+    // );
+    // if (!validEventData) {
+    //   io.to(socket.id).emit(`${COMMON_EVENT_TYPES.SOCKET_TRACK}-error`, { message: `previous_socket_id is required.` });
+    //   return;
+    // }
 
-    const previous_socket_id: string = data.previous_socket_id as string;
+    // const previous_socket_id: string = data.previous_socket_id as string;
 
-    if (CommonSocketEventsHandler.userIdsBySocket.has(previous_socket_id)) {
-      console.log(`Untracking ${previous_socket_id}...`);
-      const user_id: number = CommonSocketEventsHandler.userIdsBySocket.get(previous_socket_id)!;
-      const roomKey: string | undefined = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(user_id);
+    // if (CommonSocketEventsHandler.userIdsBySocket.has(previous_socket_id)) {
+    //   console.log(`Untracking ${previous_socket_id}...`);
+    //   const user_id: number = CommonSocketEventsHandler.userIdsBySocket.get(previous_socket_id)!;
+    //   const roomKey: string | undefined = CommonSocketEventsHandler.userSocketsRoomKeyByUserId.get(user_id);
 
-      if (roomKey) {
-        const sockets_id_map = io.in(roomKey).sockets;
-        const socket_ids = Object.keys(sockets_id_map);
+    //   if (roomKey) {
+    //     const sockets_id_map = io.in(roomKey).sockets;
+    //     const socket_ids = Object.keys(sockets_id_map);
   
-        if (socket_ids.length === 0) {
-          console.log(`user has no more sockets in room "${roomKey}"; deleting room...`);
-          CommonSocketEventsHandler.userSocketsRoomKeyByUserId.delete(user_id);
-        }
-      }
+    //     if (socket_ids.length === 0) {
+    //       console.log(`user has no more sockets in room "${roomKey}"; deleting room...`);
+    //       CommonSocketEventsHandler.userSocketsRoomKeyByUserId.delete(user_id);
+    //     }
+    //   }
 
-      CommonSocketEventsHandler.userIdsBySocket.delete(socket.id);
-    }
+    //   CommonSocketEventsHandler.userIdsBySocket.delete(socket.id);
+    // }
   }
 
   private static MESSAGING_EVENTS_SUBSCRIBED(
@@ -654,13 +639,12 @@ export class CommonSocketEventsHandler {
     }
 
     const roomKey = `messaging-${data.messaging_id}`;
-    const sockets_id_map = io.in(roomKey).sockets;
-    const notInRoom = !(socket.id in sockets_id_map);
-    if (notInRoom) {
-      socket.join(roomKey, (err: any) => {
-        console.log(err);
-      });
-    }
+    io.in(roomKey).allSockets().then((sockets) => {
+      const notInRoom = !(socket.id in sockets);
+      if (notInRoom) {
+        socket.join(roomKey);
+      }
+    });
   }
 
   private static MESSAGING_EVENTS_UNSUBSCRIBED(
