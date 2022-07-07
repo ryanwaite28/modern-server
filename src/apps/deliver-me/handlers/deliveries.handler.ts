@@ -139,7 +139,7 @@ export class DeliveriesRequestHandler {
       data: JSON.parse(request.body.payload) as any,
       delivery_image: request.files && (<UploadedFile> request.files.delivery_image)
     };
-    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.create_delivery(options);
+    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.create_delivery_and_charge(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -156,7 +156,7 @@ export class DeliveriesRequestHandler {
 
   static async delete_delivery(request: Request, response: Response): ExpressResponse {
     const delivery = response.locals.delivery_model as IDelivery;
-    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.delete_delivery(delivery);
+    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.delete_delivery_and_refund(delivery);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
@@ -218,14 +218,14 @@ export class DeliveriesRequestHandler {
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 
-  static async mark_delivery_as_completed(request: Request, response: Response): ExpressResponse {
-    const options = {
-      you_id: response.locals.you?.id as number,
-      delivery: response.locals.delivery_model as IDelivery,
-    };
-    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.mark_delivery_as_completed(options);
-    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
-  }
+  // static async mark_delivery_as_completed(request: Request, response: Response): ExpressResponse {
+  //   const options = {
+  //     you_id: response.locals.you?.id as number,
+  //     delivery: response.locals.delivery_model as IDelivery,
+  //   };
+  //   const serviceMethodResults: ServiceMethodResults = await DeliveriesService.mark_delivery_as_completed(options);
+  //   return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  // }
 
   static async mark_delivery_as_returned(request: Request, response: Response): ExpressResponse {
     const options = {
@@ -264,7 +264,7 @@ export class DeliveriesRequestHandler {
       you: response.locals.you! as IUser,
       delivery: response.locals.delivery_model as IDelivery,
     };
-    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.pay_carrier(options);
+    const serviceMethodResults: ServiceMethodResults = await DeliveriesService.pay_carrier_via_transfer(options);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

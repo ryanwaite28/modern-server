@@ -223,7 +223,8 @@ export class UsersRequestHandler {
   @CatchRequestHandlerError()
   static async verify_stripe_account(request: Request, response: Response): ExpressResponse {
     const you: IUser = response.locals.you;
-    const serviceMethodResults: ServiceMethodResults = await UsersService.verify_stripe_account(you);
+    const host: string = request.get('origin')!;
+    const serviceMethodResults: ServiceMethodResults = await UsersService.verify_stripe_account(you, host);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

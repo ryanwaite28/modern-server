@@ -1808,7 +1808,7 @@ export class UsersService {
     return serviceMethodResults;
   }
 
-  static async verify_stripe_account(user: IUser): ServiceMethodAsyncResults {
+  static async verify_stripe_account(user: IUser, host: string): ServiceMethodAsyncResults {
     let you: IUser = { ...user };
 
     if (!you.stripe_account_id) {
@@ -1836,6 +1836,8 @@ export class UsersService {
     const results = await StripeService.account_is_complete(you.stripe_account_id);
     console.log({ results });
 
+    let accountLinks: PlainObject = {};
+
     if (!results.error) {
       await UserRepo.update_user({ stripe_account_verified: true }, { id: you.id });
       const you_updated = await UserRepo.get_user_by_id(you.id);
@@ -1845,12 +1847,33 @@ export class UsersService {
       (<any> results).token = jwt;
       (<any> results).you = you;
     }
+    else {
+      const useHost = host.endsWith('/') ? host.substr(0, host.length - 1) : host;
+      const refresh_url = `${useHost}/users/${you.id}/settings`;
+      const return_url = `${useHost}/users/${you.id}/verify-stripe-account`;
+  
+      accountLinks = await StripeService.stripe.accountLinks.create({
+        account: you.stripe_account_id,
+        refresh_url,
+        return_url,
+        type: 'account_onboarding',
+        
+      });
+
+      console.log({ accountLinks });
+    }
+
 
     const serviceMethodResults: ServiceMethodResults = {
       status: results.status,
       error: results.error,
       info: {
-        data: results
+        message: results.message,
+        data: {
+          ...results,
+          ...accountLinks,
+          onboarding_url: accountLinks.url,
+        }
       }
     };
     return serviceMethodResults;

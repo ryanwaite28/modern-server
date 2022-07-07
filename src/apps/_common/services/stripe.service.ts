@@ -20,19 +20,23 @@ export const DELIVERME_APP_FEE = 0.08;
 export class StripeService {
   static readonly stripe: Stripe = stripe;
 
-  static add_on_stripe_processing_fee(amount: number, is_active_member: boolean, isAmountAdjusted: boolean = false) {
+  static add_on_stripe_processing_fee(amount: number, is_subscription_active: boolean, isAmountAdjusted: boolean = false) {
     const stripePercentageFeeRate = 0.029;
+    const appPercentageFeeRate = 0.031;
     const stripeFixedFeeRate = 30; // 30 cents
 
     const total = isAmountAdjusted ? amount : parseInt(amount.toString() + '00');
-    const stripe_processing_fee = Math.round(total * stripePercentageFeeRate) + stripeFixedFeeRate;
+    const stripe_processing_fee = Math.ceil(total * stripePercentageFeeRate) + stripeFixedFeeRate;
+    const app_processing_fee = Math.ceil(total * appPercentageFeeRate) + stripeFixedFeeRate;
+
     let new_total = Math.round(total + stripe_processing_fee);
     const difference = new_total - total;
-    let app_fee = is_active_member ? 0 : (parseInt((total * 0.1).toString(), 10));
+    let app_fee = is_subscription_active ? 0 : (parseInt((total * 0.05).toString(), 10));
     // app_fee = Math.round(difference + app_fee);
-    const final_total = Math.round(new_total + app_fee);
+    const final_total = Math.round(new_total + app_fee) + stripeFixedFeeRate;
+    const refund_amount = final_total - (is_subscription_active ? app_processing_fee : app_fee);
     // new_total = new_total + app_fee;
-    const data = { amount, final_total, app_fee, stripe_processing_fee, new_total, isAmountAdjusted, total, difference };
+    const data = { amount, final_total, app_fee, stripe_processing_fee, app_processing_fee, new_total, isAmountAdjusted, total, difference, refund_amount, is_subscription_active };
     console.log(data);
     return data;
   }
@@ -140,14 +144,14 @@ export class StripeService {
       payouts_enabled: stripe_account.payouts_enabled,
     });
 
-    if (!stripe_account.charges_enabled) {
-      return {
-        stripe_account,
-        error: true,
-        status: HttpStatusCode.PRECONDITION_FAILED,
-        message: `You must complete your stripe account onboarding: charges must be enabled`
-      };
-    }
+    // if (!stripe_account.charges_enabled) {
+    //   return {
+    //     stripe_account,
+    //     error: true,
+    //     status: HttpStatusCode.PRECONDITION_FAILED,
+    //     message: `You must complete your stripe account onboarding: charges must be enabled`
+    //   };
+    // }
 
     if (!stripe_account.details_submitted) {
       return {

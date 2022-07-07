@@ -255,25 +255,44 @@ export async function search_mechanics(params: {
   lng?: number,
   radius: number,
 }, you_id?: number) {
-  const experise_where = {
-    make: { [Op.like]: `%${params.make}%` },
-    model: { [Op.like]: `%${params.model}%` },
-    type: { [Op.like]: `%${params.type}%` },
-    trim: { [Op.like]: `%${params.trim}%` },
-    min_year: { [Op.gte]: params.min_year || 0 },
-    max_year: { [Op.lte]: params.max_year || (new Date().getFullYear()) },
-  };
-  const service_where: any = {
-    service_category: { [Op.like]: `%${params.service_category}%` },
-    service_type: { [Op.like]: `%${params.service_type}%` },
-    service_action: { [Op.like]: `%${params.service_action}%` },
-  };
+
+  const expertise_where: any = {};
+  if (params.make) {
+    expertise_where.make = { [Op.like]: `%${params.make}%` };
+  }
+  if (params.model) {
+    expertise_where.model = { [Op.like]: `%${params.model}%` };
+  }
+  if (params.type) {
+    expertise_where.type = { [Op.like]: `%${params.type}%` };
+  }
+  if (params.trim) {
+    expertise_where.trim = { [Op.like]: `%${params.trim}%` };
+  }
+  if (params.min_year) {
+    expertise_where.min_year = { [Op.gte]: params.min_year || 0 };
+  }
+  if (params.max_year) {
+    expertise_where.max_year = { [Op.lte]: params.max_year || (new Date().getFullYear()) };
+  }
+
+  const service_where: any = {};
+  if (params.service_category) {
+    expertise_where.service_category = { [Op.like]: `%${params.service_category}%` };
+  }
+  if (params.service_type) {
+    expertise_where.service_type = { [Op.like]: `%${params.service_type}%` };
+  }
+  if (params.service_action) {
+    expertise_where.service_action = { [Op.like]: `%${params.service_action}%` };
+  }
   if (params.cost) {
     service_where.cost = { [Op.lte]: params.cost };
   }
   if (params.deposit) {
     service_where.deposit = { [Op.lte]: params.deposit };
   }
+
 
   // let mechanic_location_include: any = [];
   // if (params.lat && params.lng && params.radius) {
@@ -335,7 +354,7 @@ export async function search_mechanics(params: {
       {
         model: MechanicExpertises,
         as: 'mechanic_expertises',
-        where: experise_where,
+        where: expertise_where,
       },
       {
         model: MechanicServices,
