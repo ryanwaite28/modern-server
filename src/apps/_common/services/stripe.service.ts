@@ -21,8 +21,8 @@ export class StripeService {
   static readonly stripe: Stripe = stripe;
 
   static add_on_stripe_processing_fee(amount: number, is_subscription_active: boolean, isAmountAdjusted: boolean = false) {
-    const stripePercentageFeeRate = 0.029;
-    const appPercentageFeeRate = 0.031;
+    const stripePercentageFeeRate = 0.0315;
+    const appPercentageFeeRate = 0.032;
     const stripeFixedFeeRate = 30; // 30 cents
 
     const total = isAmountAdjusted ? amount : parseInt(amount.toString() + '00');
