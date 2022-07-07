@@ -27,7 +27,7 @@ export const AppsRouter: Router = Router({ mergeParams: true });
 AppsRouter.use('/common', CommonRouter);
 AppsRouter.use('/deliverme', DeliverMeRouter);
 AppsRouter.use('/carmaster', CarMasterRouter);
-AppsRouter.use('/travellrs', TravellrsRouter);
+// AppsRouter.use('/travellrs', TravellrsRouter);
 // AppsRouter.use('/cashly', CashlyRouter);
 
 

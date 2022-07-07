@@ -224,16 +224,21 @@ export const MechanicServiceRequests = <MyModelStatic> sequelize.define('carmast
   mechanic_id:         { type: Sequelize.INTEGER, allowNull: true, references: { model: Mechanics, key: 'id' } },
   service_id:          { type: Sequelize.INTEGER, allowNull: true, references: { model: MechanicServices, key: 'id' } },
   payment_method_id:   { type: Sequelize.STRING(500), allowNull: false, defaultValue: '' },
+  payment_intent_id:   { type: Sequelize.STRING(500), allowNull: false, defaultValue: '' },
+
+  image_link:         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  image_id:           { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   
   service_category:    { type: Sequelize.STRING, allowNull: false },
   service_type:        { type: Sequelize.STRING, allowNull: false },
   service_action:      { type: Sequelize.STRING, allowNull: false },
+  
   make:                { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   model:               { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   type:                { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   trim:                { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
-  min_year:            { type: Sequelize.INTEGER, allowNull: false },
-  max_year:            { type: Sequelize.INTEGER, allowNull: false },
+  year:                { type: Sequelize.INTEGER, allowNull: false },
+  
   city:               { type: Sequelize.STRING(500), allowNull: false },
   state:              { type: Sequelize.STRING(500), allowNull: false },
   zipcode:            { type: Sequelize.INTEGER, allowNull: false },

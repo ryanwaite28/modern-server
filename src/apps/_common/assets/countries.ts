@@ -4028,6 +4028,8 @@ export const countries_by_name_map = new Map<string, boolean>();
 export const countries_by_code_map = new Map<string, boolean>();
 
 countries.forEach((country) => {
+  // countries_by_name_map.set(country.name, true);
   countries_by_name_map.set(country.name.toLowerCase(), true);
+
   countries_by_code_map.set(country.code, true);
 });

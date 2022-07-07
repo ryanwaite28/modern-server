@@ -6,9 +6,40 @@ import { UploadedFile } from 'express-fileupload';
 import { CarMasterService } from "../services/car-master.service";
 import { CatchRequestHandlerError } from "../../_common/decorators/common.decorator";
 import { update_mechanic_fields } from "../car-master.chamber";
+import { IMechanicServiceRequest } from "../interfaces/car-master.interface";
 
 
 export class CarMasterRequestHandler {
+  // users
+
+  // mechanic service
+
+  @CatchRequestHandlerError()
+  static async create_service_request(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request_image = request.files && (<UploadedFile> request.files.service_request_image);
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.create_service_request(you, JSON.parse(request.body.payload), service_request_image);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  @CatchRequestHandlerError()
+  static async update_service_request(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request_id: number = parseInt(request.params.service_request_id, 10);
+    const service_request_image = request.files && (<UploadedFile> request.files.service_request_image);
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.update_service_request(service_request_id, JSON.parse(request.body.payload), service_request_image);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  @CatchRequestHandlerError()
+  static async delete_service_request(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request = response.locals.service_request as IMechanicServiceRequest;
+    const service_request_id: number = parseInt(request.params.service_request_id, 10);
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.delete_service_request(service_request);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+
+
   // mechanic profile
 
   @CatchRequestHandlerError()
@@ -40,6 +71,13 @@ export class CarMasterRequestHandler {
   static async search_mechanics(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you as IUser;
     const serviceMethodResults: ServiceMethodResults = await CarMasterService.search_mechanics(request.body, you?.id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async search_service_requests(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.search_service_requests(request.body, you?.id);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

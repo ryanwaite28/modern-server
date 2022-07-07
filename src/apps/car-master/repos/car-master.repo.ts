@@ -381,6 +381,108 @@ export async function search_mechanics(params: {
   return results;
 }
 
+export async function search_service_requests(params: {
+  // expertise
+  make: string,
+  model: string,
+  max_year: number | null,
+  min_year: number | null,
+  trim: string,
+  type: string,
+
+  // service
+  service_category: string,
+  service_type: string,
+  service_action: string,
+  payout?: number,
+
+  // location
+  city?: string,
+  state?: string,
+  country?: string,
+
+  lat?: number,
+  lng?: number,
+  radius: number,
+}, you_id?: number) {
+
+  const expertise_where: any = {};
+  if (params.make) {
+    expertise_where.make = { [Op.like]: `%${params.make}%` };
+  }
+  if (params.model) {
+    expertise_where.model = { [Op.like]: `%${params.model}%` };
+  }
+  if (params.type) {
+    expertise_where.type = { [Op.like]: `%${params.type}%` };
+  }
+  if (params.trim) {
+    expertise_where.trim = { [Op.like]: `%${params.trim}%` };
+  }
+  const min_year = { [Op.gte]: params.min_year || 0 };
+  const max_year = { [Op.lte]: params.max_year || (new Date().getFullYear()) };
+  // if (params.min_year) {
+  // }
+  // if (params.max_year) {
+  // }
+
+  const service_where: any = {};
+  if (params.service_category) {
+    expertise_where.service_category = { [Op.like]: `%${params.service_category}%` };
+  }
+  if (params.service_type) {
+    expertise_where.service_type = { [Op.like]: `%${params.service_type}%` };
+  }
+  if (params.service_action) {
+    expertise_where.service_action = { [Op.like]: `%${params.service_action}%` };
+  }
+  // if (params.payout) {
+  //   service_where.payout = { [Op.lte]: params.payout };
+  // }
+
+
+  // let mechanic_location_include: any = [];
+  // if (params.lat && params.lng && params.radius) {
+  //   mechanic_location_include = [literal("3958 * acos(cos(radians("+params.lat+")) * cos(radians(lat)) * cos(radians("+params.lng+") - radians(lng)) + sin(radians("+params.lat+")) * sin(radians(lat)))"), 'distance']
+  // }
+  const mechanic_where: any = {};
+  if (params.city) {
+    mechanic_where.city = { [Op.like]: `%${params.city}%` };
+  }
+  if (params.state) {
+    mechanic_where.state = { [Op.like]: `%${params.state}%` };
+  }
+  if (params.country) {
+    mechanic_where.country = { [Op.like]: `%${params.country}%` };
+  }
+  if (you_id) {
+    mechanic_where.user_id = { [Op.ne]: you_id };
+  }
+
+  // console.log({ params, experise_where, service_where, mechanic_where, you_id });
+
+  const results = await mechanic_service_requests_crud.findAll({
+    where: {
+      ...expertise_where,
+      
+      [Op.and]: [
+        { year: min_year },
+        { year: max_year },
+      ],
+
+    },
+    include: [
+      {
+        model: Users,
+        as: 'user',
+        attributes: user_attrs_slim
+      },
+    ]
+  });
+
+  return results;
+}
+
 
 
 

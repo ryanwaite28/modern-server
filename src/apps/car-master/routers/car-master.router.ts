@@ -9,6 +9,7 @@ import { MechanicFieldRouteGuards } from '../guards/mechanic-field.guard';
 import { MechanicRatingRouteGuards } from '../guards/mechanic-rating.guard';
 import { MechanicServiceRouteGuards } from '../guards/mechanic-service.guard';
 import { MechanicExistsStrong, MechanicRouteGuards } from '../guards/mechanic.guard';
+import { ServiceRequestRouteGuards } from '../guards/service-request.guard';
 import { CarMasterRequestHandler } from '../handlers/car-master.handler';
 import { MessagesRequestHandler } from '../handlers/messages.handler';
 import { MessagingsRequestHandler } from '../handlers/messagings.handler';
@@ -58,7 +59,8 @@ CarMasterAppRouter.get('/mechanics/by-user-id/:user_id', CarMasterRequestHandler
 
 // POST
 
-CarMasterAppRouter.post('/mechanics/search', YouAuthorizedSlimWeak, CarMasterRequestHandler.search_mechanics);
+CarMasterAppRouter.post('/mechanics/search-mechanics', YouAuthorizedSlimWeak, CarMasterRequestHandler.search_mechanics);
+CarMasterAppRouter.post('/mechanics/search-service-requests', YouAuthorizedSlimWeak, CarMasterRequestHandler.search_service_requests);
 
 CarMasterAppRouter.post('/mechanics/:you_id/profile', YouAuthorized, CarMasterRequestHandler.create_mechanic_profile);
 
@@ -123,12 +125,16 @@ CarMasterAppRouter.get('/users/:you_id/notifications/:notification_id', YouAutho
 CarMasterAppRouter.post('/users/:you_id/send-message/:user_id', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.send_user_message);
 CarMasterAppRouter.post('/users/:you_id/notifications/update-last-opened', YouAuthorized, NotificationsRequestHandler.update_user_last_opened);
 
+CarMasterAppRouter.post('/users/:you_id/service-request', YouAuthorized, CarMasterRequestHandler.create_service_request);
+
 
 // PUT
 
 CarMasterAppRouter.put('/users/:you_id/message/:message_id/mark-as-read', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.mark_message_as_read);
 
+CarMasterAppRouter.put('/users/:you_id/service-request/:service_request_id', YouAuthorized, ServiceRequestRouteGuards.existsGuard, ServiceRequestRouteGuards.isOwnerGuard, CarMasterRequestHandler.update_service_request);
+
 
 // DELETE
 
-
+CarMasterAppRouter.delete('/users/:you_id/service-request/:service_request_id', YouAuthorized, ServiceRequestRouteGuards.existsGuard, ServiceRequestRouteGuards.isOwnerGuard, CarMasterRequestHandler.delete_service_request);
