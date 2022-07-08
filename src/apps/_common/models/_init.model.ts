@@ -65,8 +65,7 @@ CliqueMemberRequests.belongsTo(Cliques, { as: 'clique', foreignKey: 'clique_id',
 export const db_init = async () => {  
   const sequelize_db_sync_options = {
     force: false,
-    // alter: !process.env.DATABASE_URL,
-    // alter: true, 
+    // alter: true,
     alter: false,
   };
   
