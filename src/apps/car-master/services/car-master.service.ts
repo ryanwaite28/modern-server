@@ -41,6 +41,10 @@ import {
   delete_mechanic_field,
   delete_mechanic_service,
   delete_mechanic_service_request,
+  find_all_mechanic_service_requests,
+  find_all_user_service_requests,
+  find_mechanic_service_requests,
+  find_user_service_requests,
   get_mechanic_by_id,
   get_mechanic_by_user_id,
   get_service_request_by_id,
@@ -62,6 +66,32 @@ import { StripeActions } from "../../_common/models/user.model";
 export class CarMasterService {
   // users
 
+  static async get_user_service_requests_all(user_id: number) {
+    const resultsList = await find_all_user_service_requests(user_id);
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async get_user_service_requests(user_id: number, service_request_id?: number) {
+    const resultsList = await find_user_service_requests(user_id, service_request_id);
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
+    };
+    return serviceMethodResults;
+  }
+
   static async get_service_request_by_id(service_request_id: number): Promise<ServiceMethodResults> {
     const result: IMechanicServiceRequest | null = await get_service_request_by_id(service_request_id);
     const serviceMethodResults: ServiceMethodResults = {
@@ -70,6 +100,36 @@ export class CarMasterService {
       info: {
         data: result,
       },
+    };
+    return serviceMethodResults;
+  }
+
+
+
+  // mechanics
+
+  static async get_mechanic_service_requests_all(mechanic_id: number) {
+    const resultsList = await find_all_mechanic_service_requests(mechanic_id);
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async get_mechanic_service_requests(mechanic_id: number, service_request_id?: number) {
+    const resultsList = await find_mechanic_service_requests(mechanic_id, service_request_id);
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
     };
     return serviceMethodResults;
   }

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  UserExists,
   UserIdsAreDifferent,
   YouAuthorized, YouAuthorizedSlim, YouAuthorizedSlimWeak,
 } from '../../_common/guards/user.guard';
@@ -54,6 +55,10 @@ const service_owner_auths = [
 CarMasterAppRouter.get('/mechanics/:mechanic_id', CarMasterRequestHandler.get_mechanic_by_id);
 CarMasterAppRouter.get('/mechanics/by-user-id/:user_id', CarMasterRequestHandler.get_mechanic_by_user_id);
 
+CarMasterAppRouter.get('/mechanics/:mechanic_id/service-requests/all', MechanicRouteGuards.existsGuard, CarMasterRequestHandler.get_mechanic_service_requests_all);
+CarMasterAppRouter.get('/mechanics/:mechanic_id/service-requests', MechanicRouteGuards.existsGuard, CarMasterRequestHandler.get_mechanic_service_requests);
+CarMasterAppRouter.get('/mechanics/:mechanic_id/service-requests/:service_request_id', MechanicRouteGuards.existsGuard, CarMasterRequestHandler.get_mechanic_service_requests);
+
 
 
 
@@ -106,6 +111,10 @@ CarMasterAppRouter.delete('/mechanics/:mechanic_id/service/:service_id', ...serv
 /** Users */
 
 // GET
+
+CarMasterAppRouter.get('/users/:user_id/service-requests/all', UserExists, CarMasterRequestHandler.get_user_service_requests_all);
+CarMasterAppRouter.get('/users/:user_id/service-requests', UserExists, CarMasterRequestHandler.get_user_service_requests);
+CarMasterAppRouter.get('/users/:user_id/service-requests/:service_request_id', UserExists, CarMasterRequestHandler.get_user_service_requests);
 
 CarMasterAppRouter.get('/users/:you_id/messagings/all', YouAuthorized, MessagingsRequestHandler.get_user_messagings_all);
 CarMasterAppRouter.get('/users/:you_id/messagings', YouAuthorized, MessagingsRequestHandler.get_user_messagings);

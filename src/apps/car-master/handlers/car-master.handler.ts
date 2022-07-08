@@ -12,6 +12,34 @@ import { IMechanicServiceRequest } from "../interfaces/car-master.interface";
 export class CarMasterRequestHandler {
   // users
 
+  static async get_user_service_requests_all(request: Request, response: Response): ExpressResponse {
+    const user_id: number = parseInt(request.params.user_id, 10);
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.get_user_service_requests_all(user_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  static async get_user_service_requests(request: Request, response: Response): ExpressResponse {
+    const user_id: number = parseInt(request.params.user_id, 10);
+    const service_request_id: number | undefined = request.params.service_request_id ? parseInt(request.params.service_request_id, 10) : undefined;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.get_user_service_requests(user_id, service_request_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  static async get_mechanic_service_requests_all(request: Request, response: Response): ExpressResponse {
+    const mechanic_id: number = parseInt(request.params.mechanic_id, 10);
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.get_mechanic_service_requests_all(mechanic_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  
+  static async get_mechanic_service_requests(request: Request, response: Response): ExpressResponse {
+    const mechanic_id: number = parseInt(request.params.mechanic_id, 10);
+    const service_request_id: number | undefined = request.params.service_request_id ? parseInt(request.params.service_request_id, 10) : undefined;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.get_mechanic_service_requests(mechanic_id, service_request_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+
+
   // mechanic service
 
   @CatchRequestHandlerError()

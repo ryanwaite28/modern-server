@@ -11,6 +11,7 @@ import {
   literal
 } from 'sequelize';
 import {
+  convertModelsCurry,
   create_model_crud_repo_from_model_class,
   URL_REGEX,
   user_attrs_slim
@@ -50,6 +51,7 @@ import {
   IMechanicServiceRequestMessage, 
   IMechanicServiceRequestOffer 
 } from '../interfaces/car-master.interface';
+import { getAll, paginateTable } from '../../_common/repos/_common.repo';
 
 
 export const mechanicCredentialsInclude: Includeable[] = [
@@ -464,7 +466,7 @@ export async function search_service_requests(params: {
   const results = await mechanic_service_requests_crud.findAll({
     where: {
       ...expertise_where,
-      
+
       [Op.and]: [
         { year: min_year },
         { year: max_year },
@@ -862,16 +864,60 @@ export function get_service_request_by_id(id: number) {
 }
 
 export function find_all_mechanic_service_requests(mechanic_id: number) {
-  return mechanic_service_requests_crud.findAll({
-    where: { mechanic_id }
-  });
+  return getAll(
+    MechanicServiceRequests,
+    'mechanic_id',
+    mechanic_id,
+    mechanicServiceRequestMasterIncludes,
+    undefined,
+    undefined,
+    undefined,
+    [['id', 'DESC']]
+  ).then(convertModelsCurry<IMechanicServiceRequest>());
+}
+
+export function find_mechanic_service_requests(mechanic_id: number, service_request_id?: number) {
+  return paginateTable(
+    MechanicServiceRequests,
+    'mechanic_id',
+    mechanic_id,
+    service_request_id,
+    mechanicServiceRequestMasterIncludes,
+    undefined,
+    undefined,
+    undefined,
+    [['id', 'DESC']]
+  ).then(convertModelsCurry<IMechanicServiceRequest>());
 }
 
 export function find_all_user_service_requests(user_id: number) {
-  return mechanic_service_requests_crud.findAll({
-    where: { user_id }
-  });
+  return getAll(
+    MechanicServiceRequests,
+    'user_id',
+    user_id,
+    mechanicServiceRequestMasterIncludes,
+    undefined,
+    undefined,
+    undefined,
+    [['id', 'DESC']]
+  ).then(convertModelsCurry<IMechanicServiceRequest>());
 }
+
+export function find_user_service_requests(user_id: number, service_request_id?: number) {
+  return paginateTable(
+    MechanicServiceRequests,
+    'user_id',
+    user_id,
+    service_request_id,
+    mechanicServiceRequestMasterIncludes,
+    undefined,
+    undefined,
+    undefined,
+    [['id', 'DESC']]
+  ).then(convertModelsCurry<IMechanicServiceRequest>());
+}
+
+
 
 export function create_mechanic_service_request(params: {
   user_id: number,
