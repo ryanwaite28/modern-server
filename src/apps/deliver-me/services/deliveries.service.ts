@@ -2879,4 +2879,18 @@ export class DeliveriesService {
     };
     return serviceMethodResults;
   }
+
+
+
+  // static async open_delivery_dispute(you: IUser, delivery: IDelivery, data: any) {
+    
+  // }
+
+  // static async add_delivery_dispute_log(you: IUser, delivery: IDelivery, data: any) {
+    
+  // }
+
+  // static async make_delivery_dispute_settlement_offer(you: IUser, delivery: IDelivery, data: any) {
+    
+  // }
 }

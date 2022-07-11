@@ -199,6 +199,18 @@ export const DeliveryDisputeLogs = <MyModelStatic> sequelize.define('deliverme_d
   uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
+export const DeliveryDisputeSettlementOffers = <MyModelStatic> sequelize.define('deliverme_delivery_dispute_settlement_offers', {
+  id:              { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  creator_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  user_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  delivery_id:     { type: Sequelize.INTEGER, allowNull: false, references: { model: Delivery, key: 'id' } },
+  message:         { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
+  offer_amount:    { type: Sequelize.INTEGER, allowNull: false },
+  status:          { type: Sequelize.STRING, allowNull: false },
+  date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
 export const DeliveryTrackingUpdates = <MyModelStatic> sequelize.define('deliverme_delivery_tracking_updates', {
   id:                { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   delivery_id:       { type: Sequelize.INTEGER, allowNull: false, references: { model: Delivery, key: 'id' } },

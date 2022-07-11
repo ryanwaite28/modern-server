@@ -136,10 +136,6 @@ export const mechanicMasterIncludes: Includeable[] = [
       }
     ]
   },
-  {
-    model: MechanicServiceRequestOffers,
-    as: 'mechanic_service_request_offers',
-  },
 ];
 
 export const mechanicServiceRequestOfferMasterIncludes: Includeable[] = [
@@ -184,7 +180,7 @@ export const mechanicServiceRequestMasterIncludes: Includeable[] = [
   },
   {
     model: MechanicServiceRequestOffers,
-    as: 'mechanic_service_request_offers',
+    as: 'service_request_offers',
     include: [
       {
         model: Mechanics,
@@ -410,13 +406,13 @@ export async function search_mechanics(params: {
         include: [
           {
             model: MechanicServiceRequestOffers,
-            as: 'mechanic_service_request_offers',
+            as: 'service_request_offers',
           }
         ]
       },
       {
         model: MechanicServiceRequestOffers,
-        as: 'mechanic_offers',
+        as: 'mechanic_service_request_offers',
       },
     ]
   });

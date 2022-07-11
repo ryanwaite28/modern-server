@@ -227,26 +227,27 @@ export const MechanicServiceRequests = <MyModelStatic> sequelize.define('carmast
 
   image_link:         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   image_id:           { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
-  
-  service_category:    { type: Sequelize.STRING, allowNull: false },
-  service_type:        { type: Sequelize.STRING, allowNull: false },
-  service_action:      { type: Sequelize.STRING, allowNull: false },
-  
-  make:                { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
-  model:               { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
-  type:                { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
-  trim:                { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
-  year:                { type: Sequelize.INTEGER, allowNull: false },
-  
-  city:               { type: Sequelize.STRING(500), allowNull: false },
-  state:              { type: Sequelize.STRING(500), allowNull: false },
-  zipcode:            { type: Sequelize.INTEGER, allowNull: false },
-  country:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+
+  work_finished_image_link:         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  work_finished_image_id:           { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   
   title:               { type: Sequelize.STRING, allowNull: false },
   description:         { type: Sequelize.STRING(500), allowNull: false },
   notes:               { type: Sequelize.TEXT, allowNull: false },
   payout:              { type: Sequelize.INTEGER, allowNull: true },
+  service_category:    { type: Sequelize.STRING, allowNull: false },
+  service_type:        { type: Sequelize.STRING, allowNull: false },
+  service_action:      { type: Sequelize.STRING, allowNull: false },
+  make:                { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  model:               { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  type:                { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  trim:                { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  year:                { type: Sequelize.INTEGER, allowNull: false },
+  city:                { type: Sequelize.STRING(500), allowNull: false },
+  state:               { type: Sequelize.STRING(500), allowNull: false },
+  zipcode:             { type: Sequelize.INTEGER, allowNull: false },
+  country:             { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  
 
   datetime_needed:         { type: Sequelize.DATE, allowNull: true, },
   datetime_canceled:       { type: Sequelize.DATE, allowNull: true, },
@@ -283,9 +284,10 @@ export const MechanicServiceRequestMessages = <MyModelStatic> sequelize.define('
   uuid:               { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const MechanicServiceRequestDisputes = <MyModelStatic> sequelize.define('carmaster_service_disputes', {
+export const MechanicServiceRequestDisputes = <MyModelStatic> sequelize.define('carmaster_service_request_disputes', {
   id:                      { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   creator_id:              { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  user_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   service_request_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: MechanicServiceRequests, key: 'id' } },
   title:                   { type: Sequelize.STRING, allowNull: true },
   description:             { type: Sequelize.TEXT, allowNull: true },
@@ -294,13 +296,26 @@ export const MechanicServiceRequestDisputes = <MyModelStatic> sequelize.define('
   uuid:                    { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
-export const MechanicServiceRequestDisputeLogs = <MyModelStatic> sequelize.define('carmaster_service_dispute_logs', {
+export const MechanicServiceRequestDisputeLogs = <MyModelStatic> sequelize.define('carmaster_service_request_dispute_logs', {
   id:              { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   creator_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  user_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   dispute_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: MechanicServiceRequestDisputes, key: 'id' } },
   body:            { type: Sequelize.TEXT, allowNull: true, defaultValue: '' },
   image_link:      { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   image_id:        { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+  date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
+export const MechanicServiceRequestDisputeSettlementOffers = <MyModelStatic> sequelize.define('carmaster_service_request_dispute_settlement_offers', {
+  id:              { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  creator_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  user_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  dispute_id:      { type: Sequelize.INTEGER, allowNull: false, references: { model: MechanicServiceRequestDisputes, key: 'id' } },
+  message:         { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
+  offer_amount:    { type: Sequelize.INTEGER, allowNull: false },
+  status:          { type: Sequelize.STRING, allowNull: false },
   date_created:    { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:            { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
