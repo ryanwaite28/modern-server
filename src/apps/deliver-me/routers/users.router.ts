@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { YouAuthorized, YouAuthorizedSlim, UserExists } from '../../_common/guards/user.guard';
-import { DeliveryExists } from '../guards/delivery.guard';
+import { DeliveryExists, IsDeliveryCarrier } from '../guards/delivery.guard';
 import { DeliveriesRequestHandler } from '../handlers/deliveries.handler';
 
 
@@ -30,4 +30,4 @@ UsersRouter.post('/:you_id/mark-delivery-as-dropped-off/:delivery_id', YouAuthor
 UsersRouter.post('/:you_id/mark-delivery-as-returned/:delivery_id', YouAuthorized, DeliveryExists, DeliveriesRequestHandler.mark_delivery_as_returned);
 // UsersRouter.post('/:you_id/mark-delivery-as-completed/:delivery_id', YouAuthorized, DeliveryExists, DeliveriesRequestHandler.mark_delivery_as_completed);
 UsersRouter.post('/:you_id/create-tracking-update/:delivery_id', YouAuthorized, DeliveryExists, DeliveriesRequestHandler.create_tracking_update);
-UsersRouter.post('/:you_id/add-delivered-picture/:delivery_id', YouAuthorized, DeliveryExists, DeliveriesRequestHandler.add_delivered_picture); 
+UsersRouter.post('/:you_id/add-delivered-picture/:delivery_id', YouAuthorized, DeliveryExists, IsDeliveryCarrier, DeliveriesRequestHandler.add_delivered_picture); 

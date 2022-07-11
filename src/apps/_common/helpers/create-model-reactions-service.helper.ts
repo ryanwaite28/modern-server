@@ -170,7 +170,7 @@ export function createCommonGenericModelReactionsService (
           CommonSocketEventsHandler.emitEventToUserSockets({
             user_id: model.get('owner_id'),
             event: useEvent,
-            data: {
+            event_data: {
               data: model_reaction,
               message: `Reaction toggled`,
               user: you,

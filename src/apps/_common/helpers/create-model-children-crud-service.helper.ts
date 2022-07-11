@@ -162,7 +162,7 @@ export function createCommonGenericModelChildrenCrudService(
           CommonSocketEventsHandler.emitEventToUserSockets({
             user_id: parent_model.get('owner_id'),
             event: params.create_model_event,
-            data: {
+            event_data: {
               data: new_model,
               message: `New ${params.child_model_name}`,
               user: you,

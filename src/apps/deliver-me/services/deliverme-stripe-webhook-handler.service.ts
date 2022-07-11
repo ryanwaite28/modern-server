@@ -37,7 +37,7 @@ export class DelivermeStripeWebhookHandlerService {
           CommonSocketEventsHandler.emitEventToUserSockets({
             user_id: deliveryObj.carrier_id,
             event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
-            data: {
+            event_data: {
               data: deliveryObj,
               message: `Delivery completed!`,
               user: deliveryObj.owner,

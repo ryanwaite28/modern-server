@@ -204,7 +204,7 @@ export class CliqueMembersService {
     CommonSocketEventsHandler.emitEventToUserSockets({
       user_id,
       event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ADDED,
-      data: {
+      event_data: {
         clique: {
           ...clique_model!.toJSON(),
         },
@@ -241,7 +241,7 @@ export class CliqueMembersService {
     CommonSocketEventsHandler.emitEventToUserSockets({
       user_id,
       event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_REMOVED,
-      data: { clique_id, user_id, member: memberObj },
+      event_data: { clique_id, user_id, member: memberObj },
     });
 
     return createGenericServiceMethodSuccess(`Clique member removed!`, deletes);
@@ -261,7 +261,7 @@ export class CliqueMembersService {
 
     SocketsService.get_io().to(`clique-${clique_id}`).emit(HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_LEFT, {
       event_type: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_LEFT,
-      data: { clique_id, user_id: you.id, clique: clique_model.toJSON() },
+      event_data: { clique_id, user_id: you.id, clique: clique_model.toJSON() },
     });
     create_notification({
       from_id: you.id,
@@ -275,7 +275,7 @@ export class CliqueMembersService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: clique_model.get('creator_id'),
         event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_LEFT,
-        data: { clique_id, user_id: you.id, clique: clique_model.toJSON(), notification },
+        event_data: { clique_id, user_id: you.id, clique: clique_model.toJSON(), notification },
       });
     });
 
@@ -383,7 +383,7 @@ export class CliqueMembersService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id,
         event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_REQUEST,
-        data: {
+        event_data: {
           clique_id,
           user_id,
           notification,
@@ -426,7 +426,7 @@ export class CliqueMembersService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: member_request.user_id,
         event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_CANCEL,
-        data: { notification, member_request, clique: clique_model!.toJSON() },
+        event_data: { notification, member_request, clique: clique_model!.toJSON() },
       });
     });
 
@@ -496,7 +496,7 @@ export class CliqueMembersService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: member_request.sender_id,
         event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_ACCEPT,
-        data: { notification, member: new_member!.toJSON(), clique: clique_model!.toJSON() },
+        event_data: { notification, member: new_member!.toJSON(), clique: clique_model!.toJSON() },
       });
     });
 
@@ -539,7 +539,7 @@ export class CliqueMembersService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: member_request.sender_id,
         event: HOTSPOT_EVENT_TYPES.CLIQUE_MEMBER_DECLINE,
-        data: { notification, clique: clique_model!.toJSON() },
+        event_data: { notification, clique: clique_model!.toJSON() },
       });
     });
 

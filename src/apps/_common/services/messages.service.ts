@@ -212,7 +212,7 @@ export class MessagesService {
     CommonSocketEventsHandler.emitEventToUserSockets({
       user_id: user_id,
       event: COMMON_EVENT_TYPES.NEW_MESSAGE,
-      data: eventData,
+      event_data: eventData,
     });
 
     // create_notification({

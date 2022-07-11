@@ -128,7 +128,7 @@ export class ConversationMembersService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id,
         event: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_ADDED,
-        data: {
+        event_data: {
           notification,
           conversation: {
             // ...response.locals.conversation_model!.toJSON(),
@@ -207,7 +207,7 @@ export class ConversationMembersService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id,
         event: COMMON_EVENT_TYPES.CONVERSATION_MEMBER_REMOVED,
-        data: {
+        event_data: {
           conversation_id,
           user_id,
           member: memberObj,

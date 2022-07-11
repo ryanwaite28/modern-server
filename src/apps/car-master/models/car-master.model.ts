@@ -212,7 +212,6 @@ export const MechanicServices = <MyModelStatic> sequelize.define('carmaster_mech
   service_action:      { type: Sequelize.STRING, allowNull: false },
   description:         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   cost:                { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-  deposit:             { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
   
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
@@ -248,17 +247,15 @@ export const MechanicServiceRequests = <MyModelStatic> sequelize.define('carmast
   description:         { type: Sequelize.STRING(500), allowNull: false },
   notes:               { type: Sequelize.TEXT, allowNull: false },
   payout:              { type: Sequelize.INTEGER, allowNull: true },
-  deposit_paid:        { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
-  deposit_refunded:    { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
-  deposit_payment_intent_id:        { type: Sequelize.STRING, allowNull: true },
-  deposit_refund_id:                { type: Sequelize.STRING, allowNull: true },
 
-  datetime_needed:     { type: Sequelize.DATE, allowNull: true, },
-  datetime_canceled:   { type: Sequelize.DATE, allowNull: true, },
-  datetime_accepted:   { type: Sequelize.DATE, allowNull: true, },
-  datetime_declined:   { type: Sequelize.DATE, allowNull: true, },
-  datetime_completed:  { type: Sequelize.DATE, allowNull: true, },
-  status:              { type: Sequelize.STRING, allowNull: false },
+  datetime_needed:         { type: Sequelize.DATE, allowNull: true, },
+  datetime_canceled:       { type: Sequelize.DATE, allowNull: true, },
+  datetime_accepted:       { type: Sequelize.DATE, allowNull: true, },
+  datetime_declined:       { type: Sequelize.DATE, allowNull: true, },
+  datetime_work_started:   { type: Sequelize.DATE, allowNull: true, },
+  datetime_work_finished:  { type: Sequelize.DATE, allowNull: true, },
+  datetime_completed:      { type: Sequelize.DATE, allowNull: true, },
+  status:                  { type: Sequelize.STRING, allowNull: false },
   
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
@@ -267,6 +264,7 @@ export const MechanicServiceRequests = <MyModelStatic> sequelize.define('carmast
 export const MechanicServiceRequestOffers = <MyModelStatic> sequelize.define('carmaster_mechanic_service_request_offers', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   service_request_id:  { type: Sequelize.INTEGER, allowNull: false, references: { model: MechanicServiceRequests, key: 'id' } },
+  service_request_user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
   mechanic_id:         { type: Sequelize.INTEGER, allowNull: false, references: { model: Mechanics, key: 'id' } },
   notes:               { type: Sequelize.TEXT, allowNull: false },
   status:              { type: Sequelize.STRING, allowNull: false },
@@ -368,13 +366,17 @@ MechanicServiceRequests.belongsTo(Mechanics, { as: 'mechanic', foreignKey: 'mech
 Users.hasMany(MechanicServiceRequests, { as: 'carmaster_mechanic_service_requests', foreignKey: 'user_id', sourceKey: 'id' });
 MechanicServiceRequests.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
 
-Mechanics.hasMany(MechanicServiceRequestOffers, { as: 'mechanic_offers', foreignKey: 'mechanic_id', sourceKey: 'id' });
+Mechanics.hasMany(MechanicServiceRequestOffers, { as: 'mechanic_service_request_offers', foreignKey: 'mechanic_id', sourceKey: 'id' });
 MechanicServiceRequestOffers.belongsTo(Mechanics, { as: 'mechanic', foreignKey: 'mechanic_id', targetKey: 'id' });
+Users.hasMany(MechanicServiceRequestOffers, { as: 'carmaster_user_service_request_offers', foreignKey: 'service_request_user_id', sourceKey: 'id' });
+MechanicServiceRequestOffers.belongsTo(Users, { as: 'user', foreignKey: 'service_request_user_id', targetKey: 'id' });
 
 MechanicServiceRequests.hasMany(MechanicServiceRequestMessages, { as: 'mechanic_service_request_messages', foreignKey: 'service_request_id', sourceKey: 'id' });
 MechanicServiceRequestMessages.belongsTo(MechanicServiceRequests, { as: 'service_request', foreignKey: 'service_request_id', targetKey: 'id' });
+Users.hasMany(MechanicServiceRequestMessages, { as: 'carmaster_service_request_messages_sent', foreignKey: 'user_id', sourceKey: 'id' });
+MechanicServiceRequestMessages.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
 
-MechanicServiceRequests.hasMany(MechanicServiceRequestOffers, { as: 'mechanic_service_request_offers', foreignKey: 'service_request_id', sourceKey: 'id' });
+MechanicServiceRequests.hasMany(MechanicServiceRequestOffers, { as: 'service_request_offers', foreignKey: 'service_request_id', sourceKey: 'id' });
 MechanicServiceRequestOffers.belongsTo(MechanicServiceRequests, { as: 'service_request', foreignKey: 'service_request_id', targetKey: 'id' });
 
 MechanicServices.hasMany(MechanicServiceRequests, { as: 'service_requests', foreignKey: 'service_id', sourceKey: 'id' });

@@ -5,7 +5,12 @@ import {
   validateData,
   validateAndUploadImageFile,
   COMMON_STATUSES,
+  validatePhone,
+  isProd,
 } from "../../_common/common.chamber";
+import {
+  fn,
+} from 'sequelize';
 import { HttpStatusCode } from "../../_common/enums/http-codes.enum";
 import { ServiceMethodResults } from "../../_common/types/common.types";
 import {
@@ -16,6 +21,7 @@ import {
   create_mechanic_rating_required_props,
   create_mechanic_service_request_required_props,
   create_mechanic_service_required_props,
+  populate_carmaster_notification_obj,
   update_mechanic_credential_required_props,
   update_mechanic_expertise_required_props,
   update_mechanic_fields,
@@ -26,6 +32,7 @@ import {
 import {
   IMechanic,
   IMechanicServiceRequest,
+  IMechanicServiceRequestOffer,
 } from "../interfaces/car-master.interface";
 import {
   create_mechanic_credential,
@@ -36,11 +43,13 @@ import {
   create_mechanic_rating_edit,
   create_mechanic_service,
   create_mechanic_service_request,
+  create_mechanic_service_request_message,
   delete_mechanic_credential,
   delete_mechanic_expertise,
   delete_mechanic_field,
   delete_mechanic_service,
   delete_mechanic_service_request,
+  delete_mechanic_service_request_messages,
   find_all_mechanic_service_requests,
   find_all_user_service_requests,
   find_mechanic_service_requests,
@@ -57,11 +66,14 @@ import {
   update_mechanic_service,
   update_mechanic_service_request,
 } from "../repos/car-master.repo";
-import { CARMASTER_NOTIFICATION_TARGET_TYPES, CARMASTER_SERVICE_REQUEST_STATUSES } from "../enums/car-master.enum";
-import { IUser } from "../../_common/interfaces/common.interface";
+import { CARMASTER_EVENT_TYPES, CARMASTER_NOTIFICATION_TARGET_TYPES, CARMASTER_SERVICE_REQUEST_STATUSES } from "../enums/car-master.enum";
+import { IUser, PlainObject } from "../../_common/interfaces/common.interface";
 import Stripe from "stripe";
 import { COMMON_STRIPE_ACTION_EVENTS, COMMON_TRANSACTION_STATUS, MODERN_APP_NAMES } from "../../_common/enums/common.enum";
 import { StripeActions } from "../../_common/models/user.model";
+import { create_notification } from "../../_common/repos/notifications.repo";
+import { CommonSocketEventsHandler } from "../../_common/services/socket-events-handlers-by-app/common.socket-event-handler";
+import { send_sms } from "../../../sms-client";
 
 export class CarMasterService {
   // users
@@ -327,7 +339,8 @@ export class CarMasterService {
       return serviceMethodResults;
     }
 
-    if (!!service_request.mechanic_id) {
+    const isInProgress = !!service_request.mechanic_id && !!service_request.datetime_work_started;
+    if (isInProgress) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -431,6 +444,37 @@ export class CarMasterService {
     }
 
     const deletes = await delete_mechanic_service_request(service_request.id);
+
+    if (!!service_request.datetime_work_started) {
+      // notify mechanic that user canceled
+      create_notification({
+        from_id: service_request.user_id,
+        to_id: service_request.mechanic!.user_id,
+        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_USER_CANCELED,
+        micro_app: MODERN_APP_NAMES.CARMASTER,
+        target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+        target_id: service_request.id
+      }).then(async (notification_model) => {
+        const notification = await populate_carmaster_notification_obj(notification_model);
+        CommonSocketEventsHandler.emitEventToUserSockets({
+          user_id: service_request.mechanic!.user_id,
+          event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_USER_CANCELED,
+          event_data: {
+            service_request_id: service_request.id,
+            notification,
+          }
+        });
+
+        const to_phone_number = service_request.mechanic?.phone || service_request.mechanic?.user?.phone;
+        if (!!to_phone_number && validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.CARMASTER} - ` + notification.message,
+          });
+        }
+      });
+    }
+
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
       error: false,
@@ -880,12 +924,423 @@ export class CarMasterService {
     return serviceMethodResults;
   }
   
+  // service requests
 
+  static async send_service_request_message(options: {
+    you_id: number,
+    service_request: IMechanicServiceRequest,
+    body: string,
+  }) {
+    const { you_id, service_request, body } = options;
   
 
-  
+    if (you_id !== service_request.user_id && (!service_request.mechanic_id || you_id !== service_request.mechanic_id)) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `User is not involved with this delivery`
+        }
+      };
+      return serviceMethodResults;
+    }
 
+    if (!body || !body.trim()) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Body cannot be empty`
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    // create the new message
+    const new_message = await create_mechanic_service_request_message({
+      user_id: you_id,
+      service_request_id: service_request.id,
+      body
+    });
+
+    const to_id = you_id === service_request.user_id ? service_request.mechanic!.user_id : service_request.user_id;
+    
+    create_notification({
+      from_id: you_id,
+      to_id: to_id,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      event: CARMASTER_EVENT_TYPES.NEW_SERVICE_REQUEST_MESSAGE,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request.id
+    }).then(async (notification_model) => {
+      const notification = await populate_carmaster_notification_obj(notification_model);
+
+      const eventData = {
+        service_request_id: service_request.id,
+        event: CARMASTER_EVENT_TYPES.NEW_SERVICE_REQUEST_MESSAGE,
+        message: `New message for service request "${service_request.title}": ${body}`,
+        micro_app: MODERN_APP_NAMES.DELIVERME,
+        data: new_message,
+        user_id: you_id,
+        notification,
+      }
+      
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: to_id,
+        event: CARMASTER_EVENT_TYPES.NEW_SERVICE_REQUEST_MESSAGE,
+        event_data: eventData
+      });
+
+      const to_phone_number = you_id === service_request.user_id
+        ? service_request.user?.phone
+        : service_request.mechanic?.phone || service_request.mechanic?.user?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.CARMASTER} - ` + eventData.message,
+        });
+      }
+    });
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: new_message,
+      }
+    };
+    return serviceMethodResults;
+  }
   
+  static async mark_service_request_as_work_started(options: {
+    you_id: number,
+    service_request: IMechanicServiceRequest,
+  }) {
+    const { you_id, service_request } = options;
+
+    if (service_request.mechanic_id !== you_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the mechanic assigned to this service request.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!!service_request.datetime_work_started) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Work already started`,
+        }
+      };
+      return serviceMethodResults;
+    }
+    
+    const updatesobj: Partial<IMechanicServiceRequest> | any = {};
+    updatesobj.datetime_work_started = fn('NOW');
+    const updates = await update_mechanic_service_request(service_request.id, updatesobj);
+
+    create_notification({
+      from_id: you_id,
+      to_id: service_request.user_id,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_STARTED,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request.id
+    }).then(async (notification_model) => {
+      const notification = await populate_carmaster_notification_obj(notification_model);
+      
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: service_request.user_id,
+        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_STARTED,
+        event_data: {
+          service_request_id: service_request.id,
+          data: updates,
+          message: `Mechanic started work on service request "${service_request.title}"`,
+          user_id: you_id,
+          notification,
+        }
+      });
+
+      const to_phone_number = service_request.user?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Work started!`,
+        data: updates[1]?.datetime_work_started,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async mark_service_request_as_work_finished(options: {
+    you_id: number,
+    service_request: IMechanicServiceRequest,
+  }) {
+    const { you_id, service_request } = options;
+
+    if (service_request.mechanic_id !== you_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the mechanic assigned to this service request.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!service_request.datetime_work_started) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Work was not started`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!!service_request.datetime_work_finished) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Work already finished`,
+        }
+      };
+      return serviceMethodResults;
+    }
+    
+    const updatesobj: Partial<IMechanicServiceRequest> | any = {};
+    updatesobj.datetime_work_finished = fn('NOW');
+    const updates = await update_mechanic_service_request(service_request.id, updatesobj);
+
+    create_notification({
+      from_id: you_id,
+      to_id: service_request.user_id,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_FINISHED,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request.id
+    }).then(async (notification_model) => {
+      const notification = await populate_carmaster_notification_obj(notification_model);
+      
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: service_request.user_id,
+        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_FINISHED,
+        event_data: {
+          service_request_id: service_request.id,
+          data: updates,
+          message: `Mechanic finished work on service request "${service_request.title}"`,
+          user_id: you_id,
+          notification,
+        }
+      });
+
+      const to_phone_number = service_request.user?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Worked finished!`,
+        data: updates[1]?.datetime_work_finished,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async service_request_user_canceled(you_id: number, service_request: IMechanicServiceRequest) {
+    if (service_request.user_id !== you_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the owner of this service request.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!!service_request.datetime_work_finished) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Work already finished`,
+        }
+      };
+      return serviceMethodResults;
+    }
+    
+    // delete the children relationship data
+    await delete_mechanic_service_request_messages({ where: { service_request_id: service_request.id } });
+
+    const updatesobj: Partial<IMechanicServiceRequest> | any = {};
+    updatesobj.mechanic_id = null;
+    updatesobj.datetime_accepted = null;
+    updatesobj.datetime_declined = null;
+    updatesobj.datetime_work_started = null;
+    updatesobj.status = CARMASTER_SERVICE_REQUEST_STATUSES.OPEN;
+    const updates = await update_mechanic_service_request(service_request.id, updatesobj);
+
+    create_notification({
+      from_id: you_id,
+      to_id: service_request.user_id,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_FINISHED,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request.id
+    }).then(async (notification_model) => {
+      const notification = await populate_carmaster_notification_obj(notification_model);
+      
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: service_request.user_id,
+        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_FINISHED,
+        event_data: {
+          service_request_id: service_request.id,
+          data: updates,
+          message: notification.message,
+          user_id: you_id,
+          notification,
+        }
+      });
+
+      const to_phone_number = service_request.user?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Service request canceled`,
+        data: updates[1],
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async service_request_mechanic_canceled(you_id: number, service_request: IMechanicServiceRequest) {
+    if (service_request.mechanic_id !== you_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the mechanic of this service request.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!!service_request.datetime_work_finished) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Work already finished`,
+        }
+      };
+      return serviceMethodResults;
+    }
+    
+    // delete the children relationship data
+    await delete_mechanic_service_request_messages({ where: { service_request_id: service_request.id } });
+
+    const updatesobj: Partial<IMechanicServiceRequest> | any = {};
+    updatesobj.mechanic_id = null;
+    updatesobj.datetime_accepted = null;
+    updatesobj.datetime_declined = null;
+    updatesobj.datetime_work_started = null;
+    updatesobj.status = CARMASTER_SERVICE_REQUEST_STATUSES.OPEN;
+    const updates = await update_mechanic_service_request(service_request.id, updatesobj);
+
+    create_notification({
+      from_id: you_id,
+      to_id: service_request.user_id,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_FINISHED,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request.id
+    }).then(async (notification_model) => {
+      const notification = await populate_carmaster_notification_obj(notification_model);
+      
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: service_request.user_id,
+        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_FINISHED,
+        event_data: {
+          service_request_id: service_request.id,
+          data: updates,
+          message: notification.message,
+          user_id: you_id,
+          notification,
+        }
+      });
+
+      const to_phone_number = service_request.user?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Service request canceled`,
+        data: updates[1],
+      }
+    };
+    return serviceMethodResults;
+  }
+  
+  send_service_request_offer(you: IUser, service_request: IMechanicServiceRequest) {
+
+  }
+
+  cancel_service_request_offer(you: IUser, service_request: IMechanicServiceRequest) {
+    
+  }
+
+  decline_service_request_offer(you: IUser, service_request: IMechanicServiceRequest) {
+    
+  }
+
+  accept_service_request_offer(you: IUser, service_request: IMechanicServiceRequest) {
+    
+  }
+
+
+
 
   
 }

@@ -158,7 +158,7 @@ export class ResourceInterestsService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: checkModelResults.info.data!.get('owner_id'),
         event: HOTSPOT_EVENT_TYPES.NEW_RESOURCE_INTEREST,
-        data: { user: you, notification }
+        event_data: { user: you, notification }
       });
     });
 

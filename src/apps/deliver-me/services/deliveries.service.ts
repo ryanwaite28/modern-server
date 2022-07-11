@@ -57,6 +57,7 @@ import {
   Delivery,
   DeliveryCarrierTrackLocationRequests,
   DeliveryCarrierTrackLocationUpdates,
+  DeliveryDisputes,
   DeliveryMessages,
   DeliveryTrackingUpdates
 } from '../models/delivery.model';
@@ -89,7 +90,7 @@ import { get_user_ratings_stats_via_model } from '../../_common/repos/ratings.re
 import Stripe from 'stripe';
 import { get_user_by_id } from '../../_common/repos/users.repo';
 import { UsersService } from '../../_common/services/users.service';
-
+import moment from 'moment';
 
 
 export class DeliveriesService {
@@ -414,7 +415,7 @@ export class DeliveriesService {
         const eventData = {
           delivery_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
-          message: `New delivery message for: ${delivery.title}`,
+          message: `New message for delivery "${delivery.title}": ${body}`,
           micro_app: MODERN_APP_NAMES.DELIVERME,
           data: new_message,
           user_id: you_id,
@@ -427,8 +428,18 @@ export class DeliveriesService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: to_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_MESSAGE,
-          data: eventData
+          event_data: eventData
         });
+
+        const to_phone_number = you_id === delivery.owner_id
+          ? delivery.owner?.phone
+          : delivery.carrier?.phone;
+        if (!!to_phone_number && validatePhone(to_phone_number)) {
+          send_sms({
+            to_phone_number,
+            message: `ModernApps ${MODERN_APP_NAMES.CARMASTER} - ` + eventData.message,
+          });
+        }
       });
     }
     
@@ -1071,7 +1082,7 @@ export class DeliveriesService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.CARRIER_ASSIGNED,
-          data: {
+          event_data: {
             delivery_id,
             data: updates,
             message: `Delivery assigned to user!`,
@@ -1155,7 +1166,7 @@ export class DeliveriesService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.CARRIER_UNASSIGNED,
-          data: {
+          event_data: {
             delivery_id,
             data: updates,
             message: `Delivery unassigned by carrier!`,
@@ -1248,7 +1259,7 @@ export class DeliveriesService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_NEW_TRACKING_UPDATE,
-          data: {
+          event_data: {
             delivery_id,
             data: new_delivery_tracking_update,
             message: `Delivery new tracking update!`,
@@ -1356,12 +1367,13 @@ export class DeliveriesService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_ADD_COMPLETED_PICTURE,
-          data: {
+          event_data: {
             delivery_id,
             data: updates,
             message: `Delivery added delivered picture!`,
             user_id: you_id,
             notification,
+            ...imageValidation.info.data
           }
         });
   
@@ -1380,7 +1392,10 @@ export class DeliveriesService {
       error: false,
       info: {
         message: `Delivery added delivered picture!`,
-        data: updates,
+        data: {
+          ...updates,
+          ...imageValidation.info.data 
+        },
       }
     };
     return serviceMethodResults;
@@ -1425,7 +1440,7 @@ export class DeliveriesService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_PICKED_UP,
-          data: {
+          event_data: {
             delivery_id,
             data: updates,
             message: `Delivery picked up by carrier!`,
@@ -1494,7 +1509,7 @@ export class DeliveriesService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.CARRIER_MARKED_AS_DROPPED_OFF,
-          data: {
+          event_data: {
             delivery_id,
             data: updates,
             message: `Delivery dropped off by carrier!`,
@@ -1570,7 +1585,7 @@ export class DeliveriesService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: delivery.carrier_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
-          data: {
+          event_data: {
             delivery_id: delivery.id,
             data: updates,
             message: `Delivery completed!`,
@@ -1660,7 +1675,7 @@ export class DeliveriesService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: owner_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_RETURNED,
-          data: {
+          event_data: {
             delivery_id,
             event: DELIVERME_EVENT_TYPES.DELIVERY_RETURNED,
             micro_app: MODERN_APP_NAMES.DELIVERME,
@@ -1961,7 +1976,7 @@ export class DeliveriesService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: carrier_id,
           event: DELIVERME_EVENT_TYPES.DELIVERY_COMPLETED,
-          data: {
+          event_data: {
             data: updates,
             message: `Delivery completed!`,
             user: you_id,
@@ -2330,6 +2345,70 @@ export class DeliveriesService {
     return serviceMethodResults;
   }
 
+  static async carrier_self_pay(options: {
+    you: IUser,
+    delivery: IDelivery
+  }) {
+    /*
+      after a certain amount of time after delivering, carrier can receive funds if the delivery owner does not dispute
+    */
+
+    if (options.delivery.owner_id !== options.you.id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the carrier of this delivery.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!!options.delivery.datetime_delivered) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Not delivered yet.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    // check how long it has been since delivery marked as delivered
+    const momentNow = moment(new Date());
+    const momentDelivered = moment(options.delivery.datetime_delivered);
+    const momentDiff = momentDelivered.diff(momentNow);
+    const hoursSinceDelivered = moment.duration(momentDiff).asHours();
+    const atLeast8HoursAgo = hoursSinceDelivered >= 8;
+
+    if (!atLeast8HoursAgo) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `Not 8 hours since delivering to self pay`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const dispute = await DeliveryDisputes.findOne({ where: { delivery_id: options.delivery.id } });
+    if (!!dispute) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.OK,
+        error: false,
+        info: {
+          message: `Cannot self pay during active dispute`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const results = await DeliveriesService.pay_carrier_via_transfer({ you: options.delivery.owner!, delivery: options.delivery });
+    return results;
+  }
+
   static async request_carrier_location(options: {
     you: IUser,
     delivery: IDelivery
@@ -2375,7 +2454,7 @@ export class DeliveriesService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: delivery.carrier_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUESTED,
-        data: {
+        event_data: {
           data: {
             delivery_id: delivery.id,
             updates,
@@ -2452,7 +2531,7 @@ export class DeliveriesService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: delivery.carrier_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_CANCELED,
-        data: {
+        event_data: {
           data: carrier_tracking_request,
           message: notification.message || `Carrier location request canceled!`,
           user: you,
@@ -2525,7 +2604,7 @@ export class DeliveriesService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: delivery.owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_ACCEPTED,
-        data: {
+        event_data: {
           data: {
             delivery_id: delivery.id,
             updates,
@@ -2602,7 +2681,7 @@ export class DeliveriesService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: delivery.owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_REQUEST_DECLINED,
-        data: {
+        event_data: {
           data: {
             delivery_id: delivery.id,
             updates,
@@ -2665,7 +2744,7 @@ export class DeliveriesService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: delivery.owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_SHARED,
-        data: {
+        event_data: {
           data: {
             delivery_id: delivery.id,
             updates,
@@ -2727,7 +2806,7 @@ export class DeliveriesService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: delivery.owner_id,
         event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_UNSHARED,
-        data: {
+        event_data: {
           data: {
             delivery_id: delivery.id,
             updates,
@@ -2779,7 +2858,7 @@ export class DeliveriesService {
     CommonSocketEventsHandler.emitEventToUserSockets({
       user_id: options.delivery.owner_id,
       event: DELIVERME_EVENT_TYPES.CARRIER_LOCATION_UPDATED,
-      data: {
+      event_data: {
         data: {
           delivery_id: options.delivery.id,
           updates,

@@ -52,7 +52,7 @@ export class MyfavorsStripeWebhookHandlerService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: favorObj.owner_id,
           event: MYFAVORS_EVENT_TYPES.FAVOR_HELPER_PAID,
-          data: {
+          event_data: {
             data: favorObj,
             helper_user,
             message: `Favor helper ${getUserFullName(helper_user!)} paid`,
@@ -73,7 +73,7 @@ export class MyfavorsStripeWebhookHandlerService {
           CommonSocketEventsHandler.emitEventToUserSockets({
             user_id: helper_user!.id,
             event: MYFAVORS_EVENT_TYPES.FAVOR_HELPER_PAID,
-            data: {
+            event_data: {
               data: favorObj,
               helper_user,
               message: `Favor helper ${getUserFullName(helper_user!)} paid`,

@@ -117,7 +117,7 @@ export class FollowsService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user_id,
           event: COMMON_EVENT_TYPES.NEW_FOLLOWER,
-          data: {
+          event_data: {
             data: {
               ...follow_model!.toJSON(),
               notification
@@ -188,7 +188,7 @@ export class FollowsService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: user_id,
         event: COMMON_EVENT_TYPES.NEW_UNFOLLOWER,
-        data: {
+        event_data: {
           data: {
             notification
           }

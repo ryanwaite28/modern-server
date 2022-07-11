@@ -207,7 +207,7 @@ export class MessagesService {
     CommonSocketEventsHandler.emitEventToUserSockets({
       user_id: user_id,
       event: CARMASTER_EVENT_TYPES.NEW_CARMASTER_MESSAGE,
-      data: eventData,
+      event_data: eventData,
     });
 
     if (data.mechanic && data.mechanic.user_id === user_id) {

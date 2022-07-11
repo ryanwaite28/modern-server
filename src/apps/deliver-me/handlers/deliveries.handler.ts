@@ -192,7 +192,7 @@ export class DeliveriesRequestHandler {
 
   static async add_delivered_picture(request: Request, response: Response): ExpressResponse {
     const options = {
-      you_id: response.locals.you?.id as number,
+      you_id: response.locals.you.id as number,
       delivery: response.locals.delivery_model as IDelivery,
       delivered_image: request.files && (<UploadedFile> request.files.delivered_image),
     };

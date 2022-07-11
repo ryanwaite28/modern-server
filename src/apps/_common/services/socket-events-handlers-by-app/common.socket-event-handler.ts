@@ -98,29 +98,32 @@ export class CommonSocketEventsHandler {
   static emitEventToUserSockets(params: {
     user_id: number;
     event: string;
-    data: PlainObject;
+    event_data: PlainObject;
   }) {
     if (!params.user_id) {
-      console.log(`CommonSocketEventsHandler.emitEventToRoom - no user_id given`);
+      console.log(`CommonSocketEventsHandler.emitEventToRoom - no user id given`);
       return;
     }
     if (!params.event) {
-      console.log(`CommonSocketEventsHandler.emitEventToRoom - no event given`);
+      console.log(`CommonSocketEventsHandler.emitEventToRoom - no event name given`);
       return;
     }
-    if (!params.data) {
-      console.log(`CommonSocketEventsHandler.emitEventToRoom - no data given`);
+    if (!params.event_data) {
+      console.log(`CommonSocketEventsHandler.emitEventToRoom - no event data given`);
       return;
     }
 
-    if (!('event' in params.data)) {
-      params.data.event = params.event;
+    if (!('event' in params.event_data)) {
+      params.event_data.event = params.event;
+    }
+    if (!('event_name' in params.event_data)) {
+      params.event_data.event_name = params.event;
     }
 
     const usersSocketsRoom = `FOR_USER:${params.user_id}`;
     CommonSocketEventsHandler.io.in(usersSocketsRoom).allSockets().then((usersSockets) => {
       console.log(`emitEventToUserSockets - Emitting to room ${usersSocketsRoom}...`, usersSockets);
-      CommonSocketEventsHandler.io.in(usersSocketsRoom).emit(params.event, params.data);
+      CommonSocketEventsHandler.io.in(usersSocketsRoom).emit(params.event, params.event_data);
     });
   }
 
@@ -261,7 +264,7 @@ export class CommonSocketEventsHandler {
     CommonSocketEventsHandler.emitEventToUserSockets({
       user_id: data.user_id,
       event: data.event_name,
-      data: data.data,
+      event_data: data.data,
     });
   }
 }

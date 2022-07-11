@@ -8,9 +8,11 @@ import {
   FindAttributeOptions,
   GroupOption,
   Order,
-  literal
+  literal,
+  DestroyOptions
 } from 'sequelize';
 import {
+  convertModelCurry,
   convertModelsCurry,
   create_model_crud_repo_from_model_class,
   URL_REGEX,
@@ -123,13 +125,39 @@ export const mechanicMasterIncludes: Includeable[] = [
     include: [
       {
         model: MechanicServiceRequestOffers,
-        as: 'mechanic_service_request_offers',
+        as: 'service_request_offers',
+        include: [
+          {
+            model: Users,
+            as: 'user',
+            attributes: user_attrs_slim
+          },
+        ]
       }
     ]
   },
   {
     model: MechanicServiceRequestOffers,
-    as: 'mechanic_offers',
+    as: 'mechanic_service_request_offers',
+  },
+];
+
+export const mechanicServiceRequestOfferMasterIncludes: Includeable[] = [
+  {
+    model: Users,
+    as: 'user',
+    attributes: user_attrs_slim
+  },
+  {
+    model: Mechanics,
+    as: 'mechanic',
+    include: [
+      {
+        model: Users,
+        as: 'user',
+        attributes: user_attrs_slim
+      },
+    ]
   },
 ];
 
@@ -157,6 +185,23 @@ export const mechanicServiceRequestMasterIncludes: Includeable[] = [
   {
     model: MechanicServiceRequestOffers,
     as: 'mechanic_service_request_offers',
+    include: [
+      {
+        model: Mechanics,
+        as: 'mechanic',
+        include: [
+          {
+            model: Users,
+            as: 'user',
+            attributes: user_attrs_slim
+          },
+        ]
+      }
+    ]
+  },
+  {
+    model: MechanicServiceRequestMessages,
+    as: 'mechanic_service_request_messages',
   }
 ];
 
@@ -246,7 +291,6 @@ export async function search_mechanics(params: {
   service_type: string,
   service_action: string,
   cost?: number,
-  deposit?: number,
 
   // location
   city?: string,
@@ -290,9 +334,6 @@ export async function search_mechanics(params: {
   }
   if (params.cost) {
     service_where.cost = { [Op.lte]: params.cost };
-  }
-  if (params.deposit) {
-    service_where.deposit = { [Op.lte]: params.deposit };
   }
 
 
@@ -473,13 +514,7 @@ export async function search_service_requests(params: {
       ],
 
     },
-    include: [
-      {
-        model: Users,
-        as: 'user',
-        attributes: user_attrs_slim
-      },
-    ]
+    include: mechanicServiceRequestMasterIncludes
   });
 
   return results;
@@ -825,12 +860,10 @@ export function create_mechanic_service(params: {
   service_action: string,
   description?: string,
   cost: number,
-  deposit?: number,
 }) {
   return mechanic_services_crud.create({
     ...params,
     cost: params.cost || 0,
-    deposit: params.deposit || 0,
   });
 }
 
@@ -843,7 +876,6 @@ export function update_mechanic_service(
     service_action: string,
     description: string,
     cost: number,
-    deposit: number,
   }>
 ) {
   return mechanic_services_crud.updateById(service_id, params);
@@ -859,62 +891,58 @@ export function delete_mechanic_service(service_id: number) {
 
 // mechanic service requests
 
-export function get_service_request_by_id(id: number) {
+const convertServiceRequests = convertModelCurry<IMechanicServiceRequest>();
+
+export function get_service_request_by_id(id: number, user_id?: number) {
   return mechanic_service_requests_crud.findById(id, { include: mechanicServiceRequestMasterIncludes });
 }
 
 export function find_all_mechanic_service_requests(mechanic_id: number) {
-  return getAll(
-    MechanicServiceRequests,
-    'mechanic_id',
-    mechanic_id,
-    mechanicServiceRequestMasterIncludes,
-    undefined,
-    undefined,
-    undefined,
-    [['id', 'DESC']]
-  ).then(convertModelsCurry<IMechanicServiceRequest>());
+  return mechanic_service_requests_crud.findAll({
+    where: {
+      mechanic_id
+    },
+    include: mechanicServiceRequestMasterIncludes,
+    order: [['id', 'DESC']]
+  });
 }
 
 export function find_mechanic_service_requests(mechanic_id: number, service_request_id?: number) {
-  return paginateTable(
-    MechanicServiceRequests,
-    'mechanic_id',
-    mechanic_id,
-    service_request_id,
-    mechanicServiceRequestMasterIncludes,
-    undefined,
-    undefined,
-    undefined,
-    [['id', 'DESC']]
-  ).then(convertModelsCurry<IMechanicServiceRequest>());
+  const useWhere: WhereOptions = (!service_request_id
+    ? { mechanic_id }
+    : { mechanic_id, id: { [Op.lt]: service_request_id } }
+  );
+
+  return mechanic_service_requests_crud.findAll({
+    where: useWhere,
+    include: mechanicServiceRequestMasterIncludes,
+    order: [['id', 'DESC']],
+    limit: 5,
+  });
 }
 
 export function find_all_user_service_requests(user_id: number) {
-  return getAll(
-    MechanicServiceRequests,
-    'user_id',
-    user_id,
-    mechanicServiceRequestMasterIncludes,
-    undefined,
-    undefined,
-    undefined,
-    [['id', 'DESC']]
-  ).then(convertModelsCurry<IMechanicServiceRequest>());
+  return mechanic_service_requests_crud.findAll({
+    where: {
+      user_id
+    },
+    include: mechanicServiceRequestMasterIncludes,
+    order: [['id', 'DESC']]
+  });
 }
 
 export function find_user_service_requests(user_id: number, service_request_id?: number) {
-  return paginateTable(
-    MechanicServiceRequests,
-    'user_id',
-    user_id,
-    service_request_id,
-    mechanicServiceRequestMasterIncludes,
-    undefined,
-    undefined,
-    undefined,
-    [['id', 'DESC']]
-  ).then(convertModelsCurry<IMechanicServiceRequest>());
+  const useWhere: WhereOptions = (!service_request_id
+    ? { user_id }
+    : { user_id, id: { [Op.lt]: service_request_id } }
+  );
+
+  return mechanic_service_requests_crud.findAll({
+    where: useWhere,
+    include: mechanicServiceRequestMasterIncludes,
+    order: [['id', 'DESC']],
+    limit: 5,
+  });
 }
 
 
@@ -930,8 +958,6 @@ export function create_mechanic_service_request(params: {
   description: string,
   notes: string,
   payout: number,
-  deposit_paid?: boolean,
-  date_needed: Date,
   status: string,
 }) {
   return mechanic_service_requests_crud.create(params);
@@ -949,12 +975,13 @@ export function update_mechanic_service_request(
     description: string,
     notes: string,
     payout: number,
-    deposit_paid: boolean,
     date_needed: Date,
     datetime_canceled: Date,
     datetime_accepted: Date,
     datetime_declined: Date,
     datetime_completed: Date,
+    datetime_work_started: Date,
+    datetime_work_finished: Date,
     status: string,
   }>
 ) {
@@ -983,6 +1010,7 @@ export function find_all_mechanic_service_request_offers(mechanic_id: number) {
 
 export function create_mechanic_service_request_offer(params: {
   mechanic_id: number,
+  service_request_user_id: number,
   service_request_id: number,
   notes: string,
   status: string,
@@ -1002,6 +1030,10 @@ export function update_mechanic_service_request_offer(
 
 export function delete_mechanic_service_request_offer(service_request_offer_id: number) {
   return mechanic_service_request_offers_crud.deleteById(service_request_offer_id);
+}
+
+export function delete_mechanic_service_request_offers(whereClause: DestroyOptions) {
+  return mechanic_service_request_offers_crud.delete(whereClause);
 }
 
 
@@ -1042,6 +1074,10 @@ export function delete_mechanic_service_request_message(service_request_message_
   return mechanic_service_request_messages_crud.deleteById(service_request_message_id);
 }
 
+export function delete_mechanic_service_request_messages(whereClause: DestroyOptions) {
+  return mechanic_service_request_messages_crud.delete(whereClause);
+}
+
 
 
 
@@ -1050,6 +1086,10 @@ export function delete_mechanic_service_request_message(service_request_message_
 
 export function get_service_request_dispute_by_id(id: number) {
   return mechanic_service_request_disputes_crud.findById(id);
+}
+
+export function find_service_request_dispute(find: FindOptions) {
+  return mechanic_service_request_disputes_crud.findOne(find);
 }
 
 export function find_all_mechanic_service_request_disputes(mechanic_id: number) {

@@ -139,11 +139,15 @@ CarMasterAppRouter.post('/users/:you_id/service-request', YouAuthorized, CarMast
 
 // PUT
 
+CarMasterAppRouter.put('/users/:you_id/service-request/:service_request_id', YouAuthorized, CarMasterRequestHandler.update_service_request);
+
 CarMasterAppRouter.put('/users/:you_id/message/:message_id/mark-as-read', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.mark_message_as_read);
 
 CarMasterAppRouter.put('/users/:you_id/service-request/:service_request_id', YouAuthorized, ServiceRequestRouteGuards.existsGuard, ServiceRequestRouteGuards.isOwnerGuard, CarMasterRequestHandler.update_service_request);
 
 
 // DELETE
+
+CarMasterAppRouter.delete('/users/:you_id/service-request/:service_request_id', YouAuthorized, CarMasterRequestHandler.delete_service_request);
 
 CarMasterAppRouter.delete('/users/:you_id/service-request/:service_request_id', YouAuthorized, ServiceRequestRouteGuards.existsGuard, ServiceRequestRouteGuards.isOwnerGuard, CarMasterRequestHandler.delete_service_request);

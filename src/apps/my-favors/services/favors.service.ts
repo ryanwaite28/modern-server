@@ -1,6 +1,6 @@
 import { UploadedFile } from 'express-fileupload';
 import {
-  fn, col, cast, Op
+  fn, col, cast, Op, WhereOptions
 } from 'sequelize';
 import { COMMON_TRANSACTION_STATUS, MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 import { IUser, PlainObject } from '../../_common/interfaces/common.interface';
@@ -220,7 +220,7 @@ export class FavorsService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
           event,
-          data: eventData
+          event_data: eventData
         });
       });
     }
@@ -323,7 +323,7 @@ export class FavorsService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
           event,
-          data: {
+          event_data: {
             data: new_favor_update_model,
             message: `Favor new update!`,
             user: you,
@@ -500,7 +500,7 @@ export class FavorsService {
         model: Favors,
         as: 'favor',
         include: favorMasterIncludes,
-        where: { datetime_fulfilled: { [Op.ne]: null } },
+        where: { datetime_fulfilled: { [Op.ne]: null } } as WhereOptions,
       }],
       undefined,
       undefined,
@@ -529,7 +529,7 @@ export class FavorsService {
         model: Favors,
         as: 'favor',
         include: favorMasterIncludes,
-        where: { datetime_fulfilled: { [Op.ne]: null } }
+        where: { datetime_fulfilled: { [Op.ne]: null } } as WhereOptions
       }],
       undefined,
       undefined,
@@ -941,7 +941,7 @@ export class FavorsService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
           event,
-          data: {
+          event_data: {
             data,
             new_helper,
             message: `Favor helper ${getUserFullName(user)} was assigned to "${favorObj.title}"`,
@@ -1035,7 +1035,7 @@ export class FavorsService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
           event,
-          data: {
+          event_data: {
             data,
             deletes,
             message: `Favor helper ${getUserFullName(user)} was unassigned from "${favorObj.title}"`,
@@ -1149,7 +1149,7 @@ export class FavorsService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
           event,
-          data: {
+          event_data: {
             data,
             message: `Favor "${favorObj.title}" was canceled`,
             user: you,
@@ -1263,7 +1263,7 @@ export class FavorsService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
           event,
-          data: {
+          event_data: {
             data,
             message: `Favor "${favorObj.title}" was fulfilled`,
             user: you,
@@ -1393,7 +1393,7 @@ export class FavorsService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
           event,
-          data: {
+          event_data: {
             data,
             message: `Favor "${favorObj.title}" was canceled`,
             user: you,
@@ -1534,7 +1534,7 @@ export class FavorsService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
           event,
-          data: {
+          event_data: {
             data,
             message: msg,
             // notification,
@@ -1636,7 +1636,7 @@ export class FavorsService {
         CommonSocketEventsHandler.emitEventToUserSockets({
           user_id: user.id,
           event,
-          data: {
+          event_data: {
             data,
             message: msg,
             // notification,
@@ -1788,7 +1788,7 @@ export class FavorsService {
         },
         metadata: {
           user_id: you.id,
-          payment_intent_event: MYFAVORS_EVENT_TYPES.FAVOR_FULFILLED,
+          payment_intent_event_name: MYFAVORS_EVENT_TYPES.FAVOR_FULFILLED,
           micro_app: MODERN_APP_NAMES.MYFAVORS,
           target_type: MYFAVORS_NOTIFICATION_TARGET_TYPES.FAVOR,
           target_id: favorObj.id,
@@ -1814,7 +1814,7 @@ export class FavorsService {
     const newIntent = await UserPaymentIntents.create({
       user_id: you.id,
       payment_intent_id: paymentIntent.id,
-      payment_intent_event: MYFAVORS_EVENT_TYPES.FAVOR_FULFILLED,
+      payment_intent_event_name: MYFAVORS_EVENT_TYPES.FAVOR_FULFILLED,
       micro_app: MODERN_APP_NAMES.MYFAVORS,
       target_type: MYFAVORS_NOTIFICATION_TARGET_TYPES.FAVOR,
       target_id: favorObj.id,

@@ -176,7 +176,7 @@ export function createCommonGenericModelCommentsService(
           CommonSocketEventsHandler.emitEventToUserSockets({
             user_id: base_model.get(base_model_owner_field),
             event: params.create_model_event,
-            data: {
+            event_data: {
               data: comment,
               message: `New comment`,
               user: you,

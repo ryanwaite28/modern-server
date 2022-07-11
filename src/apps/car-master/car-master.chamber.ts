@@ -370,7 +370,6 @@ export const create_mechanic_service_required_props: IModelValidator[] = [
   { field: 'service_action', name: 'Service Action', validator: mechanic_service_actions_validator },
   { field: 'description', name: 'Description', validator: optional_textValidator },
   { field: 'cost', name: 'Cost', validator: required_numberValidator },
-  { field: 'deposit', name: 'Deposit', validator: optional_numberValidator },
 ];
 export const update_mechanic_service_required_props: IModelValidator[] = [
   // { field: 'expertise_id', name: 'Expertise ID', validator: optional_numberValidator },
@@ -379,7 +378,6 @@ export const update_mechanic_service_required_props: IModelValidator[] = [
   { field: 'service_action', name: 'Service Action', validator: mechanic_service_actions_validator },
   { field: 'description', name: 'Description', validator: optional_textValidator },
   { field: 'cost', name: 'Cost', validator: required_numberValidator },
-  { field: 'deposit', name: 'Deposit', validator: optional_numberValidator },
 ];
 
 export const create_mechanic_service_request_required_props: IModelValidator[] = [
@@ -406,10 +404,6 @@ export const create_mechanic_service_request_required_props: IModelValidator[] =
   
   { field: 'notes', name: 'Notes', validator: optional_textValidator },
   { field: 'payout', name: 'Payout', validator: required_numberValidator },
-  // { field: 'deposit_paid', name: 'Deposit Paid', validator: optional_booleanValidator },
-  // { field: 'deposit_refunded', name: 'Deposit Refunded', validator: optional_booleanValidator },
-  // { field: 'deposit_payment_intent_id', name: 'Deposit Payment Intent Id', validator: optional_textValidator },
-  // { field: 'deposit_refund_id', name: 'Deposit Refund ID', validator: optional_textValidator },
   // { field: 'date_needed', name: 'Date Needed', validator: dateObjValidator },
   { field: 'status', name: 'Status', validator: required_textValidator },
 ];
@@ -435,12 +429,10 @@ export const update_mechanic_service_request_required_props: IModelValidator[] =
   
   { field: 'notes', name: 'Notes', validator: optional_textValidator },
   { field: 'payout', name: 'Payout', validator: required_numberValidator },
-  // { field: 'deposit_paid', name: 'Deposit Paid', validator: optional_booleanValidator },
-  // { field: 'deposit_refunded', name: 'Deposit Refunded', validator: optional_booleanValidator },
-  // { field: 'deposit_payment_intent_id', name: 'Deposit Payment Intent Id', validator: optional_textValidator },
-  // { field: 'deposit_refund_id', name: 'Deposit Refund ID', validator: optional_textValidator },
-  // { field: 'date_needed', name: 'Date Needed', validator: dateObjValidator },
-  { field: 'status', name: 'Status', validator: required_textValidator },
+  
+  // { field: 'datetime_work_started', name: 'DateTime Work Started', validator: dateObjValidator },
+  // { field: 'datetime_work_finished', name: 'DateTime Work Started', validator: dateObjValidator },
+  // { field: 'status', name: 'Status', validator: required_textValidator },
 ];
 
 export const create_mechanic_service_request_offer_required_props: IModelValidator[] = [
@@ -498,6 +490,7 @@ export const populate_carmaster_notification_obj = async (notification_model: IM
   const notificationObj = notification_model.toJSON() as INotification;
   const user_model = await get_user_by_id(notificationObj.from_id)
   const full_name = getUserFullName(<IUser> user_model!);
+  
   let message = '';
   let mount_prop_key = '';
   let mount_value = null;

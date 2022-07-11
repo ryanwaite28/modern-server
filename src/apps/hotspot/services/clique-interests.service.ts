@@ -155,7 +155,7 @@ export class CliqueInterestsService {
       CommonSocketEventsHandler.emitEventToUserSockets({
         user_id: clique_model.get('creator_id'),
         event: HOTSPOT_EVENT_TYPES.NEW_CLIQUE_INTEREST,
-        data: { user: you, notification }
+        event_data: { user: you, notification }
       });
     });
 

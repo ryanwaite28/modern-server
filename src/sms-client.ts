@@ -2,6 +2,7 @@ import Nexmo, {
   SendSmsOptions,
   MessageRequestResponseStatusCode
 } from 'nexmo';
+import { isProd } from './apps/_common/common.chamber';
 import { PlainObject } from './apps/_common/interfaces/common.interface';
 
 export function send_sms(params: {
@@ -47,7 +48,7 @@ export function send_sms(params: {
     const smsOpts =  {
       from,
       to: to_number,
-      body: message
+      body: (!isProd ? '(DEV) ' : '') + message
     } as SendSmsOptions;
 
     try {
