@@ -1893,10 +1893,10 @@ export class UsersService {
     return serviceMethodResults;
   }
 
-  static async is_subscription_active(user: IUser): ServiceMethodAsyncResults {
+  static async is_subscription_active(user: IUser): ServiceMethodAsyncResults<boolean> {
     const is_subscription_active = await StripeService.is_subscription_active(user.platform_subscription_id);
 
-    const serviceMethodResults: ServiceMethodResults = {
+    const serviceMethodResults: ServiceMethodResults<boolean> = {
       status: HttpStatusCode.OK,
       error: false,
       info: {

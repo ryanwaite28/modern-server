@@ -162,12 +162,15 @@ export interface IMechanicServiceRequest extends ICommonModel {
   mechanic_service_request_messages?: IMechanicServiceRequestMessage[];
 }
 
-export interface IMechanicServiceRequestOffer {
+export interface IMechanicServiceRequestOffer extends ICommonModel {
   service_request_id: number,
   service_request_user_id: number,
   mechanic_id: number,
   notes: string,
   status: string,
+
+  user?: IUser,
+  mechanic?: IMechanic,
 }
 
 export interface IMechanicServiceRequestMessage extends ICommonModel {

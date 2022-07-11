@@ -12,6 +12,7 @@ import {
   DestroyOptions
 } from 'sequelize';
 import {
+  COMMON_STATUSES,
   convertModelCurry,
   convertModelsCurry,
   create_model_crud_repo_from_model_class,
@@ -229,6 +230,10 @@ const mechanic_service_request_dispute_logs_crud = create_model_crud_repo_from_m
 
 export function get_mechanic_by_id(id: number) {
   return mechanics_crud.findById(id, { include: mechanicMasterIncludes });
+}
+
+export function get_user_from_mechanic_id(id: number) {
+  return mechanics_crud.findById(id, { include: [{ model: Users, as: 'user', attributes: user_attrs_slim }] }).then((mechanic) => mechanic!.user!);
 }
 
 export function get_mechanic_by_user_id(user_id: number) {
@@ -995,7 +1000,20 @@ export function delete_mechanic_service_request(service_request_id: number) {
 // mechanic service request offers
 
 export function get_service_request_offer_by_id(id: number) {
-  return mechanic_service_request_offers_crud.findById(id);
+  return mechanic_service_request_offers_crud.findById(id, { include: mechanicServiceRequestOfferMasterIncludes });
+}
+
+export function find_service_request_offers_by_service_request_id(find: FindOptions) {
+  return mechanic_service_request_offers_crud.findAll(find);
+}
+
+export function find_service_request_offer_pending_by_service_request_id_and_mechanic_id(params: {
+  service_request_id: number,
+  mechanic_id: number
+}) {
+  return mechanic_service_request_offers_crud.findOne({
+    where: { ...params, status: COMMON_STATUSES.PENDING }
+  });
 }
 
 export function find_all_mechanic_service_request_offers(mechanic_id: number) {

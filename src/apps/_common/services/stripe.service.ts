@@ -7,7 +7,6 @@ import { UsersService } from './users.service';
 const stripe: Stripe = new Stripe(process.env.STRIPE_SK!, {
   apiVersion: '2020-08-27',
 });
-export const DELIVERME_APP_FEE = 0.08;
 
 
 

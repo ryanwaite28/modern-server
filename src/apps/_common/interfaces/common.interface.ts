@@ -3,12 +3,16 @@ import {
   Response
 } from 'express';
 import { Server } from 'socket.io';
-import { IUserModel } from '../models/common.model-types';
+import { IMyModel, IUserModel } from '../models/common.model-types';
 import { SocketsService } from '../services/sockets.service';
 import socket_io from 'socket.io';
 import { ServiceMethodAsyncResults } from '../types/common.types';
 import { Options } from 'sequelize/types';
 
+
+export interface INotificationPopulateFn {
+  (notification_model: IMyModel): Promise<INotification>,
+}
 export interface PlainObject<T = any> {
   [key: string]: T;
 }

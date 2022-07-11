@@ -2267,15 +2267,20 @@ export class DeliveriesService {
     // const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout, was_subscribed);
 
     const transferAmount = delivery.payout * 100;
+    const carrierHasMembershipResults = await UsersService.is_subscription_active(delivery.carrier! as IUser);
+    const deduction = Math.ceil(transferAmount * 0.1);
+    const useTransferAmount = carrierHasMembershipResults.info.data
+      ? transferAmount
+      : (transferAmount - deduction);
     const charge_id = payment_intent.charges.data[0].id;
-    console.log({ payment_intent_id: payment_intent.id, charge_id, transferAmount });
+    console.log({ payment_intent_id: payment_intent.id, charge_id, transferAmount, deduction, useTransferAmount });
     
     // try transferring
     let transfer: Stripe.Transfer;
     try {
       const transferCreateData: Stripe.TransferCreateParams = {
         description: `${MODERN_APP_NAMES.DELIVERME} - payment for delivery listing: ${delivery.title}`,
-        amount: transferAmount,
+        amount: useTransferAmount,
         currency: 'usd',
         destination: delivery.carrier!.stripe_account_id,
         source_transaction: charge_id, 

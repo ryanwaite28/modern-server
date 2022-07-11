@@ -6,7 +6,7 @@ import { UploadedFile } from 'express-fileupload';
 import { CarMasterService } from "../services/car-master.service";
 import { CatchRequestHandlerError } from "../../_common/decorators/common.decorator";
 import { update_mechanic_fields } from "../car-master.chamber";
-import { IMechanicServiceRequest } from "../interfaces/car-master.interface";
+import { IMechanicServiceRequest, IMechanicServiceRequestOffer } from "../interfaces/car-master.interface";
 
 
 export class CarMasterRequestHandler {
@@ -219,5 +219,134 @@ export class CarMasterRequestHandler {
     const serviceMethodResults: ServiceMethodResults = await CarMasterService.create_mechanic_rating_edit(rating_id, request.body);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
+
+
+
+
+  //  service requests
+
+  @CatchRequestHandlerError()
+  static async send_service_request_offer(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const mechanic_id: number = parseInt(request.params.mechanic_id, 10);
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.send_service_request_offer(you, mechanic_id, service_request);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async cancel_service_request_offer(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const mechanic_id: number = parseInt(request.params.mechanic_id, 10);
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.cancel_service_request_offer(you, mechanic_id, service_request);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async accept_service_request_offer(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request_offer = response.locals.service_request_offer_model as IMechanicServiceRequestOffer;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.accept_service_request_offer(you, service_request_offer);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async decline_service_request_offer(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request_offer = response.locals.service_request_offer_model as IMechanicServiceRequestOffer;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.decline_service_request_offer(you, service_request_offer);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+
+
+  @CatchRequestHandlerError()
+  static async service_request_user_canceled(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.service_request_user_canceled(you.id, service_request);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  
+  @CatchRequestHandlerError()
+  static async service_request_mechanic_canceled(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.service_request_mechanic_canceled(you.id, service_request);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+
+
+  @CatchRequestHandlerError()
+  static async send_service_request_message(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const options = {
+      you_id: you.id,
+      service_request,
+      body: request.body.body as string,
+    };
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.send_service_request_message(options);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  
+  @CatchRequestHandlerError()
+  static async mark_service_request_as_work_started(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const options = {
+      you_id: you.id,
+      service_request,
+    };
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.mark_service_request_as_work_started(options);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  
+  @CatchRequestHandlerError()
+  static async mark_service_request_as_work_finished(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const options = {
+      you_id: you.id,
+      service_request,
+    };
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.mark_service_request_as_work_finished(options);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+  
+  @CatchRequestHandlerError()
+  static async add_work_finished_picture(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const options = {
+      you_id: you.id,
+      service_request,
+      work_finished_image: request.files && (<UploadedFile> request.files.work_finished_image),
+    };
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.add_work_finished_picture(options);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+
+
+  @CatchRequestHandlerError()
+  static async pay_mechanic_via_transfer(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.pay_mechanic_via_transfer(you, service_request);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+
+  @CatchRequestHandlerError()
+  static async mechanic_self_pay(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.mechanic_self_pay(you, service_request);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
 
 }

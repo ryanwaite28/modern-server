@@ -44,22 +44,26 @@ import {
   create_mechanic_service,
   create_mechanic_service_request,
   create_mechanic_service_request_message,
+  create_mechanic_service_request_offer,
   delete_mechanic_credential,
   delete_mechanic_expertise,
   delete_mechanic_field,
   delete_mechanic_service,
   delete_mechanic_service_request,
   delete_mechanic_service_request_messages,
+  delete_mechanic_service_request_offer,
   find_all_mechanic_service_requests,
   find_all_mechanic_service_request_disputes,
   find_all_mechanic_service_request_dispute_logs,
   find_all_user_service_requests,
   find_mechanic_service_requests,
   find_service_request_dispute,
+  find_service_request_offer_pending_by_service_request_id_and_mechanic_id,
   find_user_service_requests,
   get_mechanic_by_id,
   get_mechanic_by_user_id,
   get_service_request_by_id,
+  get_user_from_mechanic_id,
   search_mechanics,
   search_service_requests,
   update_mechanic_credential,
@@ -68,13 +72,14 @@ import {
   update_mechanic_profile,
   update_mechanic_service,
   update_mechanic_service_request,
+  update_mechanic_service_request_offer,
 } from "../repos/car-master.repo";
 import { CARMASTER_EVENT_TYPES, CARMASTER_NOTIFICATION_TARGET_TYPES, CARMASTER_SERVICE_REQUEST_STATUSES } from "../enums/car-master.enum";
 import { IUser, PlainObject } from "../../_common/interfaces/common.interface";
 import Stripe from "stripe";
 import { COMMON_STRIPE_ACTION_EVENTS, COMMON_TRANSACTION_STATUS, MODERN_APP_NAMES } from "../../_common/enums/common.enum";
 import { StripeActions } from "../../_common/models/user.model";
-import { create_notification } from "../../_common/repos/notifications.repo";
+import { create_notification, create_notification_and_send } from "../../_common/repos/notifications.repo";
 import { CommonSocketEventsHandler } from "../../_common/services/socket-events-handlers-by-app/common.socket-event-handler";
 import { send_sms } from "../../../sms-client";
 import moment from 'moment';
@@ -519,6 +524,18 @@ export class CarMasterService {
     };
     return serviceMethodResults;
   }
+
+  static async get_user_from_mechanic_id(mechanic_id: number): Promise<ServiceMethodResults<IUser>> {
+    const result: IUser = await get_user_from_mechanic_id(mechanic_id);
+    const serviceMethodResults: ServiceMethodResults<IUser> = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: result,
+      },
+    };
+    return serviceMethodResults;
+  }
   
   static async create_mechanic_profile(user_id: number): Promise<ServiceMethodResults<IMechanic>> {
     const check: IMechanic | null = await get_mechanic_by_user_id(user_id);
@@ -936,21 +953,370 @@ export class CarMasterService {
   
   // service requests
 
-  static async send_service_request_offer(you: IUser, service_request: IMechanicServiceRequest) {
+  static async send_service_request_offer(you: IUser, mechanic_id: number, service_request: IMechanicServiceRequest) {
+    // assume the route guards prepared/validated checks for: you, mechanic, service request
 
-  }
-
-  static async cancel_service_request_offer(you: IUser, service_request: IMechanicServiceRequest) {
+    const check_existing_offer = await find_service_request_offer_pending_by_service_request_id_and_mechanic_id({
+      mechanic_id,
+      service_request_id: service_request.id,
+    });
     
+    if (!!check_existing_offer) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Already made offer`,
+          data: check_existing_offer,
+        },
+      };
+      return serviceMethodResults;
+    }
+
+    const new_offer = await create_mechanic_service_request_offer({
+      service_request_id: service_request.id,
+      service_request_user_id: service_request.user_id,
+      mechanic_id,
+      status: COMMON_STATUSES.PENDING,
+      notes: '',
+    });
+
+    create_notification_and_send({
+      from_id: you.id,
+      to_id: service_request.user_id,
+      event: CARMASTER_EVENT_TYPES.NEW_SERVICE_REQUEST_OFFER,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request.id,
+
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: service_request.user?.phone,
+
+      extras_data: {
+        service_request_id: service_request.id,
+        data: new_offer,
+        user_id: you.id,
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Offer sent`,
+        data: new_offer,
+      },
+    };
+    return serviceMethodResults;
   }
 
-  static async decline_service_request_offer(you: IUser, service_request: IMechanicServiceRequest) {
+  static async cancel_service_request_offer(you: IUser, mechanic_id: number, service_request: IMechanicServiceRequest) {
+    // assume the route guards prepared/validated checks for: you, mechanic, service request
+
+    const check_existing_offer = await find_service_request_offer_pending_by_service_request_id_and_mechanic_id({
+      mechanic_id,
+      service_request_id: service_request.id,
+    });
     
+    if (!check_existing_offer) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Cannot find offer`,
+          data: check_existing_offer,
+        },
+      };
+      return serviceMethodResults;
+    }
+
+    const updates = await update_mechanic_service_request_offer(check_existing_offer.id, {
+      status: COMMON_STATUSES.PENDING,
+    });
+
+    create_notification_and_send({
+      from_id: you.id,
+      to_id: service_request.user_id,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_OFFER_CANCELED,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request.id,
+
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: service_request.user?.phone,
+
+      extras_data: {
+        service_request_id: service_request.id,
+        data: updates,
+        user_id: you.id,
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Offer canceled`,
+        data: updates,
+      },
+    };
+    return serviceMethodResults;
   }
 
-  static async accept_service_request_offer(you: IUser, service_request: IMechanicServiceRequest) {
-    
+  static async decline_service_request_offer(you: IUser, service_request_offer: IMechanicServiceRequestOffer) {
+    // assume all guards are validated
+    if (service_request_offer.status !== COMMON_STATUSES.PENDING) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Offer is not in a pending state`,
+        },
+      };
+      return serviceMethodResults;
+    }
+
+    const updates = await update_mechanic_service_request_offer(service_request_offer.id, {
+      status: COMMON_STATUSES.DECLINED
+    });
+
+    create_notification_and_send({
+      from_id: you.id,
+      to_id: service_request_offer.mechanic!.user!.id,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_OFFER_DECLINED,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request_offer.service_request_id,
+
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: service_request_offer.mechanic!.phone || service_request_offer.mechanic!.user!.phone,
+
+      extras_data: {
+        service_request_id: service_request_offer.service_request_id,
+        data: updates,
+        user_id: you.id,
+        user: service_request_offer.user
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Offer declined`,
+        data: updates,
+      },
+    };
+    return serviceMethodResults;
   }
+
+  static async accept_service_request_offer(you: IUser, service_request_offer: IMechanicServiceRequestOffer) {
+    if (service_request_offer.status !== COMMON_STATUSES.PENDING) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Offer is not in a pending state`,
+        },
+      };
+      return serviceMethodResults;
+    }
+
+    const updates = await update_mechanic_service_request_offer(service_request_offer.id, {
+      status: COMMON_STATUSES.ACCEPTED
+    });
+
+    // assign mechanic to service request
+    const service_request_updates = await update_mechanic_service_request(service_request_offer.service_request_id, {
+      mechanic_id: service_request_offer.mechanic_id,
+      status: CARMASTER_SERVICE_REQUEST_STATUSES.IN_PROGRESS,
+      datetime_accepted: fn('NOW') as any
+    })
+
+    create_notification_and_send({
+      from_id: you.id,
+      to_id: service_request_offer.mechanic!.user!.id,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_OFFER_ACCEPTED,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request_offer.service_request_id,
+
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: service_request_offer.mechanic!.phone || service_request_offer.mechanic!.user!.phone,
+
+      extras_data: {
+        service_request_id: service_request_offer.service_request_id,
+        data: { updates, service_request_updates },
+        user_id: you.id,
+        user: service_request_offer.user,
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Offer accepted`,
+        data: { updates, service_request_updates },
+      },
+    };
+    return serviceMethodResults;
+  }
+
+
+
+  static async service_request_user_canceled(you_id: number, service_request: IMechanicServiceRequest) {
+    if (service_request.user_id !== you_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the owner of this service request.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!!service_request.datetime_work_finished) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Work already finished`,
+        }
+      };
+      return serviceMethodResults;
+    }
+    
+    // delete the children relationship data
+    await delete_mechanic_service_request_messages({ where: { service_request_id: service_request.id } });
+
+    const updatesobj: Partial<IMechanicServiceRequest> | any = {};
+    updatesobj.mechanic_id = null;
+    updatesobj.datetime_accepted = null;
+    updatesobj.datetime_declined = null;
+    updatesobj.datetime_work_started = null;
+    updatesobj.status = CARMASTER_SERVICE_REQUEST_STATUSES.OPEN;
+    const updates = await update_mechanic_service_request(service_request.id, updatesobj);
+
+    create_notification({
+      from_id: you_id,
+      to_id: service_request.mechanic!.user_id,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_USER_CANCELED,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request.id
+    }).then(async (notification_model) => {
+      const notification = await populate_carmaster_notification_obj(notification_model);
+      
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: service_request.mechanic!.user_id,
+        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_USER_CANCELED,
+        event_data: {
+          service_request_id: service_request.id,
+          data: updates,
+          message: notification.message,
+          user_id: you_id,
+          notification,
+        }
+      });
+
+      const to_phone_number = service_request.mechanic?.user?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Service request canceled`,
+        data: updates[1],
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async service_request_mechanic_canceled(you_id: number, service_request: IMechanicServiceRequest) {
+    if (service_request.mechanic_id !== you_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the mechanic of this service request.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!!service_request.datetime_work_finished) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Work already finished`,
+        }
+      };
+      return serviceMethodResults;
+    }
+    
+    // delete the children relationship data
+    await delete_mechanic_service_request_messages({ where: { service_request_id: service_request.id } });
+
+    const updatesobj: Partial<IMechanicServiceRequest> | any = {};
+    updatesobj.mechanic_id = null;
+    updatesobj.datetime_accepted = null;
+    updatesobj.datetime_declined = null;
+    updatesobj.datetime_work_started = null;
+    updatesobj.status = CARMASTER_SERVICE_REQUEST_STATUSES.OPEN;
+    const updates = await update_mechanic_service_request(service_request.id, updatesobj);
+
+    create_notification({
+      from_id: you_id,
+      to_id: service_request.user_id,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_MECHANIC_CANCELED,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request.id
+    }).then(async (notification_model) => {
+      const notification = await populate_carmaster_notification_obj(notification_model);
+      
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: service_request.user_id,
+        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_MECHANIC_CANCELED,
+        event_data: {
+          service_request_id: service_request.id,
+          data: updates,
+          message: notification.message,
+          user_id: you_id,
+          notification,
+        }
+      });
+
+      const to_phone_number = service_request.user?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Service request canceled`,
+        data: updates[1],
+      }
+    };
+    return serviceMethodResults;
+  }
+
 
 
   static async send_service_request_message(options: {
@@ -961,7 +1327,7 @@ export class CarMasterService {
     const { you_id, service_request, body } = options;
   
 
-    if (you_id !== service_request.user_id && (!service_request.mechanic_id || you_id !== service_request.mechanic_id)) {
+    if (you_id !== service_request.user_id && you_id !== service_request.mechanic_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
@@ -1202,9 +1568,8 @@ export class CarMasterService {
     you_id: number,
     service_request: IMechanicServiceRequest,
     work_finished_image?: UploadedFile,
-    ignoreNotification?: boolean,
   }) {
-    const { you_id, service_request, work_finished_image, ignoreNotification } = options;
+    const { you_id, service_request, work_finished_image } = options;
     
     const service_request_id = service_request.id;
     const owner_id = service_request.user_id;
@@ -1243,38 +1608,36 @@ export class CarMasterService {
     updatesobj.work_finished_image_link = imageValidation.info.data.image_link;
     const updates = await update_mechanic_service_request(service_request_id, updatesobj);
 
-    if (!ignoreNotification) {
-      create_notification({
-        from_id: you_id,
-        to_id: owner_id,
+    create_notification({
+      from_id: you_id,
+      to_id: owner_id,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_ADD_WORK_FINISHED_PICTURE,
+      micro_app: MODERN_APP_NAMES.CARMASTER,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id: service_request_id
+    }).then(async (notification_model) => {
+      const notification = await populate_carmaster_notification_obj(notification_model);
+      CommonSocketEventsHandler.emitEventToUserSockets({
+        user_id: owner_id,
         event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_ADD_WORK_FINISHED_PICTURE,
-        micro_app: MODERN_APP_NAMES.CARMASTER,
-        target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-        target_id: service_request_id
-      }).then(async (notification_model) => {
-        const notification = await populate_carmaster_notification_obj(notification_model);
-        CommonSocketEventsHandler.emitEventToUserSockets({
-          user_id: owner_id,
-          event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_ADD_WORK_FINISHED_PICTURE,
-          event_data: {
-            service_request_id,
-            data: updates,
-            message: `Service request added work finished picture!`,
-            user_id: you_id,
-            notification,
-            ...imageValidation.info.data
-          }
-        });
-  
-        const to_phone_number = service_request.user?.phone;
-        if (!!to_phone_number && validatePhone(to_phone_number)) {
-          send_sms({
-            to_phone_number,
-            message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-          });
+        event_data: {
+          service_request_id,
+          data: updates,
+          message: `Service request added work finished picture!`,
+          user_id: you_id,
+          notification,
+          ...imageValidation.info.data
         }
       });
-    }
+
+      const to_phone_number = service_request.user?.phone;
+      if (!!to_phone_number && validatePhone(to_phone_number)) {
+        send_sms({
+          to_phone_number,
+          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
+        });
+      }
+    });
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -1290,7 +1653,12 @@ export class CarMasterService {
     return serviceMethodResults;
   }
 
-  static async service_request_user_canceled(you_id: number, service_request: IMechanicServiceRequest) {
+  static async mark_service_request_as_completed(options: {
+    you_id: number,
+    service_request: IMechanicServiceRequest,
+  }) {
+    const { you_id, service_request } = options;
+
     if (service_request.user_id !== you_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
@@ -1302,32 +1670,25 @@ export class CarMasterService {
       return serviceMethodResults;
     }
 
-    if (!!service_request.datetime_work_finished) {
+    if (!!service_request.datetime_completed) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
         error: true,
         info: {
-          message: `Work already finished`,
+          message: `Already completed`,
         }
       };
       return serviceMethodResults;
     }
     
-    // delete the children relationship data
-    await delete_mechanic_service_request_messages({ where: { service_request_id: service_request.id } });
-
     const updatesobj: Partial<IMechanicServiceRequest> | any = {};
-    updatesobj.mechanic_id = null;
-    updatesobj.datetime_accepted = null;
-    updatesobj.datetime_declined = null;
-    updatesobj.datetime_work_started = null;
-    updatesobj.status = CARMASTER_SERVICE_REQUEST_STATUSES.OPEN;
+    updatesobj.datetime_completed = fn('NOW');
     const updates = await update_mechanic_service_request(service_request.id, updatesobj);
 
     create_notification({
       from_id: you_id,
-      to_id: service_request.mechanic!.user_id,
-      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_USER_CANCELED,
+      to_id: service_request.mechanic_id!,
+      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_COMPLETED,
       micro_app: MODERN_APP_NAMES.CARMASTER,
       target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
       target_id: service_request.id
@@ -1335,88 +1696,12 @@ export class CarMasterService {
       const notification = await populate_carmaster_notification_obj(notification_model);
       
       CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: service_request.mechanic!.user_id,
-        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_USER_CANCELED,
+        user_id: service_request.mechanic_id!,
+        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_COMPLETED,
         event_data: {
           service_request_id: service_request.id,
           data: updates,
-          message: notification.message,
-          user_id: you_id,
-          notification,
-        }
-      });
-
-      const to_phone_number = service_request.mechanic?.user?.phone;
-      if (!!to_phone_number && validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
-      }
-    });
-
-    const serviceMethodResults: ServiceMethodResults = {
-      status: HttpStatusCode.OK,
-      error: false,
-      info: {
-        message: `Service request canceled`,
-        data: updates[1],
-      }
-    };
-    return serviceMethodResults;
-  }
-
-  static async service_request_mechanic_canceled(you_id: number, service_request: IMechanicServiceRequest) {
-    if (service_request.mechanic_id !== you_id) {
-      const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.BAD_REQUEST,
-        error: true,
-        info: {
-          message: `You are not the mechanic of this service request.`,
-        }
-      };
-      return serviceMethodResults;
-    }
-
-    if (!!service_request.datetime_work_finished) {
-      const serviceMethodResults: ServiceMethodResults = {
-        status: HttpStatusCode.BAD_REQUEST,
-        error: true,
-        info: {
-          message: `Work already finished`,
-        }
-      };
-      return serviceMethodResults;
-    }
-    
-    // delete the children relationship data
-    await delete_mechanic_service_request_messages({ where: { service_request_id: service_request.id } });
-
-    const updatesobj: Partial<IMechanicServiceRequest> | any = {};
-    updatesobj.mechanic_id = null;
-    updatesobj.datetime_accepted = null;
-    updatesobj.datetime_declined = null;
-    updatesobj.datetime_work_started = null;
-    updatesobj.status = CARMASTER_SERVICE_REQUEST_STATUSES.OPEN;
-    const updates = await update_mechanic_service_request(service_request.id, updatesobj);
-
-    create_notification({
-      from_id: you_id,
-      to_id: service_request.user_id,
-      event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_MECHANIC_CANCELED,
-      micro_app: MODERN_APP_NAMES.CARMASTER,
-      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request.id
-    }).then(async (notification_model) => {
-      const notification = await populate_carmaster_notification_obj(notification_model);
-      
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: service_request.user_id,
-        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_MECHANIC_CANCELED,
-        event_data: {
-          service_request_id: service_request.id,
-          data: updates,
-          message: notification.message,
+          message: `Completed service request "${service_request.title}"`,
           user_id: you_id,
           notification,
         }
@@ -1435,15 +1720,146 @@ export class CarMasterService {
       status: HttpStatusCode.OK,
       error: false,
       info: {
-        message: `Service request canceled`,
-        data: updates[1],
+        message: `Service request completed!`,
+        data: updates[1]?.datetime_work_finished,
       }
     };
     return serviceMethodResults;
   }
 
+  
+
   static async pay_mechanic_via_transfer(you: IUser, service_request: IMechanicServiceRequest) {
+    if (service_request.user_id !== you.id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `You are not the owner of this delivery.`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!!service_request.datetime_completed) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Delivery is already completed`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!service_request.user?.stripe_account_verified || !service_request.user?.stripe_account_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Owner's stripe account is not setup`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    if (!service_request.mechanic?.user?.stripe_account_verified || !service_request.mechanic?.user?.stripe_account_id) {
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Mechanic's stripe account is not setup`,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    const balance = await StripeService.stripe.balance.retrieve();
+    console.log({ balance }, JSON.stringify(balance));
     
+    const payment_intent = await StripeService.stripe.paymentIntents.retrieve(service_request.payment_intent_id, { expand: ['charges'] });
+    // const was_subscribed: boolean = payment_intent.metadata['was_subscribed'] === 'true' ? true : false;
+    // const chargeFeeData = StripeService.add_on_stripe_processing_fee(delivery.payout, was_subscribed);
+
+    const transferAmount = service_request.payout * 100;
+    const mechanicHasMembershipResults = await UsersService.is_subscription_active(service_request.mechanic?.user! as IUser);
+    const deduction = Math.ceil(transferAmount * 0.1);
+    const useTransferAmount = mechanicHasMembershipResults.info.data
+      ? transferAmount
+      : (transferAmount - deduction);
+    const charge_id = payment_intent.charges.data[0].id;
+    console.log({ payment_intent_id: payment_intent.id, charge_id, transferAmount, deduction, useTransferAmount });
+    
+    // try transferring
+    let transfer: Stripe.Transfer;
+    try {
+      const transferCreateData: Stripe.TransferCreateParams = {
+        description: `${MODERN_APP_NAMES.CARMASTER} - payment for service request listing: ${service_request.title}`,
+        amount: useTransferAmount,
+        currency: 'usd',
+        destination: service_request.mechanic?.user!.stripe_account_id,
+        source_transaction: charge_id, 
+
+        metadata: {
+          service_request_id: service_request.id,
+          transfer_event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_COMPLETED,
+          micro_app: MODERN_APP_NAMES.CARMASTER,
+          target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+          target_id: service_request.id
+        }
+      };
+
+      console.log({ transferCreateData });
+
+      transfer = await StripeService.stripe.transfers.create(transferCreateData);
+    }
+    catch (e) {
+      console.log(e);
+      const serviceMethodResults: ServiceMethodResults = {
+        status: HttpStatusCode.BAD_REQUEST,
+        error: true,
+        info: {
+          message: `Could not transfer...`,
+          error: e,
+        }
+      };
+      return serviceMethodResults;
+    }
+
+    // record the transaction
+    const transfer_action = await StripeActions.create({
+      action_event:                        COMMON_STRIPE_ACTION_EVENTS.TRANSFER,
+      action_id:                           transfer.id,
+      action_metadata:                     null,
+      micro_app:                           MODERN_APP_NAMES.CARMASTER,
+      target_type:                         CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
+      target_id:                           service_request.id,
+      target_metadata:                     null,
+      status:                              COMMON_TRANSACTION_STATUS.COMPLETED,
+    });
+
+    console.log(`Service request paid successfully via transfer. Service request ID:`, service_request.id, {
+      transfer,
+      transfer_action: transfer_action.toJSON(),
+    });
+
+
+    const deliveryCompletedResults = await CarMasterService.mark_service_request_as_completed({ you_id: you.id, service_request });
+
+    deliveryCompletedResults.info.message && console.log(deliveryCompletedResults.info.message);
+
+    if (deliveryCompletedResults.error) {
+      return deliveryCompletedResults;
+    }
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        message: `Payment successful!`,
+      }
+    };
+    return serviceMethodResults;
   }
 
   static async mechanic_self_pay(you: IUser, service_request: IMechanicServiceRequest) {
