@@ -953,6 +953,24 @@ export class CarMasterService {
   
   // service requests
 
+  static async mechanic_check_service_request_offer(you: IUser, mechanic_id: number, service_request: IMechanicServiceRequest) {
+    // assume the route guards prepared/validated checks for: you, mechanic, service request
+
+    const check_existing_offer = await find_service_request_offer_pending_by_service_request_id_and_mechanic_id({
+      mechanic_id,
+      service_request_id: service_request.id,
+    });
+
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: check_existing_offer,
+      },
+    };
+    return serviceMethodResults;
+  }
+
   static async send_service_request_offer(you: IUser, mechanic_id: number, service_request: IMechanicServiceRequest) {
     // assume the route guards prepared/validated checks for: you, mechanic, service request
 
@@ -1683,6 +1701,7 @@ export class CarMasterService {
     
     const updatesobj: Partial<IMechanicServiceRequest> | any = {};
     updatesobj.datetime_completed = fn('NOW');
+    updatesobj.status = CARMASTER_SERVICE_REQUEST_STATUSES.COMPLETED;
     const updates = await update_mechanic_service_request(service_request.id, updatesobj);
 
     create_notification({

@@ -158,7 +158,7 @@ export interface IMechanicServiceRequest extends ICommonModel {
   user?: IUser,
   mechanic?: IMechanic,
   service?: IMechanicService,
-  mechanic_service_request_offers?: IMechanicServiceRequestOffer[];
+  service_request_offers?: IMechanicServiceRequestOffer[];
   mechanic_service_request_messages?: IMechanicServiceRequestMessage[];
 }
 

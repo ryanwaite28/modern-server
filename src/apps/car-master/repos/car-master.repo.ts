@@ -55,6 +55,7 @@ import {
   IMechanicServiceRequestOffer 
 } from '../interfaces/car-master.interface';
 import { getAll, paginateTable } from '../../_common/repos/_common.repo';
+import { CARMASTER_SERVICE_REQUEST_STATUSES } from '../enums/car-master.enum';
 
 
 export const mechanicCredentialsInclude: Includeable[] = [
@@ -514,6 +515,7 @@ export async function search_service_requests(params: {
         { year: max_year },
       ],
 
+      status: CARMASTER_SERVICE_REQUEST_STATUSES.OPEN
     },
     include: mechanicServiceRequestMasterIncludes
   });

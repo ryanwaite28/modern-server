@@ -226,6 +226,15 @@ export class CarMasterRequestHandler {
   //  service requests
 
   @CatchRequestHandlerError()
+  static async mechanic_check_service_request_offer(request: Request, response: Response): ExpressResponse {
+    const you = response.locals.you as IUser;
+    const mechanic_id: number = parseInt(request.params.mechanic_id, 10);
+    const service_request = response.locals.service_request_model as IMechanicServiceRequest;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.mechanic_check_service_request_offer(you, mechanic_id, service_request);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
   static async send_service_request_offer(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you as IUser;
     const mechanic_id: number = parseInt(request.params.mechanic_id, 10);
