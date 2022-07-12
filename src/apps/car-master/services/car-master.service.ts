@@ -332,7 +332,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Service request updated successfully`,
-        data: updates,
+        data: updates[1],
       },
     };
     return serviceMethodResults;
@@ -501,9 +501,9 @@ export class CarMasterService {
 
   // mechanic profile
   
-  static async get_mechanic_by_id(mechanic_id: number): Promise<ServiceMethodResults> {
+  static async get_mechanic_by_id(mechanic_id: number): Promise<ServiceMethodResults<IMechanic | null>> {
     const result: IMechanic | null = await get_mechanic_by_id(mechanic_id);
-    const serviceMethodResults: ServiceMethodResults = {
+    const serviceMethodResults: ServiceMethodResults<IMechanic | null> = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -513,9 +513,9 @@ export class CarMasterService {
     return serviceMethodResults;
   }
 
-  static async get_mechanic_by_user_id(user_id: number): Promise<ServiceMethodResults> {
+  static async get_mechanic_by_user_id(user_id: number): Promise<ServiceMethodResults<IMechanic | null>> {
     const result: IMechanic | null = await get_mechanic_by_user_id(user_id);
-    const serviceMethodResults: ServiceMethodResults = {
+    const serviceMethodResults: ServiceMethodResults<IMechanic | null> = {
       status: HttpStatusCode.OK,
       error: false,
       info: {
@@ -585,7 +585,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Mechanic profile updated successfully!`,
-        data: updates,
+        data: updates[1],
       },
     };
     return serviceMethodResults;
@@ -678,7 +678,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Mechanic field updated successfully`,
-        data: updates,
+        data: updates[1],
       },
     };
     return serviceMethodResults;
@@ -756,7 +756,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Mechanic credential updated successfully`,
-        data: updates,
+        data: updates[1],
       },
     };
     return serviceMethodResults;
@@ -817,7 +817,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Mechanic expertise updated successfully`,
-        data: updates,
+        data: updates[1],
       },
     };
     return serviceMethodResults;
@@ -879,7 +879,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Mechanic service updated successfully`,
-        data: updates,
+        data: updates[1],
       },
     };
     return serviceMethodResults;
@@ -1065,7 +1065,7 @@ export class CarMasterService {
 
       extras_data: {
         service_request_id: service_request.id,
-        data: updates,
+        data: updates[1],
         user_id: you.id,
       }
     });
@@ -1075,7 +1075,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Offer canceled`,
-        data: updates,
+        data: updates[1],
       },
     };
     return serviceMethodResults;
@@ -1111,7 +1111,7 @@ export class CarMasterService {
 
       extras_data: {
         service_request_id: service_request_offer.service_request_id,
-        data: updates,
+        data: updates[1],
         user_id: you.id,
         user: service_request_offer.user
       }
@@ -1122,7 +1122,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Offer declined`,
-        data: updates,
+        data: updates[1],
       },
     };
     return serviceMethodResults;
@@ -1175,7 +1175,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Offer accepted`,
-        data: { updates, service_request_updates },
+        data: { updates: updates[1], service_request: service_request_updates[1] },
       },
     };
     return serviceMethodResults;
@@ -1232,7 +1232,7 @@ export class CarMasterService {
         event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_USER_CANCELED,
         event_data: {
           service_request_id: service_request.id,
-          data: updates,
+          data: updates[1],
           message: notification.message,
           user_id: you_id,
           notification,
@@ -1308,7 +1308,7 @@ export class CarMasterService {
         event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_MECHANIC_CANCELED,
         event_data: {
           service_request_id: service_request.id,
-          data: updates,
+          data: updates[1],
           message: notification.message,
           user_id: you_id,
           notification,
@@ -1470,7 +1470,7 @@ export class CarMasterService {
         event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_STARTED,
         event_data: {
           service_request_id: service_request.id,
-          data: updates,
+          data: updates[1],
           message: `Mechanic started work on service request "${service_request.title}"`,
           user_id: you_id,
           notification,
@@ -1555,7 +1555,7 @@ export class CarMasterService {
         event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_FINISHED,
         event_data: {
           service_request_id: service_request.id,
-          data: updates,
+          data: updates[1],
           message: `Mechanic finished work on service request "${service_request.title}"`,
           user_id: you_id,
           notification,
@@ -1640,7 +1640,7 @@ export class CarMasterService {
         event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_ADD_WORK_FINISHED_PICTURE,
         event_data: {
           service_request_id,
-          data: updates,
+          data: updates[1],
           message: `Service request added work finished picture!`,
           user_id: you_id,
           notification,
@@ -1719,7 +1719,7 @@ export class CarMasterService {
         event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_COMPLETED,
         event_data: {
           service_request_id: service_request.id,
-          data: updates,
+          data: updates[1],
           message: `Completed service request "${service_request.title}"`,
           user_id: you_id,
           notification,
