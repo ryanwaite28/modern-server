@@ -271,7 +271,6 @@ export function update_mechanic_profile(
     country: string,
   }>
 ) {
-  console.log({ mechanic_id, params });
   return mechanics_crud.updateById(mechanic_id, params)
     .then(async (results: [number, (IMechanic|null)]) => {
       const mechanic = await get_mechanic_by_id(mechanic_id);
@@ -572,8 +571,6 @@ export function create_mechanic_field(params: {
     is_link
   };
 
-  console.log(params, createObj);
-
   return mechanic_fields_crud.create(createObj);
 }
 
@@ -592,8 +589,6 @@ export function update_mechanic_field(
     fieldtype,
     is_link
   };
-
-  console.log(params, updatesObj);
 
   return mechanic_fields_crud.updateById(field_id, updatesObj);
 }
@@ -1031,7 +1026,10 @@ export function create_mechanic_service_request_offer(params: {
   notes: string,
   status: string,
 }) {
-  return mechanic_service_request_offers_crud.create(params);
+  return mechanic_service_request_offers_crud.create(params).then(async (offer) => {
+    const data = await get_service_request_offer_by_id(offer.id);
+    return data!;
+  });
 }
 
 export function update_mechanic_service_request_offer(

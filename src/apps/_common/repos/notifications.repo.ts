@@ -53,11 +53,19 @@ export async function create_notification_and_send(
     target_id: params.target_id,
   }).then(async (notification_model) => {
     const notification = await params.notification_populate_fn(notification_model);
+    
     const event_data: any = {
-      ...params,
+      from_id: params.from_id,
+      to_id: params.to_id,
+      event: params.event,
+      micro_app: params.micro_app,
+      target_type: params.target_type,
+      target_id: params.target_id,
+
       message: notification.message,
       notification,
     };
+    
     if (params.extras_data) {
       Object.assign(event_data, params.extras_data);
     }

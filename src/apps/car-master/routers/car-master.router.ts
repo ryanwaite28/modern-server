@@ -100,9 +100,9 @@ CarMasterAppRouter.post('/mechanics/:mechanic_id/expertise', ...mechanic_auths, 
 CarMasterAppRouter.post('/mechanics/:mechanic_id/service', ...mechanic_auths, CarMasterRequestHandler.create_mechanic_service);
 CarMasterAppRouter.post('/mechanics/:mechanic_id/rating', YouAuthorizedSlim, MechanicRouteGuards.existsGuard, MechanicRouteGuards.isNotOwnerGuard, CarMasterRequestHandler.create_mechanic_rating);
 CarMasterAppRouter.post('/mechanics/:mechanic_id/rating/:rating_id/edit', YouAuthorizedSlim, MechanicRouteGuards.existsGuard, MechanicRouteGuards.isNotOwnerGuard, MechanicRatingRouteGuards.existsGuard, MechanicRatingRouteGuards.isOwnerGuard, CarMasterRequestHandler.create_mechanic_rating_edit);
-CarMasterAppRouter.post('/mechanics/:mechanic_id/service-requests/:service_request_id/check-offer', YouAuthorized, MechanicRouteGuards.existsGuard, ServiceRequestUserRouteGuards.existsGuard, ServiceRequestUserRouteGuards.isNotOwnerGuard, CarMasterRequestHandler.mechanic_check_service_request_offer);
-CarMasterAppRouter.post('/mechanics/:mechanic_id/service-requests/:service_request_id/send-offer', YouAuthorized, MechanicRouteGuards.existsGuard, ServiceRequestUserRouteGuards.existsGuard, ServiceRequestUserRouteGuards.isNotOwnerGuard, CarMasterRequestHandler.send_service_request_offer);
-CarMasterAppRouter.post('/mechanics/:mechanic_id/service-requests/:service_request_id/self-pay', YouAuthorized, MechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.isOwnerGuard, CarMasterRequestHandler.mechanic_self_pay);
+CarMasterAppRouter.post('/mechanics/:mechanic_id/service-requests/:service_request_id/check-offer', YouAuthorizedSlim, MechanicRouteGuards.existsGuard, ServiceRequestUserRouteGuards.existsGuard, ServiceRequestUserRouteGuards.isNotOwnerGuard, CarMasterRequestHandler.mechanic_check_service_request_offer);
+CarMasterAppRouter.post('/mechanics/:mechanic_id/service-requests/:service_request_id/send-offer', YouAuthorizedSlim, MechanicRouteGuards.existsGuard, ServiceRequestUserRouteGuards.existsGuard, ServiceRequestUserRouteGuards.isNotOwnerGuard, CarMasterRequestHandler.send_service_request_offer);
+CarMasterAppRouter.post('/mechanics/:mechanic_id/service-requests/:service_request_id/self-pay', YouAuthorizedSlim, MechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.isOwnerGuard, CarMasterRequestHandler.mechanic_self_pay);
 
 
 // PUT
@@ -114,9 +114,9 @@ CarMasterAppRouter.put('/mechanics/:mechanic_id/credential/:credential_id', ...c
 CarMasterAppRouter.put('/mechanics/:mechanic_id/expertise/:expertise_id', ...expertise_owner_auths, CarMasterRequestHandler.update_mechanic_expertise);
 CarMasterAppRouter.put('/mechanics/:mechanic_id/service/:service_id', ...service_owner_auths, CarMasterRequestHandler.update_mechanic_service);
 
-CarMasterAppRouter.put('/mechanics/:mechanic_id/service-requests/:service_request_id/mark-as-work-started', YouAuthorized, MechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.isOwnerGuard, CarMasterRequestHandler.mark_service_request_as_work_started);
-CarMasterAppRouter.put('/mechanics/:mechanic_id/service-requests/:service_request_id/mark-as-work-finished', YouAuthorized, MechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.isOwnerGuard, CarMasterRequestHandler.mark_service_request_as_work_finished);
-CarMasterAppRouter.put('/mechanics/:mechanic_id/service-requests/:service_request_id/add-work-finished-picture', YouAuthorized, MechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.isOwnerGuard, CarMasterRequestHandler.add_work_finished_picture);
+CarMasterAppRouter.put('/mechanics/:mechanic_id/service-requests/:service_request_id/mark-as-work-started', YouAuthorizedSlim, MechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.isOwnerGuard, CarMasterRequestHandler.mark_service_request_as_work_started);
+CarMasterAppRouter.put('/mechanics/:mechanic_id/service-requests/:service_request_id/mark-as-work-finished', YouAuthorizedSlim, MechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.isOwnerGuard, CarMasterRequestHandler.mark_service_request_as_work_finished);
+CarMasterAppRouter.put('/mechanics/:mechanic_id/service-requests/:service_request_id/add-work-finished-picture', YouAuthorizedSlim, MechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.isOwnerGuard, CarMasterRequestHandler.add_work_finished_picture);
 
 
 
@@ -126,10 +126,9 @@ CarMasterAppRouter.delete('/mechanics/:mechanic_id/field/:field_id', ...field_ow
 CarMasterAppRouter.delete('/mechanics/:mechanic_id/credential/:credential_id', ...credential_owner_auths, CarMasterRequestHandler.delete_mechanic_credential);
 CarMasterAppRouter.delete('/mechanics/:mechanic_id/expertise/:expertise_id', ...expertise_owner_auths, CarMasterRequestHandler.delete_mechanic_expertise);
 CarMasterAppRouter.delete('/mechanics/:mechanic_id/service/:service_id', ...service_owner_auths, CarMasterRequestHandler.delete_mechanic_service);
-CarMasterAppRouter.delete('/mechanics/:mechanic_id/service-requests/:service_request_id/cancel-offer', YouAuthorized, MechanicRouteGuards.existsGuard, ServiceRequestUserRouteGuards.existsGuard, ServiceRequestUserRouteGuards.isNotOwnerGuard, CarMasterRequestHandler.get_mechanic_service_requests);
 // CarMasterAppRouter.delete('/mechanics/:mechanic_id/rating/:rating_id', ...mechanic_auths, MechanicRouteGuards.isNotOwnerGuard, MechanicRatingRouteGuards.isOwnerGuard, CarMasterRequestHandler.delete_mechanic_rating);
-CarMasterAppRouter.delete('/mechanics/:mechanic_id/service-requests/:service_request_id/cancel-offer', YouAuthorized, MechanicRouteGuards.existsGuard, ServiceRequestUserRouteGuards.existsGuard, ServiceRequestUserRouteGuards.isNotOwnerGuard, CarMasterRequestHandler.cancel_service_request_offer);
-CarMasterAppRouter.delete('/mechanics/:mechanic_id/service-requests/:service_request_id/cancel', YouAuthorized, MechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.isOwnerGuard, CarMasterRequestHandler.service_request_mechanic_canceled);
+CarMasterAppRouter.delete('/mechanics/:mechanic_id/service-requests/:service_request_id/cancel-offer', YouAuthorizedSlim, MechanicRouteGuards.existsGuard, ServiceRequestUserRouteGuards.existsGuard, ServiceRequestUserRouteGuards.isNotOwnerGuard, CarMasterRequestHandler.cancel_service_request_offer);
+CarMasterAppRouter.delete('/mechanics/:mechanic_id/service-requests/:service_request_id/cancel', YouAuthorizedSlim, MechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.existsGuard, ServiceRequestMechanicRouteGuards.isOwnerGuard, CarMasterRequestHandler.service_request_mechanic_canceled);
 
 
 

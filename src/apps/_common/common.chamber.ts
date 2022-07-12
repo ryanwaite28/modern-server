@@ -554,7 +554,7 @@ export const COMMON_STATUSES =  Object.freeze({
   ACCEPTED: `ACCEPTED`,
   DECLINED: `DECLINED`,
   OPEN: `OPEN`,
-})
+});
 
 export const populate_common_notification_obj = async (notification_model: any) => {
   const notificationObj = notification_model.toJSON();

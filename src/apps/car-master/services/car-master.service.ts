@@ -1049,7 +1049,7 @@ export class CarMasterService {
     }
 
     const updates = await update_mechanic_service_request_offer(check_existing_offer.id, {
-      status: COMMON_STATUSES.PENDING,
+      status: COMMON_STATUSES.CANCELED,
     });
 
     create_notification_and_send({
