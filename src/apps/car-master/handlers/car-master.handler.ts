@@ -40,7 +40,7 @@ export class CarMasterRequestHandler {
 
 
 
-  // mechanic service
+  // mechanic service request
 
   @CatchRequestHandlerError()
   static async create_service_request(request: Request, response: Response): ExpressResponse {
@@ -106,6 +106,21 @@ export class CarMasterRequestHandler {
   static async search_service_requests(request: Request, response: Response): ExpressResponse {
     const you = response.locals.you as IUser;
     const serviceMethodResults: ServiceMethodResults = await CarMasterService.search_service_requests(request.body, you?.id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async find_all_mechanic_pending_service_request_offers(request: Request, response: Response): ExpressResponse {
+    const mechanic_id: number = parseInt(request.params.mechanic_id, 10);
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.find_all_mechanic_pending_service_request_offers(mechanic_id);
+    return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
+  }
+
+  @CatchRequestHandlerError()
+  static async find_mechanic_pending_service_request_offers(request: Request, response: Response): ExpressResponse {
+    const mechanic_id: number = parseInt(request.params.mechanic_id, 10);
+    const service_request_offer_id: number | undefined = request.params.service_request_offer_id && parseInt(request.params.mechanic_id, 10) || undefined;
+    const serviceMethodResults: ServiceMethodResults = await CarMasterService.find_mechanic_pending_service_request_offers(mechanic_id, service_request_offer_id);
     return response.status(serviceMethodResults.status).json(serviceMethodResults.info);
   }
 

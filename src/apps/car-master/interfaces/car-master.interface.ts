@@ -127,6 +127,8 @@ export interface IMechanicServiceRequest extends ICommonModel {
   payment_intent_id: string,
   image_link: string,
   image_id: string,
+  work_finished_image_link: string,
+  work_finished_image_id: string,
   
   service_category: string,
   service_type: string,
@@ -171,6 +173,7 @@ export interface IMechanicServiceRequestOffer extends ICommonModel {
 
   user?: IUser,
   mechanic?: IMechanic,
+  service_request?: IMechanicServiceRequest,
 }
 
 export interface IMechanicServiceRequestMessage extends ICommonModel {

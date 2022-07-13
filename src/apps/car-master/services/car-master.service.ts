@@ -52,17 +52,21 @@ import {
   delete_mechanic_service_request,
   delete_mechanic_service_request_messages,
   delete_mechanic_service_request_offer,
+  find_all_mechanic_pending_service_request_offers,
   find_all_mechanic_service_requests,
   find_all_mechanic_service_request_disputes,
   find_all_mechanic_service_request_dispute_logs,
   find_all_user_service_requests,
+  find_mechanic_pending_service_request_offers,
   find_mechanic_service_requests,
   find_service_request_dispute,
+  find_service_request_offers,
   find_service_request_offer_pending_by_service_request_id_and_mechanic_id,
   find_user_service_requests,
   get_mechanic_by_id,
   get_mechanic_by_user_id,
   get_service_request_by_id,
+  get_service_request_pending_offers_for_canceling,
   get_user_from_mechanic_id,
   search_mechanics,
   search_service_requests,
@@ -146,6 +150,32 @@ export class CarMasterService {
 
   static async get_mechanic_service_requests(mechanic_id: number, service_request_id?: number) {
     const resultsList = await find_mechanic_service_requests(mechanic_id, service_request_id);
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async find_all_mechanic_pending_service_request_offers(mechanic_id: number) {
+    const resultsList = await find_all_mechanic_pending_service_request_offers(mechanic_id);
+    
+    const serviceMethodResults: ServiceMethodResults = {
+      status: HttpStatusCode.OK,
+      error: false,
+      info: {
+        data: resultsList,
+      }
+    };
+    return serviceMethodResults;
+  }
+
+  static async find_mechanic_pending_service_request_offers(mechanic_id: number, service_request_offer_id?: number) {
+    const resultsList = await find_mechanic_pending_service_request_offers(mechanic_id, service_request_offer_id);
     
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -1004,8 +1034,8 @@ export class CarMasterService {
       to_id: service_request.user_id,
       event: CARMASTER_EVENT_TYPES.NEW_SERVICE_REQUEST_OFFER,
       micro_app: MODERN_APP_NAMES.CARMASTER,
-      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request.id,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST_OFFER,
+      target_id: new_offer.id,
 
       notification_populate_fn: populate_carmaster_notification_obj,
       to_phone: service_request.user?.phone,
@@ -1057,14 +1087,15 @@ export class CarMasterService {
       to_id: service_request.user_id,
       event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_OFFER_CANCELED,
       micro_app: MODERN_APP_NAMES.CARMASTER,
-      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request.id,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST_OFFER,
+      target_id: check_existing_offer.id,
 
       notification_populate_fn: populate_carmaster_notification_obj,
       to_phone: service_request.user?.phone,
 
       extras_data: {
         service_request_id: service_request.id,
+        service_request_offer_id: check_existing_offer.id,
         data: updates[1],
         user_id: you.id,
       }
@@ -1100,11 +1131,11 @@ export class CarMasterService {
 
     create_notification_and_send({
       from_id: you.id,
-      to_id: service_request_offer.mechanic!.user!.id,
+      to_id: service_request_offer.mechanic!.user_id,
       event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_OFFER_DECLINED,
       micro_app: MODERN_APP_NAMES.CARMASTER,
-      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request_offer.service_request_id,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST_OFFER,
+      target_id: service_request_offer.id,
 
       notification_populate_fn: populate_carmaster_notification_obj,
       to_phone: service_request_offer.mechanic!.phone || service_request_offer.mechanic!.user!.phone,
@@ -1151,13 +1182,14 @@ export class CarMasterService {
       datetime_accepted: fn('NOW') as any
     })
 
+    // notify the accepted mechanic
     create_notification_and_send({
       from_id: you.id,
-      to_id: service_request_offer.mechanic!.user!.id,
+      to_id: service_request_offer.mechanic!.user_id,
       event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_OFFER_ACCEPTED,
       micro_app: MODERN_APP_NAMES.CARMASTER,
-      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request_offer.service_request_id,
+      target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST_OFFER,
+      target_id: service_request_offer.id,
 
       notification_populate_fn: populate_carmaster_notification_obj,
       to_phone: service_request_offer.mechanic!.phone || service_request_offer.mechanic!.user!.phone,
@@ -1167,6 +1199,38 @@ export class CarMasterService {
         data: { updates, service_request_updates },
         user_id: you.id,
         user: service_request_offer.user,
+      }
+    });
+
+    // async: cancel other mechanics' offer and notify
+    get_service_request_pending_offers_for_canceling({
+      service_request_offer_id: service_request_offer.id,
+      service_request_id: service_request_offer.service_request_id
+    })
+    .then((service_request_offers) => {
+      console.log(`Canceling offers:`, { service_request_offers });
+      for (const offer of service_request_offers) {
+        update_mechanic_service_request_offer(offer.id, { status: COMMON_STATUSES.DECLINED })
+        .then((offer_updates) => {
+          create_notification_and_send({
+            from_id: you.id,
+            to_id: offer.mechanic!.user_id,
+            event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_OFFER_DECLINED,
+            micro_app: MODERN_APP_NAMES.CARMASTER,
+            target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST_OFFER,
+            target_id: offer.id,
+      
+            notification_populate_fn: populate_carmaster_notification_obj,
+            to_phone: offer.mechanic!.phone || offer.mechanic!.user!.phone,
+      
+            extras_data: {
+              service_request_id: offer.service_request_id,
+              data: offer_updates[1],
+              user_id: you.id,
+              user: offer.user
+            }
+          });
+        });
       }
     });
 
@@ -1217,34 +1281,20 @@ export class CarMasterService {
     updatesobj.status = CARMASTER_SERVICE_REQUEST_STATUSES.OPEN;
     const updates = await update_mechanic_service_request(service_request.id, updatesobj);
 
-    create_notification({
+    create_notification_and_send({
       from_id: you_id,
       to_id: service_request.mechanic!.user_id,
       event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_USER_CANCELED,
       micro_app: MODERN_APP_NAMES.CARMASTER,
       target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request.id
-    }).then(async (notification_model) => {
-      const notification = await populate_carmaster_notification_obj(notification_model);
-      
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: service_request.mechanic!.user_id,
-        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_USER_CANCELED,
-        event_data: {
-          service_request_id: service_request.id,
-          data: updates[1],
-          message: notification.message,
-          user_id: you_id,
-          notification,
-        }
-      });
+      target_id: service_request.id,
 
-      const to_phone_number = service_request.mechanic?.user?.phone;
-      if (!!to_phone_number && validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: service_request.mechanic?.user?.phone,
+      extras_data: {
+        service_request_id: service_request.id,
+        data: updates[1],
+        user_id: you_id,
       }
     });
 
@@ -1293,34 +1343,20 @@ export class CarMasterService {
     updatesobj.status = CARMASTER_SERVICE_REQUEST_STATUSES.OPEN;
     const updates = await update_mechanic_service_request(service_request.id, updatesobj);
 
-    create_notification({
+    create_notification_and_send({
       from_id: you_id,
       to_id: service_request.user_id,
       event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_MECHANIC_CANCELED,
       micro_app: MODERN_APP_NAMES.CARMASTER,
       target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request.id
-    }).then(async (notification_model) => {
-      const notification = await populate_carmaster_notification_obj(notification_model);
-      
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: service_request.user_id,
-        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_MECHANIC_CANCELED,
-        event_data: {
-          service_request_id: service_request.id,
-          data: updates[1],
-          message: notification.message,
-          user_id: you_id,
-          notification,
-        }
-      });
+      target_id: service_request.id,
 
-      const to_phone_number = service_request.user?.phone;
-      if (!!to_phone_number && validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: service_request.user?.phone,
+      extras_data: {
+        service_request_id: service_request.id,
+        data: updates[1],
+        user_id: you_id,
       }
     });
 
@@ -1344,7 +1380,6 @@ export class CarMasterService {
   }) {
     const { you_id, service_request, body } = options;
   
-
     if (you_id !== service_request.user_id && you_id !== service_request.mechanic_id) {
       const serviceMethodResults: ServiceMethodResults = {
         status: HttpStatusCode.BAD_REQUEST,
@@ -1376,40 +1411,24 @@ export class CarMasterService {
 
     const to_id = you_id === service_request.user_id ? service_request.mechanic!.user_id : service_request.user_id;
     
-    create_notification({
+    create_notification_and_send({
       from_id: you_id,
       to_id: to_id,
       micro_app: MODERN_APP_NAMES.CARMASTER,
       event: CARMASTER_EVENT_TYPES.NEW_SERVICE_REQUEST_MESSAGE,
       target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request.id
-    }).then(async (notification_model) => {
-      const notification = await populate_carmaster_notification_obj(notification_model);
+      target_id: service_request.id,
 
-      const eventData = {
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: (
+        you_id === service_request.user_id
+          ? service_request.user?.phone
+          : service_request.mechanic?.phone || service_request.mechanic?.user?.phone
+      ),
+      extras_data: {
         service_request_id: service_request.id,
-        event: CARMASTER_EVENT_TYPES.NEW_SERVICE_REQUEST_MESSAGE,
-        message: `New message for service request "${service_request.title}": ${body}`,
-        micro_app: MODERN_APP_NAMES.DELIVERME,
         data: new_message,
         user_id: you_id,
-        notification,
-      }
-      
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: to_id,
-        event: CARMASTER_EVENT_TYPES.NEW_SERVICE_REQUEST_MESSAGE,
-        event_data: eventData
-      });
-
-      const to_phone_number = you_id === service_request.user_id
-        ? service_request.user?.phone
-        : service_request.mechanic?.phone || service_request.mechanic?.user?.phone;
-      if (!!to_phone_number && validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.CARMASTER} - ` + eventData.message,
-        });
       }
     });
     
@@ -1455,34 +1474,21 @@ export class CarMasterService {
     updatesobj.datetime_work_started = fn('NOW');
     const updates = await update_mechanic_service_request(service_request.id, updatesobj);
 
-    create_notification({
+    create_notification_and_send({
       from_id: you_id,
       to_id: service_request.user_id,
       event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_STARTED,
       micro_app: MODERN_APP_NAMES.CARMASTER,
       target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request.id
-    }).then(async (notification_model) => {
-      const notification = await populate_carmaster_notification_obj(notification_model);
-      
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: service_request.user_id,
-        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_STARTED,
-        event_data: {
-          service_request_id: service_request.id,
-          data: updates[1],
-          message: `Mechanic started work on service request "${service_request.title}"`,
-          user_id: you_id,
-          notification,
-        }
-      });
+      target_id: service_request.id,
 
-      const to_phone_number = service_request.user?.phone;
-      if (!!to_phone_number && validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: service_request.user?.phone,
+      extras_data: {
+        service_request_id: service_request.id,
+        data: updates[1],
+        message: `Mechanic started work on service request "${service_request.title}"`,
+        user_id: you_id,
       }
     });
 
@@ -1491,7 +1497,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Work started!`,
-        data: updates[1]?.datetime_work_started,
+        data: updates[1],
       }
     };
     return serviceMethodResults;
@@ -1540,34 +1546,21 @@ export class CarMasterService {
     updatesobj.datetime_work_finished = fn('NOW');
     const updates = await update_mechanic_service_request(service_request.id, updatesobj);
 
-    create_notification({
+    create_notification_and_send({
       from_id: you_id,
       to_id: service_request.user_id,
       event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_FINISHED,
       micro_app: MODERN_APP_NAMES.CARMASTER,
       target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request.id
-    }).then(async (notification_model) => {
-      const notification = await populate_carmaster_notification_obj(notification_model);
-      
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: service_request.user_id,
-        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_FINISHED,
-        event_data: {
-          service_request_id: service_request.id,
-          data: updates[1],
-          message: `Mechanic finished work on service request "${service_request.title}"`,
-          user_id: you_id,
-          notification,
-        }
-      });
+      target_id: service_request.id,
 
-      const to_phone_number = service_request.user?.phone;
-      if (!!to_phone_number && validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: service_request.user?.phone,
+      extras_data: {
+        service_request_id: service_request.id,
+        data: updates[1],
+        message: `Mechanic finished work on service request "${service_request.title}"`,
+        user_id: you_id,
       }
     });
 
@@ -1576,7 +1569,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Worked finished!`,
-        data: updates[1]?.datetime_work_finished,
+        data: updates[1],
       }
     };
     return serviceMethodResults;
@@ -1626,36 +1619,24 @@ export class CarMasterService {
     updatesobj.work_finished_image_link = imageValidation.info.data.image_link;
     const updates = await update_mechanic_service_request(service_request_id, updatesobj);
 
-    create_notification({
+    create_notification_and_send({
       from_id: you_id,
       to_id: owner_id,
       event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_ADD_WORK_FINISHED_PICTURE,
       micro_app: MODERN_APP_NAMES.CARMASTER,
       target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request_id
-    }).then(async (notification_model) => {
-      const notification = await populate_carmaster_notification_obj(notification_model);
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: owner_id,
-        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_ADD_WORK_FINISHED_PICTURE,
-        event_data: {
-          service_request_id,
-          data: updates[1],
-          message: `Service request added work finished picture!`,
-          user_id: you_id,
-          notification,
-          ...imageValidation.info.data
-        }
-      });
+      target_id: service_request_id,
 
-      const to_phone_number = service_request.user?.phone;
-      if (!!to_phone_number && validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: service_request.user?.phone,
+      extras_data: {
+        service_request_id,
+        data: updates[1],
+        message: `Service request added work finished picture!`,
+        user_id: you_id,
+        ...imageValidation.info.data
       }
-    });
+    })
 
     const serviceMethodResults: ServiceMethodResults = {
       status: HttpStatusCode.OK,
@@ -1704,34 +1685,20 @@ export class CarMasterService {
     updatesobj.status = CARMASTER_SERVICE_REQUEST_STATUSES.COMPLETED;
     const updates = await update_mechanic_service_request(service_request.id, updatesobj);
 
-    create_notification({
+    create_notification_and_send({
       from_id: you_id,
-      to_id: service_request.mechanic_id!,
+      to_id: service_request.mechanic!.user_id!,
       event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_COMPLETED,
       micro_app: MODERN_APP_NAMES.CARMASTER,
       target_type: CARMASTER_NOTIFICATION_TARGET_TYPES.SERVICE_REQUEST,
-      target_id: service_request.id
-    }).then(async (notification_model) => {
-      const notification = await populate_carmaster_notification_obj(notification_model);
-      
-      CommonSocketEventsHandler.emitEventToUserSockets({
-        user_id: service_request.mechanic_id!,
-        event: CARMASTER_EVENT_TYPES.SERVICE_REQUEST_COMPLETED,
-        event_data: {
-          service_request_id: service_request.id,
-          data: updates[1],
-          message: `Completed service request "${service_request.title}"`,
-          user_id: you_id,
-          notification,
-        }
-      });
+      target_id: service_request.id,
 
-      const to_phone_number = service_request.user?.phone;
-      if (!!to_phone_number && validatePhone(to_phone_number)) {
-        send_sms({
-          to_phone_number,
-          message: `ModernApps ${MODERN_APP_NAMES.DELIVERME}: ` + notification.message,
-        });
+      notification_populate_fn: populate_carmaster_notification_obj,
+      to_phone: service_request.user?.phone,
+      extras_data: {
+        service_request_id: service_request.id,
+        data: updates[1],
+        user_id: you_id,
       }
     });
 
@@ -1740,7 +1707,7 @@ export class CarMasterService {
       error: false,
       info: {
         message: `Service request completed!`,
-        data: updates[1]?.datetime_work_finished,
+        data: updates[1],
       }
     };
     return serviceMethodResults;
@@ -1865,20 +1832,8 @@ export class CarMasterService {
 
     const deliveryCompletedResults = await CarMasterService.mark_service_request_as_completed({ you_id: you.id, service_request });
 
-    deliveryCompletedResults.info.message && console.log(deliveryCompletedResults.info.message);
-
-    if (deliveryCompletedResults.error) {
-      return deliveryCompletedResults;
-    }
-
-    const serviceMethodResults: ServiceMethodResults = {
-      status: HttpStatusCode.OK,
-      error: false,
-      info: {
-        message: `Payment successful!`,
-      }
-    };
-    return serviceMethodResults;
+    console.log(deliveryCompletedResults);
+    return deliveryCompletedResults;
   }
 
   static async mechanic_self_pay(you: IUser, service_request: IMechanicServiceRequest) {
@@ -1916,7 +1871,7 @@ export class CarMasterService {
       return serviceMethodResults;
     }
 
-    const results = await CarMasterService.pay_mechanic_via_transfer(service_request.user!, service_request );
+    const results = await CarMasterService.pay_mechanic_via_transfer(service_request.user!, service_request);
     return results;
   }
 

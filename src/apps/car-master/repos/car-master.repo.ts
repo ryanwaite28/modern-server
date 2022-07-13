@@ -9,7 +9,8 @@ import {
   GroupOption,
   Order,
   literal,
-  DestroyOptions
+  DestroyOptions,
+  UpdateOptions
 } from 'sequelize';
 import {
   COMMON_STATUSES,
@@ -128,6 +129,64 @@ export const mechanicMasterIncludes: Includeable[] = [
       {
         model: MechanicServiceRequestOffers,
         as: 'service_request_offers',
+        // where: { status: COMMON_STATUSES.PENDING },
+        include: [
+          {
+            model: Users,
+            as: 'user',
+            attributes: user_attrs_slim
+          },
+        ]
+      }
+    ]
+  },
+];
+
+export const mechanicMasterIncludes2: Includeable[] = [
+  {
+    model: Users,
+    as: 'user',
+    attributes: user_attrs_slim
+  },
+  {
+    model: MechanicFields,
+    as: 'mechanic_fields',
+  },
+  {
+    model: MechanicCredentials,
+    as: 'mechanic_credentials',
+    // include: mechanicCredentialsInclude,
+  },
+  {
+    model: MechanicRatings,
+    as: 'mechanic_ratings',
+    include: [
+      {
+        model: Users,
+        as: 'writer',
+        attributes: user_attrs_slim
+      },
+      {
+        model: MechanicRatingEdits,
+        as: `mechanic_rating_edits`
+      }
+    ]
+  },
+  {
+    model: MechanicExpertises,
+    as: 'mechanic_expertises',
+  },
+  {
+    model: MechanicServices,
+    as: 'mechanic_services',
+  },
+  {
+    model: MechanicServiceRequests,
+    as: 'mechanic_service_requests',
+    include: [
+      {
+        model: MechanicServiceRequestOffers,
+        as: 'service_request_offers',
         include: [
           {
             model: Users,
@@ -145,6 +204,26 @@ export const mechanicServiceRequestOfferMasterIncludes: Includeable[] = [
     model: Users,
     as: 'user',
     attributes: user_attrs_slim
+  },
+  {
+    model: MechanicServiceRequests,
+    as: 'service_request',
+    include: [
+      {
+        model: Users,
+        as: 'user',
+        attributes: user_attrs_slim
+      },
+      {
+        model: MechanicServices,
+        as: 'service',
+      },
+      {
+        model: MechanicServiceRequestMessages,
+        as: 'mechanic_service_request_messages',
+        include: [{ model: Users, as: 'user', attributes: user_attrs_slim }]
+      }
+    ]
   },
   {
     model: Mechanics,
@@ -183,6 +262,7 @@ export const mechanicServiceRequestMasterIncludes: Includeable[] = [
   {
     model: MechanicServiceRequestOffers,
     as: 'service_request_offers',
+    // where: { status: COMMON_STATUSES.PENDING },
     include: [
       {
         model: Mechanics,
@@ -200,6 +280,7 @@ export const mechanicServiceRequestMasterIncludes: Includeable[] = [
   {
     model: MechanicServiceRequestMessages,
     as: 'mechanic_service_request_messages',
+    include: [{ model: Users, as: 'user', attributes: user_attrs_slim }]
   }
 ];
 
@@ -230,7 +311,7 @@ const mechanic_service_request_dispute_logs_crud = create_model_crud_repo_from_m
 // mechanic 
 
 export function get_mechanic_by_id(id: number) {
-  return mechanics_crud.findById(id, { include: mechanicMasterIncludes });
+  return mechanics_crud.findById(id, { include: mechanicMasterIncludes2 });
 }
 
 export function get_user_from_mechanic_id(id: number) {
@@ -408,16 +489,19 @@ export async function search_mechanics(params: {
       {
         model: MechanicServiceRequests,
         as: 'mechanic_service_requests',
+        attributes: { exclude: ['payment_method_id', 'payment_intent_id'] },
         include: [
           {
             model: MechanicServiceRequestOffers,
             as: 'service_request_offers',
+            where: { status: COMMON_STATUSES.PENDING }
           }
         ]
       },
       {
         model: MechanicServiceRequestOffers,
         as: 'mechanic_service_request_offers',
+        where: { status: COMMON_STATUSES.PENDING }
       },
     ]
   });
@@ -983,7 +1067,11 @@ export function update_mechanic_service_request(
     status: string,
   }>
 ) {
-  return mechanic_service_requests_crud.updateById(service_request_id, params);
+  return mechanic_service_requests_crud.updateById(service_request_id, params).then(async (updates) => {
+    const data = await get_service_request_by_id(service_request_id);
+    const results = [updates[0], data] as [number, (IMechanicServiceRequest|null)];
+    return results;
+  });
 }
 
 export function delete_mechanic_service_request(service_request_id: number) {
@@ -1000,22 +1088,60 @@ export function get_service_request_offer_by_id(id: number) {
   return mechanic_service_request_offers_crud.findById(id, { include: mechanicServiceRequestOfferMasterIncludes });
 }
 
-export function find_service_request_offers_by_service_request_id(find: FindOptions) {
+export function find_service_request_offers(find: FindOptions) {
   return mechanic_service_request_offers_crud.findAll(find);
 }
+
+export function get_service_request_pending_offers_for_canceling(options: {
+  service_request_offer_id: number,
+  service_request_id: number,
+}) {
+  const { service_request_id, service_request_offer_id } = options;
+  return mechanic_service_request_offers_crud.findAll({
+    where: {
+      id: { [Op.ne]: service_request_offer_id },
+      service_request_id,
+      status: COMMON_STATUSES.PENDING
+    },
+    include: mechanicServiceRequestOfferMasterIncludes
+  });
+}
+
 
 export function find_service_request_offer_pending_by_service_request_id_and_mechanic_id(params: {
   service_request_id: number,
   mechanic_id: number
 }) {
   return mechanic_service_request_offers_crud.findOne({
-    where: { ...params, status: COMMON_STATUSES.PENDING }
+    where: { ...params, status: COMMON_STATUSES.PENDING },
+    include: mechanicServiceRequestOfferMasterIncludes
   });
 }
 
 export function find_all_mechanic_service_request_offers(mechanic_id: number) {
   return mechanic_service_request_offers_crud.findAll({
     where: { mechanic_id }
+  });
+}
+
+export function find_all_mechanic_pending_service_request_offers(mechanic_id: number) {
+  return mechanic_service_request_offers_crud.findAll({
+    where: { mechanic_id, status: COMMON_STATUSES.PENDING },
+    include: mechanicServiceRequestOfferMasterIncludes
+  });
+}
+
+export function find_mechanic_pending_service_request_offers(mechanic_id: number, offer_id?: number) {
+  const useWhere: WhereOptions = (!offer_id
+    ? { mechanic_id }
+    : { mechanic_id, id: { [Op.lt]: offer_id } }
+  );
+
+  return mechanic_service_request_offers_crud.findAll({
+    where: { ...useWhere, status: COMMON_STATUSES.PENDING },
+    include: mechanicServiceRequestOfferMasterIncludes,
+    order: [['id', 'DESC']],
+    limit: 5,
   });
 }
 
@@ -1042,6 +1168,16 @@ export function update_mechanic_service_request_offer(
   return mechanic_service_request_offers_crud.updateById(service_request_offer_id, params);
 }
 
+export function update_mechanic_service_request_offers(
+  updatesObj: Partial<{
+    notes: string,
+    status: string,
+  }>, 
+  updatesOptions: UpdateOptions
+) {
+  return mechanic_service_request_offers_crud.update(updatesObj, updatesOptions);
+}
+
 export function delete_mechanic_service_request_offer(service_request_offer_id: number) {
   return mechanic_service_request_offers_crud.deleteById(service_request_offer_id);
 }
@@ -1057,12 +1193,13 @@ export function delete_mechanic_service_request_offers(whereClause: DestroyOptio
 // mechanic service request messages
 
 export function get_service_request_message_by_id(id: number) {
-  return mechanic_service_request_messages_crud.findById(id);
+  return mechanic_service_request_messages_crud.findById(id, { include: [{ model: Users, as: 'user', attributes: user_attrs_slim }] });
 }
 
 export function find_all_mechanic_service_request_messages(mechanic_id: number) {
   return mechanic_service_request_messages_crud.findAll({
-    where: { mechanic_id }
+    where: { mechanic_id },
+    include: [{ model: Users, as: 'user', attributes: user_attrs_slim }]
   });
 }
 
@@ -1071,7 +1208,10 @@ export function create_mechanic_service_request_message(params: {
   user_id: number,
   body: string,
 }) {
-  return mechanic_service_request_messages_crud.create(params);
+  return mechanic_service_request_messages_crud.create(params).then(async (message) => {
+    const data: IMechanicServiceRequestMessage | null = await get_service_request_message_by_id(message.id);
+    return data!;
+  });
 }
 
 export function update_mechanic_service_request_message(
@@ -1091,7 +1231,6 @@ export function delete_mechanic_service_request_message(service_request_message_
 export function delete_mechanic_service_request_messages(whereClause: DestroyOptions) {
   return mechanic_service_request_messages_crud.delete(whereClause);
 }
-
 
 
 

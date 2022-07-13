@@ -32,6 +32,12 @@ UsersRouter.get('/:you_id/notifications/all', YouAuthorized, NotificationsReques
 UsersRouter.get('/:you_id/notifications', YouAuthorized, NotificationsRequestHandler.get_user_notifications);
 UsersRouter.get('/:you_id/notifications/:notification_id', YouAuthorized, NotificationsRequestHandler.get_user_notifications);
 
+UsersRouter.get('/:you_id/notifications/app/:micro_app/app-notifications-last-opened', YouAuthorized, NotificationsRequestHandler.get_user_app_notification_last_opened);
+UsersRouter.get('/:you_id/notifications/app/:micro_app/all', YouAuthorized, NotificationsRequestHandler.get_user_app_notifications_all);
+UsersRouter.get('/:you_id/notifications/app/:micro_app', YouAuthorized, NotificationsRequestHandler.get_user_app_notifications);
+UsersRouter.get('/:you_id/notifications/app/:micro_app/:notification_id', YouAuthorized, NotificationsRequestHandler.get_user_app_notifications);
+
+
 UsersRouter.get('/:you_id/messagings/all', YouAuthorized, MessagingsRequestHandler.get_user_messagings_all);
 UsersRouter.get('/:you_id/messagings', YouAuthorized, MessagingsRequestHandler.get_user_messagings);
 UsersRouter.get('/:you_id/messagings/:messagings_timestamp', YouAuthorized, MessagingsRequestHandler.get_user_messagings);
@@ -73,6 +79,7 @@ UsersRouter.post('/:you_id/feedback', YouAuthorized, UsersRequestHandler.send_fe
 UsersRouter.post('/:you_id/conversations', YouAuthorized, ConversationsRequestHandler.create_conservation);
 UsersRouter.post('/:you_id/conversations/:conversation_id/messages', YouAuthorized, ConversationMessagesRequestHandler.create_conversation_message);
 UsersRouter.post('/:you_id/notifications/update-last-opened', YouAuthorized, NotificationsRequestHandler.update_user_last_opened);
+UsersRouter.post('/:you_id/notifications/app/:micro_app/update-app-notifications-last-opened', YouAuthorized, NotificationsRequestHandler.update_user_app_notification_last_opened);
 UsersRouter.post('/:you_id/follows/:user_id', YouAuthorized, UserIdsAreDifferent, FollowsRequestHandler.follow_user);
 UsersRouter.post('/:you_id/send-message/:user_id', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.send_user_message);
 UsersRouter.post('/:you_id/conversations/:conversation_id/messages/:message_id/mark-as-seen', YouAuthorized, ConversationExists, ConversationMessagesRequestHandler.mark_message_as_seen);

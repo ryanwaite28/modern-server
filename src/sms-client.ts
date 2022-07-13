@@ -51,6 +51,8 @@ export function send_sms(params: {
       body: (!isProd ? '(DEV) ' : '') + message
     } as SendSmsOptions;
 
+    console.log({ smsOpts });
+
     try {
       nexmo.message.sendSms(from, to_number, message, smsOpts, (err, result) => {
         // console.log(`send sms reaults:`, { from, to_number, err, result });

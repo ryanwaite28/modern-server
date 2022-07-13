@@ -72,6 +72,15 @@ export const Users = <MyModelStaticGeneric<IUserModel>> sequelize.define('common
   indexes: [{ unique: true, fields: ['email', 'paypal', 'uuid']} ] 
 });
 
+export const UserNotificationsLastOpenedByApps = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_app_notifications_last_opened', {
+  id:                                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:                             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  micro_app:                           { type: Sequelize.STRING, allowNull: false },
+  notifications_last_opened:           { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  date_created:                        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
+
 // export const UserStripeAccounts = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_stripe_accounts', {
 //   id:                                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
 //   user_id:                             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },

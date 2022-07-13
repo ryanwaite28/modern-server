@@ -98,6 +98,12 @@ export interface IUser extends ICommonModel {
   notifications_last_opened:   string,
 }
 
+export interface IUserNotificationsLastOpenedByApp extends ICommonModel {
+  user_id:                             number,
+  micro_app:                           string,
+  notifications_last_opened:           string,
+}
+
 export interface IUserPaymentIntent extends ICommonModel {
   user_id:                             number,
   payment_intent_id:                   string,

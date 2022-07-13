@@ -17,6 +17,9 @@ import {
 import { IModelValidator, INotification, IUser, PlainObject} from "../_common/interfaces/common.interface";
 import { IMyModel } from "../_common/models/common.model-types";
 import { get_user_by_id } from "../_common/repos/users.repo";
+import { CARMASTER_EVENT_TYPES } from "./enums/car-master.enum";
+import { IMechanicServiceRequestOffer } from "./interfaces/car-master.interface";
+import { get_service_request_offer_by_id } from "./repos/car-master.repo";
   
 
 
@@ -496,7 +499,85 @@ export const populate_carmaster_notification_obj = async (notification_model: IM
   let mount_value = null;
 
   switch (notificationObj.event) {
+    case CARMASTER_EVENT_TYPES.NEW_SERVICE_REQUEST_OFFER: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} offered to service your request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
+    case CARMASTER_EVENT_TYPES.SERVICE_REQUEST_OFFER_CANCELED: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} canceled their offer to service your request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
+    case CARMASTER_EVENT_TYPES.SERVICE_REQUEST_OFFER_ACCEPTED: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} accepter your offer to service request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
+    case CARMASTER_EVENT_TYPES.SERVICE_REQUEST_OFFER_DECLINED: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} declined your offer to service request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
+    case CARMASTER_EVENT_TYPES.SERVICE_REQUEST_MECHANIC_CANCELED: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} canceled on service request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
+    case CARMASTER_EVENT_TYPES.SERVICE_REQUEST_USER_CANCELED: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} canceled on service request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
 
+    case CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_STARTED: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} started work on service request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
+    case CARMASTER_EVENT_TYPES.SERVICE_REQUEST_WORK_FINISHED: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} finished work on service request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
+    case CARMASTER_EVENT_TYPES.SERVICE_REQUEST_ADD_WORK_FINISHED_PICTURE: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} added finished work picture on service request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
+    case CARMASTER_EVENT_TYPES.SERVICE_REQUEST_COMPLETED: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} completed service request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
+
+    case CARMASTER_EVENT_TYPES.NEW_SERVICE_REQUEST_MESSAGE: {
+      const service_request_offer: IMechanicServiceRequestOffer | null = await get_service_request_offer_by_id(notificationObj.target_id);
+      message = `${full_name} added message on service request: ${service_request_offer?.service_request?.title}`;
+      mount_prop_key = 'service_request_offer';
+      mount_value = service_request_offer!;
+      break;
+    }
   }
 
   notificationObj.from = user_model!;

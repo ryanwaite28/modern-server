@@ -59,7 +59,6 @@ const service_owner_auths = [
 const service_request_user_guards = [
   YouAuthorized,
   ServiceRequestUserRouteGuards.existsGuard,
-  ServiceRequestUserRouteGuards.isOwnerGuard,
 ];
 
 const service_request_offer_user_guards = [
@@ -83,6 +82,10 @@ CarMasterAppRouter.get('/mechanics/by-user-id/:user_id', CarMasterRequestHandler
 CarMasterAppRouter.get('/mechanics/:mechanic_id/service-requests/all', MechanicRouteGuards.existsGuard, CarMasterRequestHandler.get_mechanic_service_requests_all);
 CarMasterAppRouter.get('/mechanics/:mechanic_id/service-requests', MechanicRouteGuards.existsGuard, CarMasterRequestHandler.get_mechanic_service_requests);
 CarMasterAppRouter.get('/mechanics/:mechanic_id/service-requests/:service_request_id', YouAuthorized, MechanicRouteGuards.existsGuard, CarMasterRequestHandler.get_mechanic_service_requests);
+
+CarMasterAppRouter.get('/mechanics/:mechanic_id/service-request-offers/all', MechanicRouteGuards.existsGuard, CarMasterRequestHandler.find_all_mechanic_pending_service_request_offers);
+CarMasterAppRouter.get('/mechanics/:mechanic_id/service-request-offers', MechanicRouteGuards.existsGuard, CarMasterRequestHandler.find_mechanic_pending_service_request_offers);
+CarMasterAppRouter.get('/mechanics/:mechanic_id/service-request-offers/:service_request_offer_id', YouAuthorized, MechanicRouteGuards.existsGuard, CarMasterRequestHandler.find_mechanic_pending_service_request_offers);
 
 
 
@@ -169,15 +172,15 @@ CarMasterAppRouter.post('/users/:you_id/notifications/update-last-opened', YouAu
 CarMasterAppRouter.post('/users/:you_id/service-requests', YouAuthorized, CarMasterRequestHandler.create_service_request);
 CarMasterAppRouter.post('/users/:you_id/service-requests/:service_request_id/offer/:service_request_offer_id/accept', ...service_request_offer_user_guards, CarMasterRequestHandler.accept_service_request_offer);
 
-CarMasterAppRouter.post('/users/:you_id/service-requests/:service_request_id/send-message', ...service_request_user_guards, CarMasterRequestHandler.send_service_request_message);
+CarMasterAppRouter.post('/users/:you_id/service-requests/:service_request_id/message', ...service_request_user_guards, CarMasterRequestHandler.send_service_request_message);
 CarMasterAppRouter.post('/users/:you_id/service-requests/:service_request_id/pay-mechanic', ...service_request_user_guards, CarMasterRequestHandler.pay_mechanic_via_transfer);
 
 
 
 // PUT
 
-CarMasterAppRouter.put('/users/:you_id/service-requests/:service_request_id', YouAuthorized, CarMasterRequestHandler.update_service_request);
-CarMasterAppRouter.put('/users/:you_id/message/:message_id/mark-as-read', YouAuthorized, UserIdsAreDifferent, MessagesRequestHandler.mark_message_as_read)
+// CarMasterAppRouter.put('/users/:you_id/service-requests/:service_request_id', YouAuthorized, CarMasterRequestHandler.update_service_request);
+CarMasterAppRouter.put('/users/:you_id/message/:message_id/mark-as-read', YouAuthorized, MessagesRequestHandler.mark_message_as_read)
 // CarMasterAppRouter.put('/users/:you_id/service-requests/:service_request_id', YouAuthorized, ServiceRequestUserRouteGuards.existsGuard, ServiceRequestUserRouteGuards.isOwnerGuard, CarMasterRequestHandler.accept_service_request_offer);
 
 
