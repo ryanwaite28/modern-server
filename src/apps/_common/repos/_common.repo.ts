@@ -15,8 +15,8 @@ import { convertModel, convertModelCurry, convertModels } from '../common.chambe
 import { MODERN_APP_NAMES } from '../enums/common.enum';
 import { UserNotificationsLastOpenedByApps } from '../models/user.model';
 
-export async function paginateTable<T>(
-  model: MyModelStatic,
+export async function paginateTable(
+  model: MyModelStatic | Model<any, any>,
   user_id_field: string,
   user_id?: number,
   min_id?: number,
@@ -36,7 +36,7 @@ export async function paginateTable<T>(
 
   console.log(whereClause, { useWhereClause });
 
-  const models = await model.findAll({
+  const models = await (model as MyModelStatic).findAll({
     attributes,
     group,
     where: useWhereClause,
@@ -48,8 +48,28 @@ export async function paginateTable<T>(
   return models;
 }
 
-export async function getAll<T>(
-  model: MyModelStaticGeneric<IMyModel>,
+export async function getCount(
+  model: MyModelStatic | Model,
+  user_id_field: string,
+  user_id: number,
+  group?: GroupOption,
+  whereClause?: WhereOptions,
+)  {
+  // const models = await model.findAll<Model<T>>({
+  const useWhereClause = whereClause
+    ? { ...whereClause, [user_id_field]: user_id }
+    : { [user_id_field]: user_id };
+
+  const models = await (model as MyModelStatic).count({
+    group,
+    where: useWhereClause,
+  });
+
+  return models;
+}
+
+export async function getAll(
+  model: MyModelStatic | Model<any, any>,
   user_id_field: string,
   user_id: number,
   include?: Includeable[],
@@ -68,7 +88,7 @@ export async function getAll<T>(
   }
   console.log(whereClause, { useWhereClause });
 
-  const models = await model.findAll({
+  const models = await (model as MyModelStatic).findAll({
     attributes,
     group,
     where: useWhereClause,
@@ -80,7 +100,7 @@ export async function getAll<T>(
 }
 
 export async function getById<T>(
-  model: MyModelStatic,
+  model: MyModelStatic | Model<any, any>,
   id: number,
   include?: Includeable[],
   attributes?: FindAttributeOptions,
@@ -94,7 +114,7 @@ export async function getById<T>(
 
   console.log(whereClause, { useWhereClause });
 
-  const result = await model.findOne({
+  const result = await (model as MyModelStatic).findOne({
     attributes,
     group,
     where: useWhereClause,
@@ -105,7 +125,7 @@ export async function getById<T>(
 }
 
 export async function getRandomModels<T>(
-  model: MyModelStaticGeneric<T>,
+  model: MyModelStaticGeneric<T> | Model<any, any>,
   limit: number,
   include?: Includeable[],
   attributes?: FindAttributeOptions,
@@ -128,6 +148,20 @@ export async function getRandomModels<T>(
   }
 }
 
+export function get_recent_models<T = any>(
+  model: MyModelStatic,
+  whereClause: WhereOptions = {},
+) {
+  return model.findAll({
+    where: whereClause,
+    order: [['id', 'DESC']],
+    limit: 20,
+  })
+  .then((models: Model[]) => {
+    return convertModels<T>(<IMyModel[]> models);
+  });
+}
+
 
 
 
@@ -135,7 +169,7 @@ export async function getRandomModels<T>(
 // converted
 
 export async function paginateTableConverted<T>(
-  model: MyModelStatic,
+  model: MyModelStatic | Model<any, any>,
   user_id_field: string,
   user_id?: number,
   min_id?: number,
@@ -155,7 +189,7 @@ export async function paginateTableConverted<T>(
 
   console.log(whereClause, { useWhereClause });
 
-  const models = await model.findAll({
+  const models = await (model as MyModelStatic).findAll({
     attributes,
     group,
     where: useWhereClause,
@@ -171,7 +205,7 @@ export async function paginateTableConverted<T>(
 }
 
 export async function getAllConverted<T>(
-  model: MyModelStaticGeneric<IMyModel>,
+  model: MyModelStatic | Model<any, any>,
   user_id_field: string,
   user_id: number,
   include?: Includeable[],
@@ -190,7 +224,7 @@ export async function getAllConverted<T>(
   }
   console.log(whereClause, { useWhereClause });
 
-  const models = await model.findAll({
+  const models = await (model as MyModelStatic).findAll({
     attributes,
     group,
     where: useWhereClause,
@@ -202,7 +236,7 @@ export async function getAllConverted<T>(
 }
 
 export async function getByIdConverted<T>(
-  model: MyModelStatic,
+  model: MyModelStatic | Model,
   id: number,
   include?: Includeable[],
   attributes?: FindAttributeOptions,
@@ -216,7 +250,7 @@ export async function getByIdConverted<T>(
 
   console.log(whereClause, { useWhereClause });
 
-  const result = await model.findOne({
+  const result = await (model as MyModelStatic).findOne({
     attributes,
     group,
     where: useWhereClause,
@@ -230,7 +264,7 @@ export async function getByIdConverted<T>(
 }
 
 export async function getRandomModelsConverted<T>(
-  model: MyModelStaticGeneric<T>,
+  model: MyModelStaticGeneric<T> | Model,
   limit: number,
   include?: Includeable[],
   attributes?: FindAttributeOptions,
@@ -256,6 +290,19 @@ export async function getRandomModelsConverted<T>(
   }
 }
 
+export function get_recent_models_converted<T>(
+  model: MyModelStatic | Model,
+  whereClause: WhereOptions = {},
+) {
+  return (model as MyModelStatic).findAll({
+    where: whereClause,
+    order: [['id', 'DESC']],
+    limit: 20,
+  })
+  .then((models) => {
+    return convertModels<T>(<IMyModel[]> models);
+  });
+}
 
 
 

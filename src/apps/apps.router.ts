@@ -15,6 +15,7 @@ import { CarMasterRouter } from './car-master/car-master.app';
 
 import { StripeService } from './_common/services/stripe.service';
 import { StripeWebhookEventsRequestHandler } from './_common/handlers/stripe-webhook-events.handler';
+import { SafestarRouter } from './safestar/safestar.app';
 
 
 // create main apps router
@@ -25,10 +26,12 @@ export const AppsRouter: Router = Router({ mergeParams: true });
 // Mount Apps
 
 AppsRouter.use('/common', CommonRouter);
+
 AppsRouter.use('/deliverme', DeliverMeRouter);
 AppsRouter.use('/carmaster', CarMasterRouter);
-// AppsRouter.use('/travellrs', TravellrsRouter);
-// AppsRouter.use('/cashly', CashlyRouter);
+AppsRouter.use('/safestar', SafestarRouter);
+AppsRouter.use('/travellrs', TravellrsRouter);
+
 
 
 
@@ -60,10 +63,11 @@ AppsRouter.post('/stripe-webhook', bodyParser.raw({ type: 'application/json' }),
 Deactivated/Disabled apps
 ---
 
+AppsRouter.use('/myfavors', MyfavorsRouter);
 AppsRouter.use('/hotspot', HotspotRouter);
 AppsRouter.use('/worldnews', WorldNewsRouter);
 AppsRouter.use('/contender', ContenderRouter);
-AppsRouter.use('/myfavors', MyfavorsRouter);
 AppsRouter.use('/blueworld', BlueworldRouter);
+AppsRouter.use('/cashly', CashlyRouter);
 
 */

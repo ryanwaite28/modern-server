@@ -21,7 +21,7 @@ import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 import { ServiceMethodAsyncResults, ServiceMethodResults } from '../../_common/types/common.types';
 import { IMyModel } from '../../_common/models/common.model-types';
 import { get_resource_by_id } from '../repos/resources.repo';
-import { CommonSocketEventsHandler } from 'src/apps/_common/services/socket-events-handlers-by-app/common.socket-event-handler';
+import { CommonSocketEventsHandler } from '../../_common/services/socket-events-handlers-by-app/common.socket-event-handler';
 
 
 

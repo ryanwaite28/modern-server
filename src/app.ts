@@ -33,6 +33,7 @@ app.use(express_fileupload({ safeFileNames: true, preserveExtension: true }));
 app.use(express_device.capture());
 app.use(cookie_parser.default());
 app.use(body_parser.urlencoded({ extended: false }));
+app.set('trust proxy', true);
 
 const appServer: http.Server = http.createServer(app);
 

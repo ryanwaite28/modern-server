@@ -1,5 +1,4 @@
 import {
-  Model,
   BuildOptions,
 } from 'sequelize';
 import {
@@ -22,6 +21,9 @@ import {
   IClique,
   IRecipe
 } from '../interfaces/common.interface';
+import { Model } from 'sequelize';
+
+
 
 /**
  * @see: https://sequelize.org/master/manual/typescript

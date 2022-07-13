@@ -1,4 +1,5 @@
 import * as Sequelize from 'sequelize';
+import { Model, DataTypes } from 'sequelize';
 
 import {
   common_options,
@@ -46,6 +47,22 @@ export const Users = <MyModelStaticGeneric<IUserModel>> sequelize.define('common
   wallpaper_link:                      { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   wallpaper_id:                        { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   location:                            { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
+
+  latest_lat:                          { type: Sequelize.FLOAT, allowNull: true, defaultValue: 0 },
+  latest_lng:                          { type: Sequelize.FLOAT, allowNull: true, defaultValue: 0 },
+  latlng_last_updated:                 { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+
+  is_public:                           { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
+  
+  
+  allow_messaging:                     { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
+  allow_conversations:                 { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
+  allow_watches:                       { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
+  allow_text_pulse_updates:            { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
+  pulses_last_opened:                  { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  checkpoints_last_opened:             { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+
+
   location_id:                         { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
   location_json:                       { type: Sequelize.JSON, allowNull: true, defaultValue: '' },
   zipcode:                             { type: Sequelize.STRING, allowNull: true, defaultValue: '' },
@@ -104,6 +121,17 @@ export const StripeActions = <MyModelStaticGeneric<IMyModel>> sequelize.define('
   uuid:                                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
 }, common_options);
 
+export const UserDevices = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_devices', {
+  id:                   { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:              { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  token:                { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  device_info:          { type: Sequelize.JSON, allowNull: true, defaultValue: null },
+  device_id:            { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  device_type:          { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  device_platform:      { type: Sequelize.STRING, allowNull: false, defaultValue: '' },
+  date_created:         { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                 { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+}, common_options);
 
 
 export const UserPaymentIntents = <MyModelStaticGeneric<IMyModel>> sequelize.define('common_user_payment_intents', {
@@ -330,3 +358,6 @@ export const SiteFeedbacks = <MyModelStaticGeneric<IMyModel>> sequelize.define('
 
 Users.hasMany(UserPlatformSubscriptions, { as: 'platform_subscriptions', foreignKey: 'user_id', sourceKey: 'id' });
 UserPlatformSubscriptions.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
+
+Users.hasMany(UserDevices, { as: 'devices', foreignKey: 'user_id', sourceKey: 'id' });
+UserDevices.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });

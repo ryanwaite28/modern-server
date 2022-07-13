@@ -58,6 +58,7 @@ export const sequelizeInst = sequelize;
 export const DB_ENV = db_env;
 
 export const common_options = {
+  sequelize: sequelizeInst,
   paranoid: true,
   timestamps: true,
   freezeTableName: true,

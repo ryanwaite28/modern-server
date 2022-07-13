@@ -28,6 +28,7 @@ import { IUploadFile, store_image } from '../../cloudinary-manager';
 import { UploadedFile } from 'express-fileupload';
 import { IMyModel, MyModelStatic, MyModelStaticGeneric } from './models/common.model-types';
 import { CreateOptions, DestroyOptions, FindOptions, UpdateOptions } from 'sequelize/types';
+import { Model } from 'sequelize';
 
 
 export const specialCaracters = ['!', '@', '#', '$', '%', '&', '+', ')', ']', '}', ':', ';', '?'];
@@ -1144,32 +1145,33 @@ export const createGenericServiceMethodSuccess = <T = any> (message?: string, da
   return serviceMethodResults;
 };
 
-export const convertModel = <T> (model: IMyModel | null) => {
+export const convertModel = <T> (model: IMyModel | Model | null) => {
   return model ? (<any> model.toJSON()) as T : null;
 }
 
-export const convertModels = <T> (models: IMyModel[]) => {
+export const convertModels = <T> (models: (IMyModel | Model)[]) => {
   return models.map((model) => (<any> model.toJSON()) as T);
 }
 
-export const convertModelCurry = <T> () => (model: IMyModel | null) => {
+export const convertModelCurry = <T> () => (model: IMyModel | Model | null) => {
   return model ? (<any> model.toJSON()) as T : null;
 }
 
-export const convertModelsCurry = <T> () => (models: IMyModel[]) => {
+export const convertModelsCurry = <T> () => (models: (IMyModel | Model)[]) => {
   return models.map((model) => (<any> model.toJSON()) as T);
 }
 
 
 
 
-export const create_model_crud_repo_from_model_class = <T = any> (modelClass: MyModelStatic) => {
+export const create_model_crud_repo_from_model_class = <T = any> (givenModelClass: MyModelStatic | Model) => {
   const convertTypeCurry = convertModelCurry<T>();
   const convertTypeListCurry = convertModelsCurry<T>();
+  const modelClass = givenModelClass as MyModelStatic;
 
   const create = (createObj: any) => {
     const results = modelClass.create(createObj)
-    .then((model) => {
+    .then((model: IMyModel) => {
       const converted = convertTypeCurry(model);
       return converted!;
     });
@@ -1216,7 +1218,7 @@ export const create_model_crud_repo_from_model_class = <T = any> (modelClass: My
   };
   const updateById = (id: number, updateObj: any) => {
     const results = modelClass.update(updateObj, { where: { id }, returning: true })
-    .then(async (updates) => {
+    .then(async (updates: any) => {
       console.log(updates);
       const fresh = await findById(id);
       // return updates;

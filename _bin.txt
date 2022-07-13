@@ -201,8 +201,8 @@ export const null = <MyModelStatic> sequelize.define('app_nnull', {
   user_id:             { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
 
 
-  date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
-  uuid:                { type: Sequelize.STRING, unique: true, defaultValue: Sequelize.UUIDV1 }
+  date_created: string,
+  uuid: string,
 }, common_options);
 
 

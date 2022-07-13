@@ -1,5 +1,4 @@
 import socket_io from 'socket.io';
-import { CARMASTER_EVENT_TYPES } from 'src/apps/car-master/enums/car-master.enum';
 import { PlainObject } from '../../interfaces/common.interface';
 
 export class CarMasterSocketEventsHandler {
