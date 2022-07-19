@@ -31,6 +31,8 @@ export const ContenderUserRatings = <MyModelStatic> sequelize.define('contender_
   uuid:                { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
 }, common_options);
 
+
+
 Users.hasOne(ContenderUserSettings, { as: 'contender_settings', foreignKey: 'user_id', sourceKey: 'id' });
 ContenderUserSettings.belongsTo(Users, { as: 'user', foreignKey: 'user_id', targetKey: 'id' });
 

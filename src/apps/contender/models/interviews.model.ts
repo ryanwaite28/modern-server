@@ -22,7 +22,11 @@ export const ContenderInterviews = <MyModelStatic> sequelize.define('contender_i
   interviewer_id:            { type: Sequelize.INTEGER, allowNull: true, references: { model: Users, key: 'id' } },
   interviewee_id:            { type: Sequelize.INTEGER, allowNull: true, references: { model: Users, key: 'id' } },
   title:                     { type: Sequelize.STRING, allowNull: false },
-  body:                      { type: Sequelize.TEXT, allowNull: false },
+  body:                      { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
+  industry:                  { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
+  view_state:                { type: Sequelize.STRING, allowNull: false },
+  is_private:                { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  private_access_fee:        { type: Sequelize.TEXT, allowNull: true, defaultValue: 0 },
   
   photo_link:                { type: Sequelize.TEXT, allowNull: true },
   photo_bucket:              { type: Sequelize.TEXT, allowNull: true },
@@ -35,6 +39,26 @@ export const ContenderInterviews = <MyModelStatic> sequelize.define('contender_i
   date_created:              { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   uuid:                      { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
 }, common_options);
+
+// people that wants to interview you
+export const ContenderInterviewerRequests = <MyModelStatic> sequelize.define('contender_interviewer_requests', {
+  id:                        { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  owner_id:                  { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  interviewee_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  date_created:              { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                      { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
+}, common_options);
+
+// people that you want to interview you
+export const ContenderIntervieweeRequests = <MyModelStatic> sequelize.define('contender_interviewee_requests', {
+  id:                        { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  owner_id:                  { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  interviewer_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  date_created:              { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  uuid:                      { type: Sequelize.STRING, defaultValue: Sequelize.UUIDV1 },
+}, common_options);
+
+
 
 export const ContenderInterviewReactions = <MyModelStatic> sequelize.define('contender_interview_reactions', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
@@ -49,7 +73,7 @@ export const ContenderInterviewReactions = <MyModelStatic> sequelize.define('con
 export const ContenderInterviewComments = <MyModelStatic> sequelize.define('contender_interview_comments', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
-  interview_id:          { type: Sequelize.INTEGER, allowNull: true, references: { model: ContenderInterviews, key: 'id' } },
+  interview_id:        { type: Sequelize.INTEGER, allowNull: true, references: { model: ContenderInterviews, key: 'id' } },
   body:                { type: Sequelize.TEXT, allowNull: false },
   last_edited:         { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
   date_created:        { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
@@ -93,8 +117,13 @@ export const ContenderInterviewCommentReplyReactions = <MyModelStatic> sequelize
 export const ContenderInterviewQuestions = <MyModelStatic> sequelize.define('contender_interview_questions', {
   id:                  { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   owner_id:            { type: Sequelize.INTEGER, allowNull: false, references: { model: Users, key: 'id' } },
+  view_state:          { type: Sequelize.STRING, allowNull: false },
+  is_private:          { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+  private_access_fee:  { type: Sequelize.TEXT, allowNull: true, defaultValue: 0 },
   title:               { type: Sequelize.STRING, allowNull: false },
   contents:            { type: Sequelize.TEXT, allowNull: false },
+  industry:            { type: Sequelize.TEXT, allowNull: false, defaultValue: '' },
+  contents_format:     { type: Sequelize.STRING, allowNull: true },
   
   photo_link:          { type: Sequelize.TEXT, allowNull: true },
   photo_bucket:        { type: Sequelize.TEXT, allowNull: true },

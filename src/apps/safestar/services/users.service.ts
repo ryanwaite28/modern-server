@@ -38,9 +38,9 @@ import { SafestarAppFeedbacks } from '../models/user.model';
 import { create_notification, get_user_unseen_notifications_count } from '../../_common/repos/notifications.repo';
 import { create_email_verification } from '../../_common/repos/email-verification.repo';
 import { SignedUp_EMAIL, VerifyEmail_EMAIL } from '../../../template-engine';
-import { send_email } from 'src/email-client';
-import { check_verify_sms_request } from 'src/sms-client';
-import { delete_cloudinary_image } from 'src/cloudinary-manager';
+import { send_email } from '../../../email-client';
+import { check_verify_sms_request } from '../../../sms-client';
+import { delete_cloudinary_image } from '../../../cloudinary-manager';
 import { MODERN_APP_NAMES } from '../../_common/enums/common.enum';
 import { CommonSocketEventsHandler } from '../../_common/services/socket-events-handlers-by-app/common.socket-event-handler';
 

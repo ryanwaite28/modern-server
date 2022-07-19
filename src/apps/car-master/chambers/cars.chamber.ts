@@ -1,6 +1,6 @@
 // https://github.com/FormidableLabs/radon-typeahead/blob/master/demo/car-models.json
 
-import { PlainObject } from "src/apps/_common/interfaces/common.interface";
+import { PlainObject } from "../../_common/interfaces/common.interface";
 
 export const CARS_MAKES_MODELS = [
   {

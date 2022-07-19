@@ -3,7 +3,7 @@ import {
   ReverseGeocodeRequest,
   LatLng
 } from "@googlemaps/google-maps-services-js";
-import { PlainObject } from "src/apps/_common/interfaces/common.interface";
+import { PlainObject } from "../../_common/interfaces/common.interface";
 
 
 

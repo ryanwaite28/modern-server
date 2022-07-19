@@ -34,14 +34,14 @@ import {
   validateAndUploadImageFile,
 } from "../safestar.chamber";
 import { UploadedFile } from "express-fileupload";
-import { ServiceMethodResults } from "src/apps/_common/types/common.types";
-import { HttpStatusCode } from "src/apps/_common/enums/http-codes.enum";
-import { create_notification } from "src/apps/_common/repos/notifications.repo";
-import { MODERN_APP_NAMES } from "src/apps/_common/enums/common.enum";
-import { CommonSocketEventsHandler } from "src/apps/_common/services/socket-events-handlers-by-app/common.socket-event-handler";
-import { IUser, PlainObject } from "src/apps/_common/interfaces/common.interface";
-import { SocketsService } from "src/apps/_common/services/sockets.service";
-import { Users } from "src/apps/_common/models/user.model";
+import { ServiceMethodResults } from "../../_common/types/common.types";
+import { HttpStatusCode } from "../../_common/enums/http-codes.enum";
+import { create_notification } from "../../_common/repos/notifications.repo";
+import { MODERN_APP_NAMES } from "../../_common/enums/common.enum";
+import { CommonSocketEventsHandler } from "../../_common/services/socket-events-handlers-by-app/common.socket-event-handler";
+import { IUser, PlainObject } from "../../_common/interfaces/common.interface";
+import { SocketsService } from "../../_common/services/sockets.service";
+import { Users } from "../../_common/models/user.model";
 
 
 
