@@ -11,6 +11,7 @@ import { getAll, paginateTable } from '../../_common/repos/_common.repo';
 import { Users } from '../../_common/models/user.model';
 import { convertModels, user_attrs_slim } from '../safestar.chamber';
 import { convertModel } from '../../_common/common.chamber';
+import { SafestarUsersInfo } from '../models/user.model';
 
 
 
@@ -18,6 +19,7 @@ export const photo_pulseIncludes = [{
   model: Users,
   as: `owner`,
   attributes: user_attrs_slim,
+  include: [{ model: SafestarUsersInfo, as: 'safestar_info' }]
 }, {
   model: PhotoPulseMessages,
   as: `messages`,
@@ -25,6 +27,7 @@ export const photo_pulseIncludes = [{
     model: Users,
     as: `owner`,
     attributes: user_attrs_slim,
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }]
   }]
 }];
 
@@ -134,7 +137,8 @@ export function create_photo_pulse_message(params: {
         include: [{
           model: Users,
           as: 'owner',
-          attributes: user_attrs_slim
+          attributes: user_attrs_slim,
+          include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
         }]
       })
       .then((model: Model | null) => {

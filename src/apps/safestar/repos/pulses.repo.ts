@@ -11,6 +11,7 @@ import { IPulse, IPulseMessage } from '../interfaces/pulse.interface';
 import { PulseMessages, Pulses } from '../models/pulse.model';
 import { getAll, getCount, paginateTable } from '../../_common/repos/_common.repo';
 import { IMyModel } from '../../_common/models/common.model-types';
+import { SafestarUsersInfo } from '../models/user.model';
 
 
 
@@ -19,6 +20,7 @@ export const pulseIncludes = [{
   model: Users,
   as: `owner`,
   attributes: user_attrs_slim,
+  include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
 }, {
   model: PulseMessages,
   as: `messages`,
@@ -26,6 +28,7 @@ export const pulseIncludes = [{
     model: Users,
     as: `owner`,
     attributes: user_attrs_slim,
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
   }]
 }];
 
@@ -133,7 +136,8 @@ export function create_pulse_message(params: {
         include: [{
           model: Users,
           as: 'owner',
-          attributes: user_attrs_slim
+          attributes: user_attrs_slim,
+          include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
         }]
       })
       .then((model: Model | null) => {

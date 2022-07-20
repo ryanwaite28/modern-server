@@ -10,6 +10,7 @@ import { convertModels, user_attrs_slim, convertModel } from '../safestar.chambe
 import { Users } from '../../_common/models/user.model';
 import { getAll, getCount, paginateTable } from '../../_common/repos/_common.repo';
 import { MyModelStatic } from '../../_common/models/common.model-types';
+import { SafestarUsersInfo } from '../models/user.model';
 
 
 
@@ -17,10 +18,12 @@ export const checkpointUsersInclude = [{
   model: Users,
   as: 'check_user',
   attributes: user_attrs_slim,
+  include: [{ model: SafestarUsersInfo, as: 'safestar_info' }]
 }, {
   model: Users,
   as: 'user',
   attributes: user_attrs_slim,
+  include: [{ model: SafestarUsersInfo, as: 'safestar_info' }]
 }];
 
 

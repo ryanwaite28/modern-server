@@ -4,6 +4,7 @@ import { ITracking } from "../interfaces/tracking.interface";
 import { Trackings, TrackingRequests } from "../models/tracking.model";
 import { getAll, getCount, paginateTable } from '../../_common/repos/_common.repo';
 import { convertModels, user_attrs_slim } from "../../_common/common.chamber";
+import { SafestarUsersInfo } from "../models/user.model";
 
 
 
@@ -13,11 +14,13 @@ export function check_user_tracking(you_id: number, user_id: number) {
     include: [{
       model: Users,
       as: 'track_user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }, {
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }],
   });
 }
@@ -28,11 +31,13 @@ export function check_user_tracking_request(you_id: number, user_id: number) {
     include: [{
       model: Users,
       as: 'tracking',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }, {
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }],
   });
 }
@@ -101,7 +106,8 @@ export async function get_user_trackers_all(
     include: [{
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   }).then((models) => {
     return convertModels<ITracking>(models);
@@ -117,7 +123,8 @@ export async function get_user_trackings_all(
     include: [{
       model: Users,
       as: 'track_user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   });
   return trackings;
@@ -135,11 +142,13 @@ export async function get_user_trackers(
     [{
       model: Users,
       as: 'track_user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }, {
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }],
   );
   return trackers;
@@ -157,11 +166,13 @@ export async function get_user_trackings(
     [{
       model: Users,
       as: 'track_user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }, {
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   );
   return trackings;
@@ -177,7 +188,8 @@ export async function get_user_tracker_requests_all(
     include: [{
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   });
   return trackers;
@@ -191,7 +203,8 @@ export async function get_user_tracking_requests_all(
     include: [{
       model: Users,
       as: 'tracking',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   });
   return trackings;
@@ -205,7 +218,8 @@ export async function get_user_tracker_requests_pending_all(
     include: [{
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   });
   return trackers;
@@ -219,7 +233,8 @@ export async function get_user_tracking_requests_pending_all(
     include: [{
       model: Users,
       as: 'tracking',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   });
   return trackings;
@@ -237,11 +252,13 @@ export async function get_user_tracker_requests_pending(
     [{
       model: Users,
       as: 'tracking',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }, {
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }],
     undefined,
     undefined,
@@ -262,11 +279,13 @@ export async function get_user_tracking_requests_pending(
     [{
       model: Users,
       as: 'tracking',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }, {
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }],
     undefined,
     undefined,
@@ -288,11 +307,13 @@ export async function get_user_tracker_requests(
     [{
       model: Users,
       as: 'tracking',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }, {
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   );
   return trackers;
@@ -310,11 +331,13 @@ export async function get_user_tracking_requests(
     [{
       model: Users,
       as: 'tracking',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }, {
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   );
   return trackings;

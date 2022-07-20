@@ -11,6 +11,7 @@ import { IWatch, IWatchMember } from '../interfaces/watch.interface';
 import { convertModel, user_attrs_slim } from '../../_common/common.chamber';
 import { Users } from '../../_common/models/user.model';
 import { PlainObject } from '../../_common/interfaces/common.interface';
+import { SafestarUsersInfo } from '../models/user.model';
 
 
 
@@ -29,7 +30,8 @@ export async function get_watch_members_all(watch_id: number) {
     include: [{
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   });
 
@@ -46,7 +48,8 @@ export async function get_watch_members(watch_id: number, member_id?: number) {
     include: [{
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }],
     limit: 10,
     order: [['id', 'DESC']]
@@ -89,7 +92,8 @@ export async function find_or_create_watch_member(user_id: number, watch_id: num
     include: [{
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     }]
   });
 
@@ -103,7 +107,8 @@ export async function find_or_create_watch_member(user_id: number, watch_id: num
       include: [{
         model: Users,
         as: 'user',
-        attributes: user_attrs_slim
+        attributes: user_attrs_slim,
+        include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
       }]
     }); 
   }

@@ -12,6 +12,7 @@ import {
 import { PlainObject } from '../../_common/interfaces/common.interface';
 import { Users } from '../../_common/models/user.model';
 import { SafestarConversationMembers } from '../models/conversation.model';
+import { SafestarUsersInfo } from '../models/user.model';
 import { user_attrs_slim } from '../safestar.chamber';
 
 
@@ -22,7 +23,8 @@ export async function get_conversation_members_all(conversation_id: number) {
     include: [{
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }]
     }]
   });
 
@@ -39,7 +41,8 @@ export async function get_conversation_members(conversation_id: number, member_i
     include: [{
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }]
     }],
     limit: 10,
     order: [['id', 'DESC']]
@@ -82,7 +85,8 @@ export async function find_or_create_conversation_member(user_id: number, conver
     include: [{
       model: Users,
       as: 'user',
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }]
     }]
   });
 
@@ -96,7 +100,8 @@ export async function find_or_create_conversation_member(user_id: number, conver
       include: [{
         model: Users,
         as: 'user',
-        attributes: user_attrs_slim
+        attributes: user_attrs_slim,
+        include: [{ model: SafestarUsersInfo, as: 'safestar_info' }]
       }]
     }); 
   }

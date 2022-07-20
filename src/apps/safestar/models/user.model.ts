@@ -27,9 +27,9 @@ SafestarUsersInfo.init({
   uuid:                                { type: DataTypes.STRING, unique: true, defaultValue: DataTypes.UUIDV1 },
 }, {
   ...common_options,
-  tableName: 'safestar_users',
+  tableName: 'safestar_users_info',
   modelName: 'user',
-  indexes: [{ unique: true, fields: ['email', 'uuid']} ],
+  indexes: [{ unique: true, fields: ['uuid']} ],
 });
 
 export class SafestarUserLocationUpdates extends Model {}

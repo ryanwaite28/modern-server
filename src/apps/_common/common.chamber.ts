@@ -818,6 +818,7 @@ export function getRandomItem(array: any[]) {
 }
 
 export function generateJWT(data: any) {
+  // console.log(`generateJWT:`, { data });
   try {
     const jwt_token = jwt_sign(data, (<string> process.env.JWT_SECRET));
     return jwt_token || null;
@@ -830,6 +831,7 @@ export function generateJWT(data: any) {
 export function decodeJWT(token: any) {
   try {
     const data = jwt_verify(token, (<string> process.env.JWT_SECRET));
+    // console.log(`decodeJWT:`, { data });
     return data;
   } catch (e) {
     console.log(e);

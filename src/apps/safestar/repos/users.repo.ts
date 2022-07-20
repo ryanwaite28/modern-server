@@ -11,7 +11,7 @@ import { Fn } from 'sequelize/types/lib/utils';
 import { convertModel, convertModels, user_attrs_slim } from '../../_common/common.chamber';
 import { Users } from '../../_common/models/user.model';
 import { ISafestarUser, IApiKey, IUserLocationUpdate } from '../interfaces/safestar.interface';
-import { SafestarUserLocationUpdates } from '../models/user.model';
+import { SafestarUserLocationUpdates, SafestarUsersInfo } from '../models/user.model';
 
 
 
@@ -20,7 +20,8 @@ export async function get_user_by_where(
 ) {
   const user_model = await Users.findOne({
     where: whereClause,
-    attributes: user_attrs_slim
+    attributes: user_attrs_slim,
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
   })
   .then((user) => {
     return convertModel<ISafestarUser>(<Model> user);
@@ -49,6 +50,7 @@ export async function get_random_users(
   const users = await Users.findAll({
     limit,
     order: [fn( 'RANDOM' )],
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     attributes: [
       'id',
       'firstname',
@@ -73,7 +75,8 @@ export async function get_user_by_email(
   try {
     const userModel = await Users.findOne({
       where: { email },
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     })
     .then((user) => {
       return convertModel<ISafestarUser>(<Model> user);
@@ -91,7 +94,8 @@ export async function get_user_by_paypal(
   try {
     const userModel = await Users.findOne({
       where: { paypal },
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     })
     .then((user) => {
       return convertModel<ISafestarUser>(<Model> user);
@@ -108,7 +112,8 @@ export function get_recent_users(you_id: number) {
     where: { id: {[Op.ne]: (you_id || -1)} },
     order: [['id', 'DESC']],
     limit: 20,
-    attributes: user_attrs_slim
+    attributes: user_attrs_slim,
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
   })
   .then((users) => {
     return convertModels<ISafestarUser>(<Model[]> users);
@@ -124,7 +129,8 @@ export async function get_user_by_phone(
       : phone;
     const userModel = await Users.findOne({
       where: { phone: usePhone },
-      attributes: user_attrs_slim
+      attributes: user_attrs_slim,
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     })
     .then((user) => {
       return convertModel<ISafestarUser>(<Model> user);
@@ -141,7 +147,7 @@ export async function get_user_by_phone(
 export async function get_user_by_id(id: number, excludes?: string[]) {
   const user_model = await Users.findOne({
     where: { id },
-    include: [],
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     attributes: {
       exclude: excludes || ['password']
     }
@@ -157,6 +163,7 @@ export async function get_user_by_username(
 ) {
   const user_model = await Users.findOne({
     where: { username },
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
   })
   .then((user) => {
     return convertModel<ISafestarUser>(<Model> user);
@@ -170,6 +177,7 @@ export async function get_user_by_uuid(
   try {
     const user_model = await Users.findOne({
       where: { uuid },
+      include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     })
     .then((user) => {
       return convertModel<ISafestarUser>(<Model> user);
@@ -260,7 +268,8 @@ export function find_users_by_name(query_term: string) {
       ]
     },
     attributes: user_attrs_slim,
-    limit: 20
+    limit: 20,
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
   });
 }
 
@@ -277,7 +286,8 @@ export function find_users_by_username(query_term: string) {
       ]
     },
     attributes: user_attrs_slim,
-    limit: 20
+    limit: 20,
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
   });
 }
 
@@ -303,7 +313,8 @@ export function find_users_by_name_or_username(query_term: string) {
       ]
     },
     attributes: user_attrs_slim,
-    limit: 20
+    limit: 20,
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
   });
 }
 
@@ -315,6 +326,7 @@ export function find_users_within_radius_of_point(lat: number, lng: number, you_
       id: { [Op.ne]: you_id || -1 },
       // '$distance$': { [Op.lte]: 5 },
     },
+    include: [{ model: SafestarUsersInfo, as: 'safestar_info' }],
     attributes: {
       include: [
         [literal("3958 * acos(cos(radians("+lat+")) * cos(radians(latest_lat)) * cos(radians("+lng+") - radians(latest_lng)) + sin(radians("+lat+")) * sin(radians(latest_lat)))"), 'distance']
